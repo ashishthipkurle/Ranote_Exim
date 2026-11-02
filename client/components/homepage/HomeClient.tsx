@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import TrendingCategories from "@/components/ui/TrendingCategories";
@@ -20,9 +20,36 @@ import MissionScrollSection from "@/components/homepage/MissionScrollSection";
 import HomeMobile from "@/components/homepage/HomeMobile";
 import SriLankaCampaign from "@/components/homepage/SriLankaCampaign";
 
-export default function HomeClient() {
+interface HomeClientProps {
+  initialShowHeroVideo?: boolean;
+}
+
+export default function HomeClient({ initialShowHeroVideo = true }: HomeClientProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [showHeroVideo, setShowHeroVideo] = useState<boolean>(initialShowHeroVideo);
+
+  // Synchronize with live settings and ensure CinematicPreloader doesn't pause when video is disabled
+  useEffect(() => {
+    if (!showHeroVideo) {
+      (window as any).homeVideoReady = true;
+      window.dispatchEvent(new Event("home-video-ready"));
+    }
+
+    // Client-side fallback check to pick up live toggles without hard refresh
+    fetch("/api/admin/homepage-settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.settings && typeof data.settings.showHeroVideo === "boolean") {
+          setShowHeroVideo(data.settings.showHeroVideo);
+          if (!data.settings.showHeroVideo) {
+            (window as any).homeVideoReady = true;
+            window.dispatchEvent(new Event("home-video-ready"));
+          }
+        }
+      })
+      .catch(() => {});
+  }, [showHeroVideo]);
 
   // Returning USER (B2C) → auto-redirect to marketplace
   useEffect(() => {
@@ -30,6 +57,7 @@ export default function HomeClient() {
       router.replace("/products");
     }
   }, [user, loading, router]);
+
   /* Global scroll-reveal observers and parallax globe handler */
   useEffect(() => {
     // Reveal-trigger: fade-in + slide-up on first intersection
@@ -76,7 +104,7 @@ export default function HomeClient() {
     <div className="bg-background text-foreground font-display selection:bg-primary selection:text-white w-full">
       {/* ─── Desktop & Tablet View ─── */}
       <div className="hidden md:block">
-        <ScrollVideoSection />
+        {showHeroVideo && <ScrollVideoSection />}
 
         {/* ─── Marketplace Content Reveal Wrapper ─── */}
         <div

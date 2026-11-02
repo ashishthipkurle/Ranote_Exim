@@ -73,7 +73,7 @@ export default function HomeHero() {
   return (
     <header
       ref={sectionRef}
-      className="relative min-h-[650px] lg:min-h-[750px] flex items-center justify-center overflow-hidden pt-6 md:pt-10 pb-12 bg-background transition-colors duration-500"
+      className="relative min-h-[650px] lg:min-h-[750px] flex flex-col items-center justify-start overflow-hidden pt-12 sm:pt-16 md:pt-20 lg:pt-24 pb-16 md:pb-20 bg-background transition-colors duration-500"
     >
       <div className="absolute inset-0 z-0">
 
@@ -99,7 +99,7 @@ export default function HomeHero() {
         <div className="absolute bottom-1/3 right-1/4 w-[35rem] h-[35rem] bg-indigo-500/20 dark:bg-indigo-600/10 rounded-full blur-[140px] transition-opacity duration-500 opacity-20 dark:opacity-100 pointer-events-none" aria-hidden="true" />
       </div>
 
-      <div className="relative z-10 container mx-auto px-6 text-center flex flex-col items-center justify-center h-full mt-2">
+      <div className="relative z-10 container mx-auto px-6 text-center flex flex-col items-center justify-center h-full mt-2 sm:mt-4 md:mt-6">
 
         <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-foreground mb-5 tracking-tight leading-[1.08] drop-shadow-2xl transition-colors duration-500 flex flex-col items-center gap-1 sm:gap-2">
           <span>{t("hero.title_part1", "EXPORTING INDIA'S QUALITY")}</span>
