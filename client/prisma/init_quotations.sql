@@ -24,3 +24,4 @@ CREATE TABLE IF NOT EXISTS "quotation_items" (
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS "quotation_items_quotationRequestId_idx" ON "quotation_items"("quotationRequestId");
 CREATE INDEX IF NOT EXISTS "quotation_requests_createdAt_idx" ON "quotation_requests"("createdAt" DESC);
+

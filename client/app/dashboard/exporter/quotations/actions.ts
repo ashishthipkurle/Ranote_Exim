@@ -16,3 +16,4 @@ export async function updateQuotationStatus(id: string, status: string) {
     return { success: false, error: error?.message || "Failed to update quotation" };
   }
 }
+
