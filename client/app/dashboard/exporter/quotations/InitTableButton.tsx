@@ -4,19 +4,19 @@ import { useState } from "react";
 import { initQuotationsTable } from "./actions";
 import { Loader2, Database } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
 export default function InitTableButton() {
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleInit = async () => {
     setLoading(true);
     try {
       const res = await initQuotationsTable();
       if (res?.success) {
-        toast.success("Database tables created successfully!");
-        router.refresh();
+        toast.success("Database tables created successfully! Reloading...");
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
       } else {
         toast.error(res?.error || "Failed to initialize tables");
       }
@@ -48,4 +48,3 @@ export default function InitTableButton() {
     </button>
   );
 }
-

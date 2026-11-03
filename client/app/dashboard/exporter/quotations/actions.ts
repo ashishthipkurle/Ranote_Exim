@@ -19,6 +19,7 @@ export async function updateQuotationStatus(id: string, status: string) {
 
 export async function initQuotationsTable() {
   try {
+    // Execute each DDL statement separately (PostgreSQL prepared statements allow only 1 command per invocation)
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "quotation_requests" (
         "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
@@ -30,7 +31,7 @@ export async function initQuotationsTable() {
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "quotation_requests_pkey" PRIMARY KEY ("id")
-      );
+      )
     `);
 
     await prisma.$executeRawUnsafe(`
@@ -41,12 +42,15 @@ export async function initQuotationsTable() {
         "quantity" INTEGER NOT NULL,
         CONSTRAINT "quotation_items_pkey" PRIMARY KEY ("id"),
         CONSTRAINT "quotation_items_quotationRequestId_fkey" FOREIGN KEY ("quotationRequestId") REFERENCES "quotation_requests"("id") ON DELETE CASCADE ON UPDATE CASCADE
-      );
+      )
     `);
 
     await prisma.$executeRawUnsafe(`
-      CREATE INDEX IF NOT EXISTS "quotation_items_quotationRequestId_idx" ON "quotation_items"("quotationRequestId");
-      CREATE INDEX IF NOT EXISTS "quotation_requests_createdAt_idx" ON "quotation_requests"("createdAt" DESC);
+      CREATE INDEX IF NOT EXISTS "quotation_items_quotationRequestId_idx" ON "quotation_items"("quotationRequestId")
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "quotation_requests_createdAt_idx" ON "quotation_requests"("createdAt" DESC)
     `);
 
     revalidatePath("/dashboard/exporter/quotations");
