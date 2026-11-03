@@ -5,7 +5,7 @@ import { ProductCategory } from "@prisma/client";
 import {
   Plus, Trash2, LayoutTemplate, Star, MonitorSmartphone, PackageSearch,
   Activity, ChevronUp, ChevronDown, Search, X, Eye, EyeOff, Pencil,
-  Check, GripVertical, Sparkles, Hash
+  Check, GripVertical, Sparkles, Hash, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,6 +31,8 @@ export default function AdminShowcasePage() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ subtitle: "", tag: "", desc: "" });
+  const [deleteModalItem, setDeleteModalItem] = useState<ShowcaseItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchItems = async () => {
@@ -133,12 +135,14 @@ export default function AdminShowcasePage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Remove this item from the homepage showcase?")) return;
+  const confirmDelete = async () => {
+    if (!deleteModalItem) return;
+    setIsDeleting(true);
     try {
-      const res = await fetch(`/api/exporter/showcase/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/exporter/showcase/${deleteModalItem.id}`, { method: "DELETE" });
       if (res.ok) {
         toast.success("Item removed from the showcase.");
+        setDeleteModalItem(null);
         fetchItems();
       } else {
         toast.error("Failed to remove item.");
@@ -146,6 +150,8 @@ export default function AdminShowcasePage() {
     } catch (err) {
       console.error(err);
       toast.error("Server connection error.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -592,8 +598,8 @@ export default function AdminShowcasePage() {
 
                               {/* Delete */}
                               <button 
-                                onClick={() => handleDelete(item.id)}
-                                className="h-9 w-9 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all"
+                                onClick={() => setDeleteModalItem(item)}
+                                className="h-9 w-9 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all cursor-pointer"
                                 title="Remove from showcase"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -624,6 +630,73 @@ export default function AdminShowcasePage() {
 
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+            onClick={() => !isDeleting && setDeleteModalItem(null)}
+          />
+
+          {/* Dialog Card */}
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-6 overflow-hidden z-10 animate-in zoom-in-95 fade-in duration-200">
+            <button
+              onClick={() => !isDeleting && setDeleteModalItem(null)}
+              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div className="flex-1 pr-4">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  Remove from Showcase
+                </h3>
+                <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Are you sure you want to remove <span className="font-semibold text-slate-900 dark:text-white">&ldquo;{deleteModalItem.title}&rdquo;</span> from the homepage showcase?
+                </p>
+                <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                  This product will remain in your inventory and can be featured again anytime.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-white/5">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setDeleteModalItem(null)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={confirmDelete}
+                className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-all shadow-sm shadow-red-600/30 flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Removing...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Remove Item
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
