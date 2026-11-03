@@ -1,26 +1,45 @@
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
-import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowLeft, FileText, CheckCircle, Clock } from "lucide-react";
+import { redirect } from "next/navigation";
+import { ArrowLeft, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { getServerAuthContext } from "@/lib/auth-server";
+import QuotationStatusButtons from "./QuotationStatusButtons";
 
 export const dynamic = "force-dynamic";
 
 export default async function QuotationsAdminPage() {
-  const quotations = await prisma.quotationRequest.findMany({
-    include: {
-      items: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  const auth = await getServerAuthContext();
+  if (!auth) redirect("/login");
+  if (auth.role !== "EXPORTER" && auth.role !== "ADMIN") {
+    redirect(`/dashboard/${auth.role.toLowerCase()}`);
+  }
+
+  let quotations: any[] = [];
+  let dbError: string | null = null;
+
+  try {
+    quotations = await prisma.quotationRequest.findMany({
+      include: {
+        items: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  } catch (error: any) {
+    console.error("Error fetching quotation requests:", error);
+    dbError = error?.message || "Could not query quotation requests.";
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto min-h-screen">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <Link href="/dashboard/exporter" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
+          <Link
+            href="/dashboard/exporter"
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Link>
@@ -30,6 +49,47 @@ export default async function QuotationsAdminPage() {
           </p>
         </div>
       </div>
+
+      {dbError && (
+        <div className="mb-6 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="flex-1 text-sm">
+              <p className="font-semibold text-amber-800 dark:text-amber-300">
+                Database Table Not Initialized
+              </p>
+              <p className="mt-1 opacity-90">
+                The database table for quotation requests has not been created yet in Supabase Postgres. Run the SQL script below in your Supabase SQL Editor to enable quotation storage:
+              </p>
+              <div className="mt-3 p-3 bg-black/40 text-amber-100 rounded-lg font-mono text-xs overflow-x-auto select-all">
+                {`CREATE TABLE IF NOT EXISTS "quotation_requests" (
+  "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+  "clientName" TEXT NOT NULL,
+  "clientEmail" TEXT NOT NULL,
+  "clientPhone" TEXT,
+  "businessName" TEXT,
+  "status" TEXT NOT NULL DEFAULT 'PENDING',
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "quotation_requests_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "quotation_items" (
+  "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+  "quotationRequestId" TEXT NOT NULL,
+  "productName" TEXT NOT NULL,
+  "quantity" INTEGER NOT NULL,
+  CONSTRAINT "quotation_items_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "quotation_items_quotationRequestId_fkey" FOREIGN KEY ("quotationRequestId") REFERENCES "quotation_requests"("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS "quotation_items_quotationRequestId_idx" ON "quotation_items"("quotationRequestId");
+CREATE INDEX IF NOT EXISTS "quotation_requests_createdAt_idx" ON "quotation_requests"("createdAt" DESC);`}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -43,7 +103,7 @@ export default async function QuotationsAdminPage() {
                 <th className="px-6 py-4">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y border-border">
               {quotations.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
@@ -54,9 +114,9 @@ export default async function QuotationsAdminPage() {
                 quotations.map((quote) => (
                   <tr key={quote.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-foreground font-medium">
-                      {format(new Date(quote.createdAt), "MMM d, yyyy")}
+                      {quote.createdAt ? format(new Date(quote.createdAt), "MMM d, yyyy") : "-"}
                       <div className="text-xs text-muted-foreground font-normal">
-                        {format(new Date(quote.createdAt), "h:mm a")}
+                        {quote.createdAt ? format(new Date(quote.createdAt), "h:mm a") : ""}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-foreground">
@@ -69,93 +129,65 @@ export default async function QuotationsAdminPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-muted-foreground">
-                      <a href={`mailto:${quote.clientEmail}`} className="hover:text-primary transition-colors flex items-center mb-1">
+                      <a
+                        href={`mailto:${quote.clientEmail}`}
+                        className="hover:text-primary transition-colors flex items-center mb-1"
+                      >
                         <span className="material-symbols-outlined text-[14px] mr-1">mail</span>
                         {quote.clientEmail}
                       </a>
-                      {(quote as any).clientPhone && (
-                        <a href={`tel:${(quote as any).clientPhone}`} className="hover:text-primary transition-colors flex items-center">
+                      {quote.clientPhone && (
+                        <a
+                          href={`tel:${quote.clientPhone}`}
+                          className="hover:text-primary transition-colors flex items-center"
+                        >
                           <span className="material-symbols-outlined text-[14px] mr-1">call</span>
-                          {(quote as any).clientPhone}
+                          {quote.clientPhone}
                         </a>
                       )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1">
-                        {quote.items.map((item) => (
-                          <div key={item.id} className="flex items-center text-xs bg-muted px-2 py-1 rounded">
-                            <span className="font-medium text-foreground max-w-[150px] truncate mr-2" title={item.productName}>
-                              {item.productName}
-                            </span>
-                            <span className="text-primary font-bold ml-auto">
-                              x{item.quantity}
-                            </span>
-                          </div>
-                        ))}
+                        {quote.items && quote.items.length > 0 ? (
+                          quote.items.map((item: any) => (
+                            <div
+                              key={item.id}
+                              className="flex items-center text-xs bg-muted px-2 py-1 rounded"
+                            >
+                              <span
+                                className="font-medium text-foreground max-w-[150px] truncate mr-2"
+                                title={item.productName}
+                              >
+                                {item.productName}
+                              </span>
+                              <span className="text-primary font-bold ml-auto">
+                                x{item.quantity}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-xs text-muted-foreground">No specific products</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          quote.status === "PENDING" ? "bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-500" :
-                          quote.status === "RESPONDED" ? "bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-500" :
-                          "bg-green-100 text-green-800 dark:bg-green-500/10 dark:text-green-500"
-                        }`}>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            quote.status === "PENDING"
+                              ? "bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-500"
+                              : quote.status === "RESPONDED"
+                              ? "bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-500"
+                              : "bg-green-100 text-green-800 dark:bg-green-500/10 dark:text-green-500"
+                          }`}
+                        >
                           {quote.status === "PENDING" && <Clock className="w-3 h-3 mr-1" />}
                           {quote.status !== "PENDING" && <CheckCircle className="w-3 h-3 mr-1" />}
                           {quote.status}
                         </span>
-                        
-                        <form action={async (formData) => {
-                          "use server";
-                          const newStatus = formData.get("status") as string;
-                          const { revalidatePath } = require("next/cache");
-                          await prisma.quotationRequest.update({
-                            where: { id: quote.id },
-                            data: { status: newStatus }
-                          });
-                          revalidatePath("/dashboard/exporter/quotations");
-                        }}>
-                          <select 
-                            name="status"
-                            className="hidden"
-                          />
-                        </form>
                       </div>
-                      
-                      <div className="mt-2 flex items-center gap-2">
-                        <form action={async () => {
-                          "use server";
-                          const { revalidatePath } = require("next/cache");
-                          await prisma.quotationRequest.update({
-                            where: { id: quote.id },
-                            data: { status: "RESPONDED" }
-                          });
-                          revalidatePath("/dashboard/exporter/quotations");
-                        }}>
-                          {quote.status !== "RESPONDED" && (
-                            <button type="submit" className="text-[10px] uppercase font-bold text-blue-500 hover:text-blue-700 bg-blue-500/10 px-2 py-1 rounded transition-colors">
-                              Mark Responded
-                            </button>
-                          )}
-                        </form>
 
-                        <form action={async () => {
-                          "use server";
-                          const { revalidatePath } = require("next/cache");
-                          await prisma.quotationRequest.update({
-                            where: { id: quote.id },
-                            data: { status: "CLOSED" }
-                          });
-                          revalidatePath("/dashboard/exporter/quotations");
-                        }}>
-                          {quote.status !== "CLOSED" && (
-                            <button type="submit" className="text-[10px] uppercase font-bold text-green-500 hover:text-green-700 bg-green-500/10 px-2 py-1 rounded transition-colors">
-                              Mark Closed
-                            </button>
-                          )}
-                        </form>
-                      </div>
+                      <QuotationStatusButtons quoteId={quote.id} currentStatus={quote.status} />
                     </td>
                   </tr>
                 ))
