@@ -63,6 +63,11 @@ export default async function QuotationsAdminPage() {
                 <p className="mt-1 opacity-90 text-sm">
                   The <code className="px-1.5 py-0.5 bg-amber-500/20 rounded font-mono text-xs">quotation_requests</code> table has not been created in Supabase yet.
                 </p>
+                {dbError && (
+                  <p className="mt-2 text-xs font-mono text-red-600 dark:text-red-400 bg-red-500/10 p-2 rounded border border-red-500/20 break-all">
+                    Details: {dbError}
+                  </p>
+                )}
               </div>
 
               <div>
