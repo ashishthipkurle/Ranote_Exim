@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, CheckCircle, Clock, AlertTriangle } from "lucide-react";
 import { getServerAuthContext } from "@/lib/auth-server";
 import QuotationStatusButtons from "./QuotationStatusButtons";
+import InitTableButton from "./InitTableButton";
 
 export const dynamic = "force-dynamic";
 
@@ -51,18 +52,29 @@ export default async function QuotationsAdminPage() {
       </div>
 
       {dbError && (
-        <div className="mb-6 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200">
+        <div className="mb-6 p-5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-950 dark:text-amber-200">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div className="flex-1 text-sm">
-              <p className="font-semibold text-amber-800 dark:text-amber-300">
-                Database Table Not Initialized
-              </p>
-              <p className="mt-1 opacity-90">
-                The database table for quotation requests has not been created yet in Supabase Postgres. Run the SQL script below in your Supabase SQL Editor to enable quotation storage:
-              </p>
-              <div className="mt-3 p-3 bg-black/40 text-amber-100 rounded-lg font-mono text-xs overflow-x-auto select-all">
-                {`CREATE TABLE IF NOT EXISTS "quotation_requests" (
+            <div className="flex-1 text-sm space-y-3">
+              <div>
+                <p className="font-semibold text-amber-800 dark:text-amber-300 text-base">
+                  Database Table Setup Required
+                </p>
+                <p className="mt-1 opacity-90 text-sm">
+                  The <code className="px-1.5 py-0.5 bg-amber-500/20 rounded font-mono text-xs">quotation_requests</code> table has not been created in Supabase yet.
+                </p>
+              </div>
+
+              <div>
+                <InitTableButton />
+              </div>
+
+              <div className="pt-2 border-t border-amber-500/20">
+                <p className="text-xs font-medium text-amber-800 dark:text-amber-300 mb-1.5">
+                  Or run this SQL in your Supabase SQL Editor:
+                </p>
+                <div className="p-3 bg-black/50 text-amber-100 rounded-lg font-mono text-xs overflow-x-auto select-all">
+                  {`CREATE TABLE IF NOT EXISTS "quotation_requests" (
   "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
   "clientName" TEXT NOT NULL,
   "clientEmail" TEXT NOT NULL,
@@ -85,6 +97,7 @@ CREATE TABLE IF NOT EXISTS "quotation_items" (
 
 CREATE INDEX IF NOT EXISTS "quotation_items_quotationRequestId_idx" ON "quotation_items"("quotationRequestId");
 CREATE INDEX IF NOT EXISTS "quotation_requests_createdAt_idx" ON "quotation_requests"("createdAt" DESC);`}
+                </div>
               </div>
             </div>
           </div>
