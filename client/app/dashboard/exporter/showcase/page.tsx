@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { ProductCategory } from "@prisma/client";
 import {
   Plus, Trash2, LayoutTemplate, Star, MonitorSmartphone, PackageSearch,
@@ -33,7 +34,12 @@ export default function AdminShowcasePage() {
   const [editForm, setEditForm] = useState({ subtitle: "", tag: "", desc: "" });
   const [deleteModalItem, setDeleteModalItem] = useState<ShowcaseItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -631,20 +637,20 @@ export default function AdminShowcasePage() {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {deleteModalItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Delete Confirmation Modal - Portaled to document.body so header & sidebar sink in */}
+      {mounted && deleteModalItem && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+            className="fixed inset-0 bg-black/70 backdrop-blur-md transition-opacity animate-in fade-in duration-200"
             onClick={() => !isDeleting && setDeleteModalItem(null)}
           />
 
           {/* Dialog Card */}
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-6 overflow-hidden z-10 animate-in zoom-in-95 fade-in duration-200">
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-6 overflow-hidden z-[10000] animate-in zoom-in-95 fade-in duration-200">
             <button
               onClick={() => !isDeleting && setDeleteModalItem(null)}
-              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -695,7 +701,8 @@ export default function AdminShowcasePage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
