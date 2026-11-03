@@ -7,6 +7,16 @@ export async function GET() {
   const result: any = {};
 
   try {
+    // Add clientPhone if missing
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "quotation_requests" ADD COLUMN IF NOT EXISTS "clientPhone" TEXT;
+    `);
+    result.columnAdded = true;
+  } catch (e: any) {
+    result.columnAddError = e.message;
+  }
+
+  try {
     const rawTables = await prisma.$queryRawUnsafe(`
       SELECT table_name, column_name, data_type 
       FROM information_schema.columns 

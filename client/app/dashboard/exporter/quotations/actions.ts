@@ -19,7 +19,7 @@ export async function updateQuotationStatus(id: string, status: string) {
 
 export async function initQuotationsTable() {
   try {
-    // Execute each DDL statement separately (PostgreSQL prepared statements allow only 1 command per invocation)
+    // 1. Create tables if they do not exist
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "quotation_requests" (
         "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
@@ -32,6 +32,14 @@ export async function initQuotationsTable() {
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "quotation_requests_pkey" PRIMARY KEY ("id")
       )
+    `);
+
+    // Ensure all required columns exist (in case the table already existed with an older schema)
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "quotation_requests" ADD COLUMN IF NOT EXISTS "clientPhone" TEXT
+    `);
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "quotation_requests" ADD COLUMN IF NOT EXISTS "businessName" TEXT
     `);
 
     await prisma.$executeRawUnsafe(`
