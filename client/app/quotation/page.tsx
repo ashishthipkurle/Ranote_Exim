@@ -17,25 +17,34 @@ export default async function QuotationPage() {
       }
     : null;
 
-  const [products, fetchedCategories] = await Promise.all([
-    prisma.product.findMany({
-      where: { available: true },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        name: true,
-        price: true,
-        images: true,
-        category: true,
-        certifications: true,
-        originCountry: true,
-      },
-    }),
-    prisma.product.findMany({
-      where: { available: true },
-      select: { category: true, certifications: true },
-    }),
-  ]);
+  let products: any[] = [];
+  let fetchedCategories: any[] = [];
+
+  try {
+    const [p, c] = await Promise.all([
+      prisma.product.findMany({
+        where: { available: true },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          images: true,
+          category: true,
+          certifications: true,
+          originCountry: true,
+        },
+      }),
+      prisma.product.findMany({
+        where: { available: true },
+        select: { category: true, certifications: true },
+      }),
+    ]);
+    products = p;
+    fetchedCategories = c;
+  } catch (err) {
+    console.error("Failed to fetch products for quotation page:", err);
+  }
 
   const categories = extractCategoriesFromProducts(fetchedCategories);
 

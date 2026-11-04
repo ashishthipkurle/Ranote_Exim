@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import { extractCategoriesFromProducts, getPrismaCategoryFilter, resolveProductCategory } from "@/lib/categories";
+import { extractCategoriesFromProducts, getPrismaCategoryFilter } from "@/lib/categories";
 import EmptyState from "@/components/ui/EmptyState";
 import ImporterSidebar from "@/components/importer/ImporterSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -90,6 +90,7 @@ export default async function ProductsPage({
   };
   let products: ProductWithExporter[] = [];
   let total = 0;
+  let allProductCategories: Array<{ category?: string | null; certifications?: string[] | null }> = [];
 
 
   try {
@@ -121,6 +122,7 @@ export default async function ProductsPage({
 
     products = fetchedProducts;
     total = fetchedTotal;
+    allProductCategories = fetchedCategories || [];
     
 
     // Apply role-based price swap and mock reviews array (since DB push failed)
@@ -157,7 +159,7 @@ export default async function ProductsPage({
     return `/products${qs ? `?${qs}` : ""}`;
   }
 
-  const visibleCategories = extractCategoriesFromProducts(fetchedCategories);
+  const visibleCategories = extractCategoriesFromProducts(allProductCategories);
 
   return (
     <SidebarProvider className="fixed inset-0 z-40 bg-board">
@@ -317,7 +319,7 @@ export default async function ProductsPage({
                           {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                             <Link
                               key={p}
-                              href={buildUrl({ page: p })}
+                              href={buildUrl({ page: p.toString() })}
                               className={`w-12 h-12 rounded-full flex items-center justify-center font-headline font-bold transition-all ${p === page ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "hover:bg-accent text-muted-foreground"}`}
                             >
                               {p}

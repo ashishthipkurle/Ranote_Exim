@@ -16,7 +16,12 @@ export default function GlobalError({
  console.error("Global Error Caught:", error);
  }, [error]);
 
- const isNetworkError = error.message === "NETWORK_ERROR" || error.message.includes("fetch");
+  const isNetworkError =
+    error.message === "NETWORK_ERROR" ||
+    error.message.toLowerCase().includes("failed to fetch") ||
+    error.message.toLowerCase().includes("network error") ||
+    error.message.toLowerCase().includes("networkerror") ||
+    error.message.toLowerCase().includes("econnrefused");
 
  return (
  <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">

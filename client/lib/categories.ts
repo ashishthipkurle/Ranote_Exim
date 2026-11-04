@@ -100,6 +100,7 @@ export function resolveProductCategory(product: {
 export function extractCategoriesFromProducts(
   products: Array<{ category?: string | null; certifications?: string[] | null }>
 ): ExtractedCategory[] {
+  if (!products || !Array.isArray(products)) return [];
   const map = new Map<string, ExtractedCategory>();
 
   for (const p of products) {
@@ -153,3 +154,4 @@ export function getPrismaCategoryFilter(categoryParam?: string): any {
     category: categoryParam,
   };
 }
+
