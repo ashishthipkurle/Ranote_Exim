@@ -90,7 +90,7 @@ export default async function ProductsPage({
   };
   let products: ProductWithExporter[] = [];
   let total = 0;
-  let allProductCategories: Array<{ category?: string | null; certifications?: string[] | null }> = [];
+  let allProductCategories: Array<{ id?: string; name?: string | null; category?: string | null; certifications?: string[] | null }> = [];
 
 
   try {
@@ -116,7 +116,7 @@ export default async function ProductsPage({
       prisma.product.count({ where }),
       prisma.product.findMany({
         where: { available: true },
-        select: { category: true, certifications: true },
+        select: { id: true, name: true, category: true, certifications: true },
       })
     ]);
 

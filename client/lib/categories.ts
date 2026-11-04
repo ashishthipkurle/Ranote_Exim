@@ -51,6 +51,7 @@ export interface ExtractedCategory {
  * Resolves an individual product's category to canonical { key, label, icon }
  */
 export function resolveProductCategory(product: {
+  name?: string | null;
   category?: string | null;
   certifications?: string[] | null;
 }): { key: string; label: string; icon: string } {
@@ -62,7 +63,7 @@ export function resolveProductCategory(product: {
       return {
         key: customCert,
         label: label || "Custom",
-        icon: "category",
+        icon: label.toLowerCase().includes("areca") ? "eco" : "category",
       };
     }
   }
@@ -70,13 +71,25 @@ export function resolveProductCategory(product: {
   const raw = (product.category || "").trim();
   const upper = raw.toUpperCase();
 
-  if (CATEGORY_DEFINITIONS[upper]) {
+  if (CATEGORY_DEFINITIONS[upper] && upper !== "OTHER") {
     const meta = CATEGORY_DEFINITIONS[upper];
     return {
       key: meta.key,
       label: meta.label,
       icon: meta.icon,
     };
+  }
+
+  // If category is OTHER or unset, check if product name has a known specialty keyword (e.g. Areca Leaf)
+  if (upper === "OTHER" || !upper) {
+    const nameLower = (product.name || "").toLowerCase();
+    if (nameLower.includes("areca")) {
+      return {
+        key: "CUSTOM_CAT:Areca Leaf",
+        label: "Areca Leaf",
+        icon: "eco",
+      };
+    }
   }
 
   if (raw && upper !== "OTHER") {
@@ -98,7 +111,7 @@ export function resolveProductCategory(product: {
  * Extracts distinct categories that actually exist on products created by admin in the database.
  */
 export function extractCategoriesFromProducts(
-  products: Array<{ category?: string | null; certifications?: string[] | null }>
+  products: Array<{ id?: string; name?: string | null; category?: string | null; certifications?: string[] | null }>
 ): ExtractedCategory[] {
   if (!products || !Array.isArray(products)) return [];
   const map = new Map<string, ExtractedCategory>();
@@ -137,8 +150,13 @@ export function getPrismaCategoryFilter(categoryParam?: string): any {
   if (!categoryParam) return {};
 
   if (categoryParam.startsWith("CUSTOM_CAT:")) {
+    const customName = categoryParam.replace("CUSTOM_CAT:", "").trim();
     return {
-      certifications: { has: categoryParam },
+      OR: [
+        { certifications: { has: categoryParam } },
+        { name: { contains: customName, mode: "insensitive" } },
+        { description: { contains: customName, mode: "insensitive" } },
+      ],
     };
   }
 

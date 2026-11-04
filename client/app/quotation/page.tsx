@@ -37,7 +37,7 @@ export default async function QuotationPage() {
       }),
       prisma.product.findMany({
         where: { available: true },
-        select: { category: true, certifications: true },
+        select: { id: true, name: true, category: true, certifications: true },
       }),
     ]);
     products = p;

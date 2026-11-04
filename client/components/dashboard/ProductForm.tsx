@@ -155,6 +155,13 @@ export default function ProductForm({
     const { name, value, type } = e.target;
     setErrors((prev) => ({ ...prev, [name]: "" }));
 
+    if (name === "category" && value === "CUSTOM") {
+      const defaultName = customCategory || "Areca Leaf";
+      setCustomCategory(defaultName);
+      setForm((prev) => ({ ...prev, category: `CUSTOM_CAT:${defaultName}` }));
+      return;
+    }
+
     if (type === "number") {
       setForm((prev) => ({ ...prev, [name]: parseFloat(value) || 0 }));
     } else {
@@ -206,8 +213,9 @@ export default function ProductForm({
       let certs = form.certifications.filter(c => !c.startsWith("CUSTOM_CAT:"));
       let finalCategory = form.category;
       
-      if (form.category.startsWith("CUSTOM_CAT:")) {
-        certs.push(form.category);
+      if (form.category.startsWith("CUSTOM_CAT:") || form.category === "CUSTOM") {
+        const catName = customCategory.trim() || form.category.replace("CUSTOM_CAT:", "").trim() || "Custom";
+        certs.push(`CUSTOM_CAT:${catName}`);
         finalCategory = "OTHER";
       }
 
@@ -312,17 +320,39 @@ export default function ProductForm({
                   <label className={labelClass}>Category *</label>
                   <select
                     name="category"
-                    value={form.category}
+                    value={form.category.startsWith("CUSTOM_CAT:") ? "CUSTOM" : form.category}
                     onChange={handleChange}
                     className={inputClass}
                   >
                     {CATEGORIES.map(c => (
                       <option key={c.value} value={c.value}>{c.label}</option>
                     ))}
+                    <option value="CUSTOM">Custom Category (Enter below)</option>
                     {customCategory && (
                        <option value={`CUSTOM_CAT:${customCategory}`}>{customCategory}</option>
                     )}
                   </select>
+                  {(form.category.startsWith("CUSTOM_CAT:") || form.category === "CUSTOM") && (
+                    <div className="mt-3">
+                      <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
+                        Custom Category Name *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Areca Leaf, Biodegradable Tableware, Spices..."
+                        value={customCategory}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCustomCategory(val);
+                          setForm((prev) => ({
+                            ...prev,
+                            category: val.trim() ? `CUSTOM_CAT:${val.trim()}` : "CUSTOM",
+                          }));
+                        }}
+                        className={inputClass}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className={labelClass}>Origin Country *</label>
