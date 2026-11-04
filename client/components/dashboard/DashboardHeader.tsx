@@ -44,7 +44,7 @@ export default function DashboardHeader() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const pathname = usePathname();
-  const isMarketplace = pathname === "/products" || pathname.startsWith("/products/") || ["/cart", "/checkout", "/wishlist", "/orders", "/profile"].includes(pathname);
+  const isMarketplace = pathname === "/products" || pathname.startsWith("/products/") || pathname === "/quotation" || ["/cart", "/checkout", "/wishlist", "/orders", "/profile"].includes(pathname);
   const isProductDetails = pathname.startsWith("/products/") && pathname !== "/products";
   const isExporter = pathname.startsWith("/dashboard/exporter");
   const isImporter = pathname.startsWith("/dashboard/importer");

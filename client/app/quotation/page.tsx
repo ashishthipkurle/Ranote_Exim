@@ -1,31 +1,50 @@
 import { prisma } from "@/lib/prisma";
 import QuotationClient from "./QuotationClient";
 import { getServerAuthContext } from "@/lib/auth-server";
-import HomeFooter from "@/components/homepage/HomeFooter";
+import { extractCategoriesFromProducts } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
 
 export default async function QuotationPage() {
   const auth = await getServerAuthContext();
   const isLoggedIn = !!auth;
-  const user = auth?.user ? {
-    name: auth.user.name,
-    email: auth.user.email,
-    phone: auth.user.phone,
-    businessName: auth.user.businessName,
-  } : null;
+  const user = auth?.user
+    ? {
+        name: auth.user.name,
+        email: auth.user.email,
+        phone: auth.user.phone,
+        businessName: auth.user.businessName,
+      }
+    : null;
 
-  const products = (await prisma.product.findMany({
-    where: { available: true },
-    orderBy: { createdAt: "desc" },
-  })) as any[];
+  const [products, fetchedCategories] = await Promise.all([
+    prisma.product.findMany({
+      where: { available: true },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        images: true,
+        category: true,
+        certifications: true,
+        originCountry: true,
+      },
+    }),
+    prisma.product.findMany({
+      where: { available: true },
+      select: { category: true, certifications: true },
+    }),
+  ]);
+
+  const categories = extractCategoriesFromProducts(fetchedCategories);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <main className="flex-grow">
-        <QuotationClient products={products} isLoggedIn={isLoggedIn} user={user} />
-      </main>
-      <HomeFooter />
-    </div>
+    <QuotationClient
+      products={products as any[]}
+      categories={categories}
+      isLoggedIn={isLoggedIn}
+      user={user}
+    />
   );
 }

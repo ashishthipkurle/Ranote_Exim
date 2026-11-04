@@ -70,7 +70,7 @@ export default function ImporterSidebar({ basePath, children }: { basePath: stri
  const isActive = (href: string) =>
  pathname === href || (href !== basePath && pathname.startsWith(href + "/"));
 
- const isMarketplace = pathname === "/products" || pathname.startsWith("/products/");
+ const isMarketplace = pathname === "/products" || pathname.startsWith("/products/") || pathname === "/quotation" || pathname.startsWith("/quotation/");
 
  return (
  <Sidebar variant="inset" className="border-r-0">

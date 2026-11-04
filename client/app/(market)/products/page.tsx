@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import { ProductCategory } from "@/lib/types";
+import { extractCategoriesFromProducts, getPrismaCategoryFilter, resolveProductCategory } from "@/lib/categories";
 import EmptyState from "@/components/ui/EmptyState";
 import ImporterSidebar from "@/components/importer/ImporterSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -13,19 +13,6 @@ import { getServerAuthContext } from "@/lib/auth-server";
 
 export const dynamic = "force-dynamic";
 
-const ALL_CATEGORIES: { value: ProductCategory; label: string }[] = [
-  { value: ProductCategory.ELECTRONICS, label: "Electronics" },
-  { value: ProductCategory.TEXTILES, label: "Textiles" },
-  { value: ProductCategory.FOOD, label: "Food" },
-  { value: ProductCategory.CHEMICALS, label: "Chemicals" },
-  { value: ProductCategory.MACHINES, label: "Machinery" },
-  { value: ProductCategory.MEDICAL, label: "Medical" },
-  { value: ProductCategory.HANDICRAFTS, label: "Handicrafts" },
-  { value: ProductCategory.AUTOMOTIVE, label: "Automotive" },
-  { value: ProductCategory.CONSTRUCTION, label: "Construction" },
-  { value: ProductCategory.AGRICULTURE, label: "Agriculture" },
-  { value: ProductCategory.OTHER, label: "Other" },
-];
 
 function formatMoney(amount: number) {
   return new Intl.NumberFormat(undefined, {
@@ -60,12 +47,8 @@ export default async function ProductsPage({
   const where: Prisma.ProductWhereInput = { available: true };
 
   if (categoryParam) {
-    if (categoryParam.startsWith("CUSTOM_CAT:")) {
-      where.category = "Other" as ProductCategory;
-      where.certifications = { has: categoryParam };
-    } else if (ALL_CATEGORIES.some((c) => c.value === categoryParam)) {
-      where.category = categoryParam as ProductCategory;
-    }
+    const catFilter = getPrismaCategoryFilter(categoryParam);
+    Object.assign(where, catFilter);
   }
 
   if (searchQuery && searchQuery.trim().length > 0) {
@@ -99,6 +82,7 @@ export default async function ProductsPage({
     regularPrice: number;
     originCountry: string;
     category: string;
+    certifications?: string[];
     images: string[];
     stockQty: number;
     exporter: { name: string | null; businessName: string | null; country: string | null };
@@ -107,7 +91,6 @@ export default async function ProductsPage({
   let products: ProductWithExporter[] = [];
   let total = 0;
 
-  let activeCategoryValues: string[] = [];
 
   try {
     const [fetchedProducts, fetchedTotal, fetchedCategories] = await Promise.all([
@@ -123,6 +106,7 @@ export default async function ProductsPage({
           regularPrice: true,
           originCountry: true,
           category: true,
+          certifications: true,
           images: true,
           stockQty: true,
           exporter: { select: { name: true, businessName: true, country: true } },
@@ -138,16 +122,6 @@ export default async function ProductsPage({
     products = fetchedProducts;
     total = fetchedTotal;
     
-    const baseCategories = new Set(fetchedCategories.map((c: any) => c.category?.toUpperCase() || c.category));
-    const customCats = new Set<string>();
-    fetchedCategories.forEach((c: any) => {
-      c.certifications?.forEach((cert: string) => {
-        if (cert.startsWith("CUSTOM_CAT:")) {
-          customCats.add(cert);
-        }
-      });
-    });
-    activeCategoryValues = [...Array.from(baseCategories), ...Array.from(customCats)];
 
     // Apply role-based price swap and mock reviews array (since DB push failed)
     products = products.map((p) => ({
@@ -183,30 +157,7 @@ export default async function ProductsPage({
     return `/products${qs ? `?${qs}` : ""}`;
   }
 
-  const iconMap: Record<string, string> = {
-    ELECTRONICS: "devices",
-    TEXTILES: "texture",
-    FOOD: "restaurant",
-    CHEMICALS: "science",
-    MACHINES: "precision_manufacturing",
-    MEDICAL: "medical_services",
-    HANDICRAFTS: "brush",
-    AUTOMOTIVE: "directions_car",
-    CONSTRUCTION: "architecture",
-    AGRICULTURE: "agriculture",
-    OTHER: "grid_view",
-  };
-
-  const visibleCategories = ALL_CATEGORIES.filter(cat => activeCategoryValues.includes(cat.value));
-  
-  // Add custom categories to the visible categories list
-  activeCategoryValues.forEach(val => {
-    if (val.startsWith("CUSTOM_CAT:")) {
-      const labelName = val.replace("CUSTOM_CAT:", "");
-      visibleCategories.push({ value: val as any, label: labelName });
-      iconMap[val] = "category"; // Default icon for custom categories
-    }
-  });
+  const visibleCategories = extractCategoriesFromProducts(fetchedCategories);
 
   return (
     <SidebarProvider className="fixed inset-0 z-40 bg-board">
@@ -233,15 +184,15 @@ export default async function ProductsPage({
                   </Link>
 
                   {visibleCategories.map((cat) => {
-                    const isActive = categoryParam === cat.value;
+                    const isActive = categoryParam === cat.key;
                     return (
                       <Link
-                        key={cat.value}
-                        href={buildUrl({ category: isActive ? undefined : cat.value, page: undefined })}
+                        key={cat.key}
+                        href={buildUrl({ category: isActive ? undefined : cat.key, page: undefined })}
                         className={`flex items-center px-2 py-2 rounded-lg transition-all group ${isActive ? "bg-primary/5 text-primary font-bold shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}
                       >
-                        <span className="material-symbols-outlined mr-3 text-[20px]">{iconMap[cat.value] || "category"}</span>
-                        <span className="font-headline font-semibold text-sm uppercase tracking-tight">{cat.label}</span>
+                        <span className="material-symbols-outlined mr-3 text-[20px]">{cat.icon}</span>
+                        <span className="font-headline font-semibold text-sm uppercase tracking-tight truncate">{cat.label}</span>
                       </Link>
                     );
                   })}
