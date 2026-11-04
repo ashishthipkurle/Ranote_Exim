@@ -73,7 +73,7 @@ export default function HomeHero() {
   return (
     <header
       ref={sectionRef}
-      className="relative min-h-[650px] lg:min-h-[750px] flex flex-col items-center justify-start overflow-hidden pt-12 sm:pt-16 md:pt-20 lg:pt-24 pb-16 md:pb-20 bg-background transition-colors duration-500"
+      className="relative min-h-[560px] lg:min-h-[640px] flex flex-col items-center justify-center overflow-hidden pt-8 sm:pt-10 md:pt-12 lg:pt-14 pb-10 sm:pb-12 md:pb-16 bg-background transition-colors duration-500"
     >
       <div className="absolute inset-0 z-0">
 
@@ -99,9 +99,9 @@ export default function HomeHero() {
         <div className="absolute bottom-1/3 right-1/4 w-[35rem] h-[35rem] bg-indigo-500/20 dark:bg-indigo-600/10 rounded-full blur-[140px] transition-opacity duration-500 opacity-20 dark:opacity-100 pointer-events-none" aria-hidden="true" />
       </div>
 
-      <div className="relative z-10 container mx-auto px-6 text-center flex flex-col items-center justify-center h-full mt-2 sm:mt-4 md:mt-6">
+      <div className="relative z-10 container mx-auto px-6 text-center flex flex-col items-center justify-center h-full my-auto">
 
-        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-foreground mb-5 tracking-tight leading-[1.08] drop-shadow-2xl transition-colors duration-500 flex flex-col items-center gap-1 sm:gap-2">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 sm:mb-5 tracking-tight leading-[1.08] drop-shadow-2xl transition-colors duration-500 flex flex-col items-center gap-1 sm:gap-2">
           <span>{t("hero.title_part1", "EXPORTING INDIA'S QUALITY")}</span>
           <span className="gradient-text-gold text-glow relative inline-block">
             {t("hero.title_part2", "TO THE WORLD")}
@@ -120,24 +120,24 @@ export default function HomeHero() {
           </span>
         </h1>
 
-        <p className="text-lg md:text-xl text-slate-800 dark:text-slate-200 max-w-3xl mx-auto mb-4 leading-relaxed font-medium drop-shadow-xl transition-colors duration-500">
+        <p className="text-base sm:text-lg md:text-xl text-slate-800 dark:text-slate-200 max-w-3xl mx-auto mb-3 sm:mb-4 leading-relaxed font-medium drop-shadow-xl transition-colors duration-500">
           {t("hero.subtitle", "RANOTE EXIM is an Indian Merchant Exporter and Global Sourcing Partner, connecting international buyers with quality products and reliable suppliers across India.")}
         </p>
 
-        <p className="text-base md:text-lg text-foreground font-medium max-w-3xl mx-auto mb-8 tracking-wider transition-colors duration-500">
+        <p className="text-sm sm:text-base md:text-lg text-foreground font-medium max-w-3xl mx-auto mb-6 sm:mb-8 tracking-wider transition-colors duration-500">
           {t("hero.features", "QUALITY SOURCING | EXPORT SUPPORT | GLOBAL TRADE")}
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 w-full max-w-lg mx-auto">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 w-full max-w-lg mx-auto">
           <Link
-            className="w-full sm:w-1/2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 px-6 rounded-xl primary-glow transition-all duration-300 text-base flex items-center justify-center gap-2 group flowing-border primary-glow-hover shadow-[0_0_40px_-10px_rgba(19,91,236,0.6)] hover:shadow-[0_0_60px_-10px_rgba(19,91,236,0.8)] hover:-translate-y-1"
+            className="w-full sm:w-1/2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3.5 sm:py-4 px-6 rounded-xl primary-glow transition-all duration-300 text-sm sm:text-base flex items-center justify-center gap-2 group flowing-border primary-glow-hover shadow-[0_0_40px_-10px_rgba(19,91,236,0.6)] hover:shadow-[0_0_60px_-10px_rgba(19,91,236,0.8)] hover:-translate-y-1"
             href="/quotation"
           >
             {t("hero.cta_start", "Request a Quote")}
             <span className="material-icons group-hover:translate-x-1 transition-transform text-sm">arrow_forward</span>
           </Link>
           <Link
-            className="w-full sm:w-1/2 hover:bg-background/80 dark:hover:bg-white/10 text-foreground font-semibold py-4 px-6 rounded-xl transition-all duration-300 text-base flex items-center justify-center gap-2 border border-border hover:border-border/80 hover:-translate-y-1 bg-background/40 backdrop-blur-xl shadow-lg"
+            className="w-full sm:w-1/2 hover:bg-background/80 dark:hover:bg-white/10 text-foreground font-semibold py-3.5 sm:py-4 px-6 rounded-xl transition-all duration-300 text-sm sm:text-base flex items-center justify-center gap-2 border border-border hover:border-border/80 hover:-translate-y-1 bg-background/40 backdrop-blur-xl shadow-lg"
             href="/products"
           >
             <span className="material-icons text-primary text-xl">shopping_cart</span>
