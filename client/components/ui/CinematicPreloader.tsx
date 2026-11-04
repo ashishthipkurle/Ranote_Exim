@@ -268,9 +268,6 @@ export default function CinematicPreloader() {
               priority
               unoptimized
             />
-            <h2 className="-mt-6 md:-mt-10 text-lg md:text-xl font-sans font-bold tracking-widest uppercase text-[#D4AF37] animate-pulse opacity-0 animate-[fadeIn_0.3s_ease-out_0.2s_forwards]">
-              Ranote Exim
-            </h2>
           </div>
         </div>
       )}

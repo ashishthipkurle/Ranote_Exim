@@ -10,7 +10,7 @@ interface GifLoaderProps {
 }
 
 export default function GifLoader({ 
-  text = "Ranote Exim", 
+  text, 
   className = "",
   showText = true 
 }: GifLoaderProps) {
@@ -24,7 +24,7 @@ export default function GifLoader({
           priority
           unoptimized
         />
-        {showText && (
+        {showText && text && (
           <h2 className="-mt-6 md:-mt-10 text-lg md:text-xl font-sans font-bold tracking-widest uppercase text-[#D4AF37] animate-pulse">
             {text}
           </h2>
