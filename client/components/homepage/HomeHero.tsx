@@ -73,7 +73,7 @@ export default function HomeHero() {
   return (
     <header
       ref={sectionRef}
-      className="relative min-h-[560px] lg:min-h-[640px] flex flex-col items-center justify-center overflow-hidden pt-8 sm:pt-10 md:pt-12 lg:pt-14 pb-10 sm:pb-12 md:pb-16 bg-background transition-colors duration-500"
+      className="relative min-h-[calc(100vh-3.5rem)] min-h-[calc(100dvh-3.5rem)] flex flex-col items-center justify-center overflow-hidden pt-8 sm:pt-10 md:pt-12 lg:pt-14 pb-10 sm:pb-12 md:pb-16 bg-background transition-colors duration-500"
     >
       <div className="absolute inset-0 z-0">
 
