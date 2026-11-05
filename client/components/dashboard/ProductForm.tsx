@@ -114,12 +114,14 @@ export default function ProductForm({
   hideHeader = false,
   initialCategory,
   initialCustomCategory,
+  onCancel,
 }: {
   initialData?: ProductData;
   isEdit?: boolean;
   hideHeader?: boolean;
   initialCategory?: string;
   initialCustomCategory?: string;
+  onCancel?: () => void;
 }) {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
@@ -782,7 +784,13 @@ export default function ProductForm({
         <div className="mt-8 flex items-center justify-end gap-4 border-t border-slate-200 dark:border-white/10 pt-6">
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={() => {
+                if (onCancel) {
+                  onCancel();
+                } else {
+                  router.back();
+                }
+              }}
               className="px-6 py-3 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-white/5 transition-all"
             >
               Cancel

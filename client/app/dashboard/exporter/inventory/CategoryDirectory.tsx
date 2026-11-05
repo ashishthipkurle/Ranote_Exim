@@ -120,6 +120,15 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
 
   // Immediate local state for selection: instant switch in 0ms without server lag!
   const [localSelection, setLocalSelection] = useState<{ category: string; customCategory?: string } | null>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("action") === "new") {
+        return {
+          category: params.get("category") || "OTHER",
+          customCategory: params.get("customCategory") || undefined,
+        };
+      }
+    }
     if (searchParams.get("action") === "new") {
       return {
         category: searchParams.get("category") || "OTHER",
@@ -129,9 +138,35 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
     return null;
   });
 
-  const isSelected = localSelection !== null || searchParams.get("action") === "new";
-  const selectedCategory = localSelection?.category || searchParams.get("category");
-  const selectedCustom = localSelection?.customCategory || searchParams.get("customCategory");
+  // Keep synced with browser forward/back buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("action") === "new") {
+        setLocalSelection({
+          category: params.get("category") || "OTHER",
+          customCategory: params.get("customCategory") || undefined,
+        });
+      } else {
+        setLocalSelection(null);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const isSelected = localSelection !== null;
+  const selectedCategory = localSelection?.category || "";
+  const selectedCustom = localSelection?.customCategory || "";
+
+  const handleBack = () => {
+    if (isSelected) {
+      handleBackToDirectory();
+    } else {
+      router.push("/dashboard/exporter/inventory");
+    }
+  };
 
   // Search through custom categories as well as standard industries
   const searchResults = useMemo(() => {
@@ -233,9 +268,33 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
   };
 
   return (
-    <div className="min-h-[600px] w-full">
-      <AnimatePresence mode="wait">
-        {!isSelected ? (
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+      <header className="flex-shrink-0 p-8 lg:px-12 border-b border-slate-200 dark:border-white/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="flex items-center gap-6 max-w-7xl mx-auto w-full">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="p-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-all text-slate-500 hover:text-primary group shadow-sm cursor-pointer"
+            title={isSelected ? "Back to category selection" : "Back to inventory"}
+          >
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Publish New Product</h1>
+            <p className="text-slate-500 text-sm mt-0.5">
+              {isSelected
+                ? `Enter details to list in ${selectedCustom || selectedCategory}`
+                : "Follow the steps to list your asset on the global marketplace"}
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 overflow-y-auto p-8 lg:p-12">
+        <div className="max-w-7xl mx-auto">
+          <div className="min-h-[600px] w-full">
+            <AnimatePresence mode="wait">
+              {!isSelected ? (
           <motion.div
             key="selector"
             initial={{ opacity: 0, y: 20 }}
@@ -502,15 +561,7 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
           >
-            <div className="mb-6 flex justify-between items-center">
-              <button
-                type="button"
-                onClick={handleBackToDirectory}
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 hover:border-primary/50 transition-all shadow-sm group"
-              >
-                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-                Back to Categories
-              </button>
+            <div className="mb-6 flex justify-end items-center">
               <div className="px-4 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-bold uppercase tracking-wider">
                 Listing in: {selectedCustom || selectedCategory}
               </div>
@@ -519,12 +570,16 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
             <ProductForm
               key={selectedCustom || selectedCategory || "default"}
               hideHeader={true}
+              onCancel={handleBackToDirectory}
               initialCategory={selectedCategory || undefined}
               initialCustomCategory={selectedCustom || undefined}
             />
           </motion.div>
         )}
       </AnimatePresence>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
