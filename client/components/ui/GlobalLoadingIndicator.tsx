@@ -2,8 +2,6 @@
 
 import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import Image from "next/image";
-import loadingGif from "@/assests/Transparent loading gif.gif";
 
 export function startGlobalLoading() {
   if (typeof window !== "undefined") {
@@ -21,31 +19,12 @@ function GlobalLoadingIndicatorInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [visible, setVisible] = useState(false);
-  const [isShutterActive, setIsShutterActive] = useState(false);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const safetyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Monitor whether the cinematic shutter preloader is active in DOM
-  useEffect(() => {
-    const checkShutter = () => {
-      if (typeof document === "undefined") return;
-      const active = Boolean(
-        document.documentElement.getAttribute("data-preloader-active") === "true" ||
-        document.getElementById("preloader-overlay") ||
-        document.getElementById("shutter-top")
-      );
-      setIsShutterActive(active);
-    };
-
-    checkShutter();
-    const interval = setInterval(checkShutter, 80);
-    return () => clearInterval(interval);
-  }, []);
 
   const cleanupTimers = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -56,7 +35,6 @@ function GlobalLoadingIndicatorInner() {
   const startLoading = useCallback(() => {
     cleanupTimers();
 
-    setIsLoading(true);
     setVisible(true);
     setProgress(20);
 
@@ -84,7 +62,6 @@ function GlobalLoadingIndicatorInner() {
     // Wait a brief moment at 100% so the user sees completion, then fade out
     timerRef.current = setTimeout(() => {
       setVisible(false);
-      setIsLoading(false);
       setProgress(0);
 
       // Clean up any navigating flags on links
@@ -227,35 +204,15 @@ function GlobalLoadingIndicatorInner() {
   if (!visible) return null;
 
   return (
-    <>
-      {/* Top Gold Progress Bar */}
-      <div
-        className="fixed top-0 left-0 h-[3px] z-[999999] pointer-events-none transition-all duration-300 ease-out"
-        style={{
-          width: `${progress}%`,
-          opacity: visible ? 1 : 0,
-          background: "linear-gradient(90deg, #D4AF37 0%, #F59E0B 50%, #FBBF24 100%)",
-          boxShadow: "0 0 12px rgba(212, 175, 55, 0.9), 0 0 6px rgba(212, 175, 55, 0.6)",
-        }}
-      />
-
-      {/* Centered Brand Icon Animated Loading */}
-      {isLoading && !isShutterActive && (
-        <div className="global-loading-indicator fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/15 dark:bg-black/35 backdrop-blur-[2px] animate-in fade-in duration-150 pointer-events-auto cursor-wait select-none">
-          <div className="flex flex-col items-center justify-center">
-            <Image
-              src={loadingGif}
-              alt="Loading..."
-              width={160}
-              height={160}
-              className="w-32 h-32 md:w-44 md:h-44 object-contain animate-in zoom-in-95 duration-200 drop-shadow-2xl"
-              priority
-              unoptimized
-            />
-          </div>
-        </div>
-      )}
-    </>
+    <div
+      className="fixed top-0 left-0 h-[3px] z-[999999] pointer-events-none transition-all duration-300 ease-out"
+      style={{
+        width: `${progress}%`,
+        opacity: visible ? 1 : 0,
+        background: "linear-gradient(90deg, #D4AF37 0%, #F59E0B 50%, #FBBF24 100%)",
+        boxShadow: "0 0 12px rgba(212, 175, 55, 0.9), 0 0 6px rgba(212, 175, 55, 0.6)",
+      }}
+    />
   );
 }
 
