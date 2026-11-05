@@ -12,43 +12,64 @@ export async function GET(request: NextRequest) {
  return authError || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
  }
 
- if (auth.role === 'EXPORTER') {
- // Get products count, orders received, and category breakdown
- const [totalProducts, totalOrders, paidOrders, revenueByCategory, monthlyRevenue] = await Promise.all([
- prisma.product.count({ where: { exporterId: auth.userId } }),
- prisma.order.count({
- where: { product: { exporterId: auth.userId } },
- }),
- prisma.order.count({
- where: {
- product: { exporterId: auth.userId },
- paymentStatus: { in: ['PAID', 'PARTIAL'] },
- },
- }),
- // Revenue grouped by product category
- prisma.$queryRaw`
- SELECT p.category, COALESCE(SUM(o."totalPrice"), 0) as revenue, COUNT(o.id) as "orderCount"
- FROM products p
- LEFT JOIN orders o ON o."productId" = p.id AND o."paymentStatus" IN ('PAID', 'PARTIAL')
- WHERE p."exporterId" = ${auth.userId}
- GROUP BY p.category
- ORDER BY revenue DESC
- ` as Promise<Array<{ category: string; revenue: number; orderCount: number }>>,
- // Monthly revenue for last 6 months
- prisma.$queryRaw`
- SELECT 
- DATE_TRUNC('month', o."createdAt") as month,
- COALESCE(SUM(o."totalPrice"), 0) as revenue,
- COUNT(o.id) as "orderCount"
- FROM orders o
- JOIN products p ON o."productId" = p.id
- WHERE p."exporterId" = ${auth.userId}
- AND o."paymentStatus" IN ('PAID', 'PARTIAL')
- AND o."createdAt" >= NOW() - INTERVAL '6 months'
- GROUP BY DATE_TRUNC('month', o."createdAt")
- ORDER BY month ASC
- ` as Promise<Array<{ month: Date; revenue: number; orderCount: number }>>,
- ]);
+ if (auth.role === 'EXPORTER' || auth.role === 'ADMIN') {
+  const isOwner = auth.role !== 'ADMIN';
+  const productWhere = isOwner ? { exporterId: auth.userId } : {};
+  const orderWhere = isOwner ? { product: { exporterId: auth.userId } } : {};
+  const paidOrderWhere = isOwner
+    ? { product: { exporterId: auth.userId }, paymentStatus: { in: ['PAID', 'PARTIAL'] } }
+    : { paymentStatus: { in: ['PAID', 'PARTIAL'] } };
+
+  // Get products count, orders received, and category breakdown
+  const [totalProducts, totalOrders, paidOrders, revenueByCategory, monthlyRevenue] = await Promise.all([
+    prisma.product.count({ where: productWhere }),
+    prisma.order.count({ where: orderWhere }),
+    prisma.order.count({ where: paidOrderWhere }),
+    // Revenue grouped by product category
+    isOwner
+      ? (prisma.$queryRaw`
+          SELECT p.category, COALESCE(SUM(o."totalPrice"), 0) as revenue, COUNT(o.id) as "orderCount"
+          FROM products p
+          LEFT JOIN orders o ON o."productId" = p.id AND o."paymentStatus" IN ('PAID', 'PARTIAL')
+          WHERE p."exporterId" = ${auth.userId}
+          GROUP BY p.category
+          ORDER BY revenue DESC
+        ` as Promise<Array<{ category: string; revenue: number; orderCount: number }>>)
+      : (prisma.$queryRaw`
+          SELECT p.category, COALESCE(SUM(o."totalPrice"), 0) as revenue, COUNT(o.id) as "orderCount"
+          FROM products p
+          LEFT JOIN orders o ON o."productId" = p.id AND o."paymentStatus" IN ('PAID', 'PARTIAL')
+          GROUP BY p.category
+          ORDER BY revenue DESC
+        ` as Promise<Array<{ category: string; revenue: number; orderCount: number }>>),
+    // Monthly revenue for last 6 months
+    isOwner
+      ? (prisma.$queryRaw`
+          SELECT 
+          DATE_TRUNC('month', o."createdAt") as month,
+          COALESCE(SUM(o."totalPrice"), 0) as revenue,
+          COUNT(o.id) as "orderCount"
+          FROM orders o
+          JOIN products p ON o."productId" = p.id
+          WHERE p."exporterId" = ${auth.userId}
+          AND o."paymentStatus" IN ('PAID', 'PARTIAL')
+          AND o."createdAt" >= NOW() - INTERVAL '6 months'
+          GROUP BY DATE_TRUNC('month', o."createdAt")
+          ORDER BY month ASC
+        ` as Promise<Array<{ month: Date; revenue: number; orderCount: number }>>)
+      : (prisma.$queryRaw`
+          SELECT 
+          DATE_TRUNC('month', o."createdAt") as month,
+          COALESCE(SUM(o."totalPrice"), 0) as revenue,
+          COUNT(o.id) as "orderCount"
+          FROM orders o
+          JOIN products p ON o."productId" = p.id
+          WHERE o."paymentStatus" IN ('PAID', 'PARTIAL')
+          AND o."createdAt" >= NOW() - INTERVAL '6 months'
+          GROUP BY DATE_TRUNC('month', o."createdAt")
+          ORDER BY month ASC
+        ` as Promise<Array<{ month: Date; revenue: number; orderCount: number }>>),
+  ]);
 
  const conversionRate = totalProducts > 0 ? ((paidOrders / totalProducts) * 100).toFixed(1) : '0.0';
 

@@ -114,11 +114,50 @@ export default function ExporterDashboard() {
  all: t("period.all", "All Time"),
  };
 
- const [data, setData] = useState<ExporterStats | null>(null);
- const [allOrders, setAllOrders] = useState<OrderItem[]>([]);
- const [categories, setCategories] = useState<CategoryRevenue[]>([]);
- const [partners, setPartners] = useState<Partner[]>([]);
- const [loading, setLoading] = useState(true);
+ const [data, setData] = useState<ExporterStats | null>(() => {
+   if (typeof window !== "undefined") {
+     try {
+       const cached = sessionStorage.getItem("ranote_exporter_stats");
+       if (cached) return JSON.parse(cached);
+     } catch {}
+   }
+   return null;
+ });
+ const [allOrders, setAllOrders] = useState<OrderItem[]>(() => {
+   if (typeof window !== "undefined") {
+     try {
+       const cached = sessionStorage.getItem("ranote_exporter_orders");
+       if (cached) return JSON.parse(cached);
+     } catch {}
+   }
+   return [];
+ });
+ const [categories, setCategories] = useState<CategoryRevenue[]>(() => {
+   if (typeof window !== "undefined") {
+     try {
+       const cached = sessionStorage.getItem("ranote_exporter_categories");
+       if (cached) return JSON.parse(cached);
+     } catch {}
+   }
+   return [];
+ });
+ const [partners, setPartners] = useState<Partner[]>(() => {
+   if (typeof window !== "undefined") {
+     try {
+       const cached = sessionStorage.getItem("ranote_exporter_partners");
+       if (cached) return JSON.parse(cached);
+     } catch {}
+   }
+   return [];
+ });
+ const [loading, setLoading] = useState<boolean>(() => {
+   if (typeof window !== "undefined") {
+     try {
+       return !sessionStorage.getItem("ranote_exporter_stats");
+     } catch {}
+   }
+   return true;
+ });
 
  const [search, setSearch] = useState("");
  const [searchFocused, setSearchFocused] = useState(false);
@@ -129,53 +168,93 @@ export default function ExporterDashboard() {
  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
  const [calMonth, setCalMonth] = useState(new Date());
 
- // Map state
+ // Map state - initialize with DEMO_ROUTES so the map displays immediately on first frame
  const [mapFilter, setMapFilter] = useState<FilterMode>("all");
  const [mapLoading, setMapLoading] = useState(false);
- const [apiRoutes, setApiRoutes] = useState<LiveRoute[]>([]);
+ const [apiRoutes, setApiRoutes] = useState<LiveRoute[]>(DEMO_ROUTES);
  const [regionCounts, setRegionCounts] = useState<Record<string, number>>({});
- const [activeCount, setActiveCount] = useState(0);
- const [mapIsDemo, setMapIsDemo] = useState(false);
- const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+ const [activeCount, setActiveCount] = useState(DEMO_ROUTES.length);
+ const [mapIsDemo, setMapIsDemo] = useState(true);
+ const [lastUpdate, setLastUpdate] = useState<Date | null>(new Date());
  const [mapRefresh, setMapRefresh] = useState(0);
 
+ // Decoupled, non-blocking data fetching: Each section updates as soon as its data is ready
  useEffect(() => {
- setLoading(true);
- const params = period !== "all" ? `?period=${period}` : "";
- Promise.all([
- authFetch<ExporterStats>(`/api/stats?scope=exporter${params ? "&" + params.slice(1) : ""}`).catch(() => null),
- authFetch<{ orders: OrderItem[] }>(`/api/orders?limit=20${params ? "&" + params.slice(1) : ""}`).catch(() => ({ orders: [] })),
- authFetch<{ revenueByCategory: CategoryRevenue[] }>(`/api/dashboard/analytics${params}`).catch(() => ({ revenueByCategory: [] })),
- authFetch<{ partners: Partner[] }>("/api/dashboard/directory").catch(() => ({ partners: [] })),
- ]).then(([s, o, a, d]) => {
- setData(s); setAllOrders(o.orders || []); setCategories(a.revenueByCategory || []);
- setPartners((d.partners || []).slice(0, 3)); setLoading(false);
- });
+   const params = period !== "all" ? `?period=${period}` : "";
+
+   // 1. Stats endpoint (fastest - renders top 4 stat cards in <100ms)
+   authFetch<ExporterStats>(`/api/stats?scope=exporter${params ? "&" + params.slice(1) : ""}`)
+     .then((s) => {
+       if (s) {
+         setData(s);
+         try { sessionStorage.setItem("ranote_exporter_stats", JSON.stringify(s)); } catch {}
+       }
+     })
+     .catch(() => {})
+     .finally(() => setLoading(false));
+
+   // 2. Orders endpoint (renders Transmissions stream)
+   authFetch<{ orders: OrderItem[] }>(`/api/orders?limit=20${params ? "&" + params.slice(1) : ""}`)
+     .then((o) => {
+       const orders = o?.orders || [];
+       setAllOrders(orders);
+       try { sessionStorage.setItem("ranote_exporter_orders", JSON.stringify(orders)); } catch {}
+     })
+     .catch(() => {});
+
+   // 3. Category Analytics (renders Category revenue)
+   authFetch<{ revenueByCategory: CategoryRevenue[] }>(`/api/dashboard/analytics${params}`)
+     .then((a) => {
+       const cats = a?.revenueByCategory || [];
+       setCategories(cats);
+       try { sessionStorage.setItem("ranote_exporter_categories", JSON.stringify(cats)); } catch {}
+     })
+     .catch(() => {});
+
+   // 4. Partner directory
+   authFetch<{ partners: Partner[] }>("/api/dashboard/directory")
+     .then((d) => {
+       const parts = (d?.partners || []).slice(0, 3);
+       setPartners(parts);
+       try { sessionStorage.setItem("ranote_exporter_partners", JSON.stringify(parts)); } catch {}
+     })
+     .catch(() => {});
  }, [period]);
 
  useEffect(() => {
- setMapLoading(true);
- authFetch<{ routes: LiveRoute[]; total: number }>("/api/shipments/active")
- .then(d => {
- if (d?.routes) {
- setApiRoutes(d.routes);
- setActiveCount(d.routes.length);
- setLastUpdate(new Date());
- const counts: Record<string, number> = {};
- d.routes.forEach(r => {
- const key = r.toPort.toLowerCase().includes('russia') ? 'russia' :
- r.toPort.toLowerCase().includes('london') || r.toPort.toLowerCase().includes('rotterdam') ? 'europe' :
- r.toPort.toLowerCase().includes('new_york') ? 'usa' : 'asia';
- counts[key] = (counts[key] || 0) + 1;
- });
- setRegionCounts(counts);
- setMapIsDemo(false);
- } else {
- setMapIsDemo(false);
- }
- })
- .catch(() => setMapIsDemo(false))
- .finally(() => setMapLoading(false));
+   setMapLoading(true);
+   authFetch<{ routes: LiveRoute[]; total: number }>("/api/shipments/active")
+     .then((d) => {
+       if (d?.routes && d.routes.length > 0) {
+         setApiRoutes(d.routes);
+         setActiveCount(d.routes.length);
+         setLastUpdate(new Date());
+         const counts: Record<string, number> = {};
+         d.routes.forEach((r) => {
+           const port = (r.toPort || "").toLowerCase();
+           const key = port.includes("russia")
+             ? "russia"
+             : port.includes("london") || port.includes("rotterdam") || port.includes("hamburg")
+             ? "europe"
+             : port.includes("new_york") || port.includes("los_angeles")
+             ? "usa"
+             : "asia";
+           counts[key] = (counts[key] || 0) + 1;
+         });
+         setRegionCounts(counts);
+         setMapIsDemo(false);
+       } else {
+         setApiRoutes(DEMO_ROUTES);
+         setActiveCount(DEMO_ROUTES.length);
+         setMapIsDemo(true);
+       }
+     })
+     .catch(() => {
+       setApiRoutes(DEMO_ROUTES);
+       setActiveCount(DEMO_ROUTES.length);
+       setMapIsDemo(true);
+     })
+     .finally(() => setMapLoading(false));
  }, [mapRefresh]);
 
  const filteredOrders = useMemo(() => {

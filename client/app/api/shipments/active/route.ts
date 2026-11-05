@@ -6,8 +6,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
  try {
- const auth = await getApiAuthContext(req);
- if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+ const { auth, error: authError } = await getApiAuthContext(req);
+ if (authError || !auth) {
+ return authError || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+ }
 
  if (auth.role !== 'EXPORTER' && auth.role !== 'ADMIN') {
  return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

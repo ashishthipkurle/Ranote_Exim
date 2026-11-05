@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
  const page = parseInt(searchParams.get('page') || '1');
  const limit = parseInt(searchParams.get('limit') || '20');
 
- if (auth.role === 'EXPORTER') {
+ if (auth.role === 'EXPORTER' || auth.role === 'ADMIN') {
  // All Importers on the platform, with trade stats if they exist
  const partners = await prisma.$queryRaw`
  SELECT 
