@@ -145,6 +145,27 @@ function GlobalLoadingIndicatorInner() {
       }
     };
 
+    // Intercept Next.js client-side React Server Component (RSC) route fetches immediately at 0ms
+    const originalFetch = window.fetch;
+    window.fetch = function (input, init) {
+      try {
+        const url = typeof input === "string" ? input : input instanceof URL ? input.href : (input as any)?.url;
+        if (url) {
+          const isRsc =
+            url.includes("_rsc=") ||
+            (init?.headers &&
+              ((typeof (init.headers as any).get === "function" && (init.headers as any).get("RSC")) ||
+                (init.headers as any)["RSC"] ||
+                (init.headers as any)["rsc"]));
+
+          if (isRsc) {
+            startLoading();
+          }
+        }
+      } catch {}
+      return originalFetch.apply(this, arguments as any);
+    };
+
     // Monkey-patch history methods for programmatic router.push navigations
     const originalPushState = window.history.pushState;
     const originalReplaceState = window.history.replaceState;
@@ -177,6 +198,7 @@ function GlobalLoadingIndicatorInner() {
       window.removeEventListener("popstate", handlePopState);
       window.removeEventListener("app:loading:start", handleCustomStart);
       window.removeEventListener("app:loading:stop", handleCustomStop);
+      window.fetch = originalFetch;
       window.history.pushState = originalPushState;
       window.history.replaceState = originalReplaceState;
       cleanupTimers();

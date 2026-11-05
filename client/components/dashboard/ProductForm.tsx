@@ -112,10 +112,14 @@ export default function ProductForm({
   initialData,
   isEdit = false,
   hideHeader = false,
+  initialCategory,
+  initialCustomCategory,
 }: {
   initialData?: ProductData;
   isEdit?: boolean;
   hideHeader?: boolean;
+  initialCategory?: string;
+  initialCustomCategory?: string;
 }) {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
@@ -130,8 +134,8 @@ export default function ProductForm({
       }
       return { ...initialData, category: cat };
     }
-    const cat = searchParams.get("category");
-    const custom = searchParams.get("customCategory");
+    const cat = initialCategory || searchParams.get("category");
+    const custom = initialCustomCategory || searchParams.get("customCategory");
     return {
       ...defaultProduct,
       category: custom ? `CUSTOM_CAT:${custom}` : normalizeCategory(cat),
@@ -141,9 +145,9 @@ export default function ProductForm({
   const [customCategory, setCustomCategory] = useState(() => {
     if (initialData?.certifications) {
       const custom = initialData.certifications.find(c => c && c.startsWith("CUSTOM_CAT:"));
-      return custom ? custom.replace("CUSTOM_CAT:", "") : (searchParams.get("customCategory") || "");
+      return custom ? custom.replace("CUSTOM_CAT:", "") : (initialCustomCategory || searchParams.get("customCategory") || "");
     }
-    return searchParams.get("customCategory") || "";
+    return initialCustomCategory || searchParams.get("customCategory") || "";
   });
 
   // Sub-Category State

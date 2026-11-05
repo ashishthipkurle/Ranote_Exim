@@ -118,9 +118,20 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
       .catch(() => {});
   }, []);
 
-  const isSelected = searchParams.get("action") === "new";
-  const selectedCategory = searchParams.get("category");
-  const selectedCustom = searchParams.get("customCategory");
+  // Immediate local state for selection: instant switch in 0ms without server lag!
+  const [localSelection, setLocalSelection] = useState<{ category: string; customCategory?: string } | null>(() => {
+    if (searchParams.get("action") === "new") {
+      return {
+        category: searchParams.get("category") || "OTHER",
+        customCategory: searchParams.get("customCategory") || undefined,
+      };
+    }
+    return null;
+  });
+
+  const isSelected = localSelection !== null || searchParams.get("action") === "new";
+  const selectedCategory = localSelection?.category || searchParams.get("category");
+  const selectedCustom = localSelection?.customCategory || searchParams.get("customCategory");
 
   // Search through custom categories as well as standard industries
   const searchResults = useMemo(() => {
@@ -144,8 +155,16 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
   }, [search, customCats]);
 
   const handleSelect = (categoryId: string, customCategoryName?: string) => {
+    // 1. Instantaneous 0ms switch
+    setLocalSelection({ category: categoryId, customCategory: customCategoryName });
+    // 2. Update browser URL history without blocking server re-render
     const url = `/dashboard/exporter/inventory/add?action=new&category=${categoryId}${customCategoryName ? `&customCategory=${encodeURIComponent(customCategoryName)}` : ""}`;
-    router.push(url, { scroll: false });
+    window.history.pushState(null, "", url);
+  };
+
+  const handleBackToDirectory = () => {
+    setLocalSelection(null);
+    window.history.pushState(null, "", "/dashboard/exporter/inventory/add");
   };
 
   const handleCreateCustomCategory = async (proceedToForm: boolean = false) => {
@@ -483,13 +502,26 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
           >
-            <div className="mb-6 flex justify-end">
+            <div className="mb-6 flex justify-between items-center">
+              <button
+                type="button"
+                onClick={handleBackToDirectory}
+                className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 hover:border-primary/50 transition-all shadow-sm group"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+                Back to Categories
+              </button>
               <div className="px-4 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-bold uppercase tracking-wider">
                 Listing in: {selectedCustom || selectedCategory}
               </div>
             </div>
             
-            <ProductForm hideHeader={true} />
+            <ProductForm
+              key={selectedCustom || selectedCategory || "default"}
+              hideHeader={true}
+              initialCategory={selectedCategory || undefined}
+              initialCustomCategory={selectedCustom || undefined}
+            />
           </motion.div>
         )}
       </AnimatePresence>
