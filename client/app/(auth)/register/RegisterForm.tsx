@@ -175,7 +175,6 @@ function RegisterFormContent() {
         toast.error(resp?.data?.error || "Registration failed");
       }
       setShowOtpStep(false);
-    } finally {
       setIsLoading(false);
     }
   };

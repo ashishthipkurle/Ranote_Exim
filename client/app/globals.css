@@ -201,3 +201,24 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Global button click feedback & multi-click guards */
+[data-navigating="true"] {
+  opacity: 0.75 !important;
+  pointer-events: none !important;
+  cursor: wait !important;
+}
+
+button[aria-busy="true"],
+a[aria-busy="true"] {
+  cursor: wait !important;
+  pointer-events: none !important;
+  opacity: 0.75 !important;
+}
+
+/* Subtle instant feedback for all interactive buttons on tap/click */
+button:active:not(:disabled),
+.button:active:not(:disabled) {
+  transform: scale(0.98);
+  transition: transform 80ms ease;
+}

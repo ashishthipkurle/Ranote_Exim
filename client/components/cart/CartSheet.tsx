@@ -56,25 +56,27 @@ export default function CartSheet({ customTrigger }: { customTrigger?: React.Rea
       if (missingIds.length === 0) return;
 
       const next = { ...productsById };
-      for (const id of missingIds) {
-        try {
-          const res = await fetch(`/api/products/${id}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data?.product) {
-              next[id] = {
-                id: data.product.id,
-                name: data.product.name,
-                images: data.product.images || [],
-                category: data.product.category,
-                minOrderQty: data.product.minOrderQty,
-              };
+      await Promise.all(
+        missingIds.map(async (id) => {
+          try {
+            const res = await fetch(`/api/products/${id}`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data?.product) {
+                next[id] = {
+                  id: data.product.id,
+                  name: data.product.name,
+                  images: data.product.images || [],
+                  category: data.product.category,
+                  minOrderQty: data.product.minOrderQty,
+                };
+              }
             }
+          } catch {
+            // ignore error
           }
-        } catch {
-          // ignore error
-        }
-      }
+        })
+      );
       setProductsById(next);
     };
 

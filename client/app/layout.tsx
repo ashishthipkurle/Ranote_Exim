@@ -11,6 +11,7 @@ import CommandMenu from "@/components/ui/CommandMenu";
 import CookieConsent from "@/components/ui/CookieConsent";
 import { I18nProvider } from "@/components/i18n/I18nProvider";
 import CinematicPreloader from "@/components/ui/CinematicPreloader";
+import GlobalLoadingIndicator from "@/components/ui/GlobalLoadingIndicator";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -95,6 +96,7 @@ export default function RootLayout({
         <I18nProvider>
           <ThemeProvider>
             <AuthProvider>
+              <GlobalLoadingIndicator />
               <SkipToContent />
               <CinematicPreloader />
               <main id="main-content">

@@ -84,7 +84,6 @@ export default function LoginForm() {
         }
       } catch (error: any) {
         toast.error(error.response?.data?.error || "Login failed");
-      } finally {
         setIsLoading(false);
       }
       return;
@@ -155,7 +154,6 @@ export default function LoginForm() {
       }
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Verification failed");
-    } finally {
       setIsLoading(false);
     }
   };
