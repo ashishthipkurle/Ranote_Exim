@@ -188,15 +188,22 @@ export default function CinematicPreloader() {
     return () => clearTimeout(timeoutId);
   }, [status]);
 
-  // Cleanup overflow on finish
+  // Cleanup overflow on finish and notify other loaders
   useEffect(() => {
-    if (status === "finished") {
+    if (status !== "finished") {
+      document.documentElement.setAttribute("data-preloader-active", "true");
+    } else {
       document.body.style.overflow = "";
       document.documentElement.style.overflow = "";
 
       // Cleanup the global CSS block just in case
       document.documentElement.classList.remove('is-home', 'is-preloading');
+      document.documentElement.removeAttribute('data-preloader-active');
     }
+
+    return () => {
+      document.documentElement.removeAttribute('data-preloader-active');
+    };
   }, [status]);
 
   if (status === "finished") return null;

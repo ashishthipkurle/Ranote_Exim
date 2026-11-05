@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import Image from "next/image";
+import loadingGif from "@/assests/Transparent loading gif.gif";
 
 export function startGlobalLoading() {
   if (typeof window !== "undefined") {
@@ -23,10 +24,28 @@ function GlobalLoadingIndicatorInner() {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [visible, setVisible] = useState(false);
+  const [isShutterActive, setIsShutterActive] = useState(false);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const safetyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Monitor whether the cinematic shutter preloader is active in DOM
+  useEffect(() => {
+    const checkShutter = () => {
+      if (typeof document === "undefined") return;
+      const active = Boolean(
+        document.documentElement.getAttribute("data-preloader-active") === "true" ||
+        document.getElementById("preloader-overlay") ||
+        document.getElementById("shutter-top")
+      );
+      setIsShutterActive(active);
+    };
+
+    checkShutter();
+    const interval = setInterval(checkShutter, 80);
+    return () => clearInterval(interval);
+  }, []);
 
   const cleanupTimers = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -220,22 +239,19 @@ function GlobalLoadingIndicatorInner() {
         }}
       />
 
-      {/* Centered Loading Indicator Overlay */}
-      {isLoading && (
-        <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/25 dark:bg-black/50 backdrop-blur-[2px] animate-in fade-in duration-150 cursor-wait">
-          <div className="flex items-center gap-4 px-6 py-4 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-amber-500/40 text-slate-900 dark:text-white shadow-2xl shadow-black/30 ring-1 ring-black/5 dark:ring-white/10 animate-in zoom-in-95 duration-150 select-none">
-            <div className="relative flex items-center justify-center w-8 h-8">
-              <div className="w-8 h-8 rounded-full border-2 border-amber-500/20 border-t-amber-500 animate-spin" />
-              <Loader2 className="w-4 h-4 text-amber-500 animate-spin absolute" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">
-                Loading...
-              </span>
-              <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                Please wait a moment
-              </span>
-            </div>
+      {/* Centered Brand Icon Animated Loading */}
+      {isLoading && !isShutterActive && (
+        <div className="global-loading-indicator fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/15 dark:bg-black/35 backdrop-blur-[2px] animate-in fade-in duration-150 pointer-events-auto cursor-wait select-none">
+          <div className="flex flex-col items-center justify-center">
+            <Image
+              src={loadingGif}
+              alt="Loading..."
+              width={160}
+              height={160}
+              className="w-32 h-32 md:w-44 md:h-44 object-contain animate-in zoom-in-95 duration-200 drop-shadow-2xl"
+              priority
+              unoptimized
+            />
           </div>
         </div>
       )}
