@@ -15,6 +15,8 @@ import {
 } from "@/lib/api-utils";
 import dynamic from "next/dynamic";
 import { useTranslation } from "@/lib/i18n/client";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { cn } from "@/lib/utils";
 
 const ShipTrackingMap = dynamic(() => import("@/components/dashboard/ShipTrackingMap"), { ssr: false });
 
@@ -95,6 +97,7 @@ function fmtVal(n: number, pre = "", suf = "") {
 export default function ExporterDashboard() {
  const { t } = useTranslation();
  const router = useRouter();
+ const { user } = useAuth();
 
  const FILTER_CFG: Record<FilterMode, { label: string; icon: string; color: string }> = {
  all: { label: t("dashboard_main.hub_regions.india", "India"), icon: "🇮🇳", color: "#fbbf24" },
@@ -339,9 +342,24 @@ export default function ExporterDashboard() {
 
  <header className="flex-shrink-0 h-20 lg:h-24 px-6 lg:px-10 flex items-center justify-between border-b border-border dark:border-white/5 bg-background/40 backdrop-blur-xl z-40">
  <div>
- <h1 className="text-2xl lg:text-3xl font-black text-foreground dark:text-white tracking-tighter uppercase">
- Intelligence Node
- </h1>
+  <div className="flex items-center gap-3">
+   <h1 className="text-2xl lg:text-3xl font-black text-foreground dark:text-white tracking-tight uppercase">
+    {user?.role === "ADMIN" ? t("dashboard_main.admin_title", "Admin Dashboard") : t("dashboard_main.exporter_title", "Exporter Dashboard")}
+   </h1>
+   <span className={cn(
+    "text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border tracking-wider",
+    user?.role === "ADMIN"
+     ? "bg-red-500/10 text-red-500 border-red-500/20"
+     : "bg-[#D4AF37]/15 text-[#D4AF37] border-[#D4AF37]/30"
+   )}>
+    {user?.role === "ADMIN" ? "Admin Mode" : "Exporter Portal"}
+   </span>
+  </div>
+  <p className="text-xs text-muted-foreground mt-1">
+   {user?.role === "ADMIN"
+    ? t("dashboard_main.admin_subtitle", "Platform oversight, system telemetry, and administrative control center.")
+    : t("dashboard_main.exporter_subtitle", "Global trade network, active shipments, and real-time order transmissions.")}
+  </p>
  </div>
 
  <div className="flex items-center gap-4">

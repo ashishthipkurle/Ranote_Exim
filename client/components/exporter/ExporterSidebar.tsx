@@ -49,7 +49,7 @@ export default function ExporterSidebar({ basePath }: { basePath: string }) {
   const pathname = usePathname();
   const { user } = useAuth();
   const { counts } = useUnreadCategories();
-  const isMaster = user?.role === "ADMIN" || user?.role === "EXPORTER";
+  const isAdmin = user?.role === "ADMIN";
   const { setOpenMobile } = useSidebar();
 
   const nav: NavItem[] = [
@@ -60,7 +60,7 @@ export default function ExporterSidebar({ basePath }: { basePath: string }) {
     { href: `${basePath}/ships`, labelKey: "sidebar.ships", defaultLabel: "Logistics", icon: Ship },
     { href: `${basePath}/feedback`, labelKey: "sidebar.feedback", defaultLabel: "Reviews", icon: MessageSquare },
     { href: `${basePath}/directory`, labelKey: "sidebar.buyers", defaultLabel: "Buyers", icon: Users, badgeCount: counts.buyers },
-    ...(isMaster ? [
+    ...(isAdmin ? [
       { href: `${basePath}/users`, labelKey: "sidebar.registry", defaultLabel: "Registry", icon: ShieldCheck },
       { href: `${basePath}/showcase`, labelKey: "sidebar.showcase", defaultLabel: "Showcase", icon: Monitor },
       { href: `${basePath}/homepage-changes`, labelKey: "sidebar.homepage_changes", defaultLabel: "Home Page Changes", icon: SlidersHorizontal },

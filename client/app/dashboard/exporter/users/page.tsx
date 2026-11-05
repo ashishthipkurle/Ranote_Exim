@@ -64,7 +64,7 @@ export default function ExporterUsersPage() {
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ userId: string; name: string | null; email: string } | null>(null);
 
   const fetchUsers = async () => {
-    if (user?.role !== "EXPORTER" && user?.role !== "ADMIN") return;
+    if (user?.role !== "ADMIN") return;
     setLoading(true);
     try {
       const url = `/api/admin/users?page=${page}&q=${encodeURIComponent(search)}&role=${roleFilter}&verified=${verifiedFilter}`;
@@ -81,14 +81,14 @@ export default function ExporterUsersPage() {
   };
 
   useEffect(() => {
-    if (user?.role !== "EXPORTER" && user?.role !== "ADMIN") return;
+    if (user?.role !== "ADMIN") return;
     const timer = setTimeout(fetchUsers, 300);
     return () => clearTimeout(timer);
   }, [page, search, roleFilter, verifiedFilter, user?.id]);
 
   if (authLoading) return <div className="h-full flex items-center justify-center"><Activity className="w-8 h-8 animate-spin text-muted-foreground" /></div>;
 
-  if (user?.role !== "EXPORTER" && user?.role !== "ADMIN") {
+  if (user?.role !== "ADMIN") {
     return (
       <main className="flex-1 flex flex-col h-full items-center justify-center bg-background relative overflow-hidden">
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: "linear-gradient(to right,#1f2937 1px,transparent 1px),linear-gradient(to bottom,#1f2937 1px,transparent 1px)", backgroundSize: "2.5rem 2.5rem" }} />
@@ -97,7 +97,7 @@ export default function ExporterUsersPage() {
             <ShieldCheck className="w-10 h-10" />
           </div>
           <h2 className="text-3xl font-bold text-foreground mb-4">Access Denied</h2>
-          <p className="text-muted-foreground text-sm font-medium leading-relaxed mb-8">Your account does not have permission to view the User Registry.</p>
+          <p className="text-muted-foreground text-sm font-medium leading-relaxed mb-8">Platform Administrator clearance required to view the User Registry.</p>
           <Link href="/dashboard/exporter" className="px-8 py-3 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:scale-[1.02] transition-all duration-300 shadow-md">
             Return to Dashboard
           </Link>

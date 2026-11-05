@@ -13,7 +13,8 @@ export async function GET(req: NextRequest) {
 
  // 2. Protocol Guard for Master Admin
  const userEmail = auth?.email;
- if (!userEmail || userEmail.toLowerCase() !== "exporter@gmail.com") {
+ const isMaster = auth?.role === "ADMIN" || userEmail?.toLowerCase() === "exporter@gmail.com";
+ if (!userEmail || !isMaster) {
  return NextResponse.json({ 
  error: `Access Denied: Master Clearance Required (Detected: ${userEmail || 'No Session'})` 
  }, { status: 403 });
@@ -92,7 +93,8 @@ export async function POST(req: NextRequest) {
  if (error) return error;
 
  const userEmail = auth?.email;
- if (!userEmail || userEmail.toLowerCase() !== "exporter@gmail.com") {
+ const isMaster = auth?.role === "ADMIN" || userEmail?.toLowerCase() === "exporter@gmail.com";
+ if (!userEmail || !isMaster) {
  return NextResponse.json({ error: "Access Denied: Master Clearance Required" }, { status: 403 });
  }
 

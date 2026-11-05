@@ -24,16 +24,16 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     // Check authentication
-    const { auth, error: authError } = await getApiAuthContext(req, ["ADMIN", "EXPORTER"]);
+    const { auth, error: authError } = await getApiAuthContext(req, ["ADMIN"]);
     
-    // Allow master emails or admin/exporter roles
+    // Allow master emails or admin role
     if (authError || !auth) {
       const isMasterEmail = auth?.email?.toLowerCase() === "exporter@gmail.com" || auth?.email?.toLowerCase() === "admin@gmail.com";
-      const isAuthorizedRole = auth?.role === "ADMIN" || auth?.role === "EXPORTER";
+      const isAuthorizedRole = auth?.role === "ADMIN";
 
       if (!isMasterEmail && !isAuthorizedRole) {
         return NextResponse.json(
-          { error: "Unauthorized: Admin or Exporter role required" },
+          { error: "Unauthorized: Admin clearance required" },
           { status: 403 }
         );
       }

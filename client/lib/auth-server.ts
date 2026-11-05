@@ -78,8 +78,16 @@ export async function getApiAuthContext(
         id: true,
         email: true,
         role: true,
+        name: true,
+        businessName: true,
+        country: true,
+        phone: true,
+        avatar: true,
+        verificationStatus: true,
         b2bActive: true,
         b2cActive: true,
+        createdAt: true,
+        updatedAt: true,
       }
     });
 

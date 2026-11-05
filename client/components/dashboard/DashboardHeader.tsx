@@ -207,8 +207,15 @@ export default function DashboardHeader() {
                     {isProfileOpen && (
                       <div className="absolute right-0 mt-2 w-64 p-2 rounded-lg border border-border dark:border-white/10 bg-background/95 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in-95 z-50">
                         <div className="p-3">
-                          <p className="text-sm font-bold leading-none">{user.name || "User"}</p>
-                          <p className="text-xs font-medium text-muted-foreground truncate mt-1">{user.email}</p>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-bold leading-none truncate">
+                              {user.businessName || user.name || (user.role === "EXPORTER" ? "Exporter Account" : user.role === "ADMIN" ? "Admin Account" : "User")}
+                            </p>
+                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 shrink-0">
+                              {user.role}
+                            </span>
+                          </div>
+                          <p className="text-xs font-medium text-muted-foreground truncate mt-1.5">{user.email}</p>
                         </div>
 
                         <div className="h-px bg-border/50 dark:bg-white/5 my-1" />
