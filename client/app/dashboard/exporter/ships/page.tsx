@@ -93,7 +93,7 @@ export default function ShipsPage() {
 
   return (
     <div className="h-full overflow-y-auto relative">
-      <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+      <div className="w-full px-8 pb-12 space-y-8">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Logistics & Fleet</h1>

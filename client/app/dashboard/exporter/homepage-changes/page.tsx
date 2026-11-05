@@ -84,7 +84,7 @@ export default function HomePageChangesPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto pb-16">
+    <div className="space-y-8 w-full px-8 pb-16">
       {/* ─── Page Header ─── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/50 pb-6">
         <div>

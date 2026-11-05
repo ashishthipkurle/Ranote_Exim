@@ -43,19 +43,19 @@ export default function ExporterFeedback() {
     return (
         <div className="h-full overflow-hidden flex flex-col bg-background selection:bg-primary selection:text-primary-foreground">
             {/* ── Header ── */}
-            <header className="flex-shrink-0 px-10 py-10 border-b border-border dark:border-white/5 bg-background/40 backdrop-blur-3xl z-40">
-                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-10">
+            <header className="flex-shrink-0 px-8 py-6 border-b border-border dark:border-white/5 bg-background/40 backdrop-blur-3xl z-40">
+                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
                     <div>
-                        <h1 className="text-5xl font-black tracking-tighter text-foreground dark:text-white uppercase ">Reviews & Feedback</h1>
-                        <p className="text-muted-foreground/40 mt-3 text-[10px] font-black uppercase tracking-[0.3em] ">
-                            Registry Node Index: ACTIVE_FEEDBACK_PROTOCOLS // Verified Importer Ratings
+                        <h1 className="text-3xl font-bold tracking-tight text-foreground dark:text-white">Reviews & Feedback</h1>
+                        <p className="text-muted-foreground mt-1 text-sm">
+                            Manage and view verified importer ratings and customer reviews.
                         </p>
                     </div>
 
                     <div className="flex bg-black/5 dark:bg-white/10 p-1.5 rounded-lg border border-border dark:border-white/10 backdrop-blur-3xl">
                         <button
                             onClick={() => setActiveTab('ALL')}
-                            className={`px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'ALL' ? 'bg-primary text-primary-foreground shadow-xl dark:shadow-2xl' : 'text-muted-foreground/40 hover:text-foreground dark:text-white'}`}
+                            className={`px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'ALL' ? 'bg-primary text-primary-foreground shadow-xl dark:shadow-2xl' : 'text-muted-foreground/40 hover:text-foreground dark:text-white'}`}
                         >
                             All Feedback
                         </button>
@@ -63,8 +63,8 @@ export default function ExporterFeedback() {
                 </div>
             </header>
 
-            <div className="flex-1 overflow-y-auto p-10 space-y-16 custom-scrollbar animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                <div className="max-w-[1700px] mx-auto space-y-16">
+            <div className="flex-1 overflow-y-auto px-8 py-8 space-y-12 custom-scrollbar animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                <div className="w-full space-y-12">
                     {loading ? (
                         <div className="flex justify-center items-center py-32">
                             <Loader2 className="w-10 h-10 animate-spin text-primary" />

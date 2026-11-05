@@ -238,8 +238,8 @@ export default function AdminShowcasePage() {
   return (
     <div className="h-full overflow-hidden flex flex-col bg-slate-50 dark:bg-slate-950">
       {/* Header */}
-      <header className="flex-shrink-0 px-8 py-8 border-b border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+      <header className="flex-shrink-0 px-8 py-6 border-b border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl">
+        <div className="w-full flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
               <MonitorSmartphone className="w-8 h-8 text-primary" />
@@ -261,8 +261,8 @@ export default function AdminShowcasePage() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-        <div className="max-w-6xl mx-auto space-y-12">
+      <div className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar">
+        <div className="w-full space-y-12">
           
           {/* Add Product Section */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl shadow-slate-200/20 dark:shadow-none">
