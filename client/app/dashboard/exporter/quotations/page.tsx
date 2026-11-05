@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { CheckCircle, Clock, AlertTriangle } from "lucide-react";
 import { getServerAuthContext } from "@/lib/auth-server";
 import QuotationStatusButtons from "./QuotationStatusButtons";
 import InitTableButton from "./InitTableButton";
@@ -34,16 +34,9 @@ export default async function QuotationsAdminPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto min-h-screen">
+    <div className="px-8 pb-12 w-full min-h-screen">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <Link
-            href="/dashboard/exporter"
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </Link>
           <h1 className="text-3xl font-bold tracking-tight">Quotation Requests</h1>
           <p className="text-muted-foreground mt-1">
             Manage and view all incoming quotation requests from the website.
