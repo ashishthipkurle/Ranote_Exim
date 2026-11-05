@@ -198,12 +198,22 @@ function GlobalLoadingIndicatorInner() {
         }}
       />
 
-      {/* Floating Status Pill at Top Right */}
+      {/* Centered Loading Indicator Overlay */}
       {isLoading && (
-        <div className="fixed top-3 right-4 z-[999999] pointer-events-none animate-in fade-in zoom-in-95 duration-200">
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 dark:bg-black/90 backdrop-blur-md border border-amber-500/40 text-amber-300 text-[11px] font-bold tracking-wide shadow-2xl shadow-amber-500/20">
-            <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
-            <span>Loading...</span>
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/25 dark:bg-black/50 backdrop-blur-[2px] animate-in fade-in duration-150 cursor-wait">
+          <div className="flex items-center gap-4 px-6 py-4 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-amber-500/40 text-slate-900 dark:text-white shadow-2xl shadow-black/30 ring-1 ring-black/5 dark:ring-white/10 animate-in zoom-in-95 duration-150 select-none">
+            <div className="relative flex items-center justify-center w-8 h-8">
+              <div className="w-8 h-8 rounded-full border-2 border-amber-500/20 border-t-amber-500 animate-spin" />
+              <Loader2 className="w-4 h-4 text-amber-500 animate-spin absolute" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">
+                Loading...
+              </span>
+              <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                Please wait a moment
+              </span>
+            </div>
           </div>
         </div>
       )}
