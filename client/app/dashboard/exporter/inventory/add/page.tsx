@@ -1,34 +1,25 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import CategoryDirectory from "../CategoryDirectory";
-import { prisma } from "@/lib/prisma";
+import { getAllCustomCategories } from "@/lib/custom-categories-server";
+
+export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function AddProductPage({ searchParams }: PageProps) {
-  const isSelected = searchParams.action === "new";
+  const resolvedParams = await searchParams;
+  const isSelected = resolvedParams?.action === "new";
   const backHref = isSelected ? "/dashboard/exporter/inventory/add" : "/dashboard/exporter/inventory";
 
   let customCategories: string[] = [];
   try {
-    const products = await prisma.product.findMany({
-      select: { certifications: true },
-      distinct: ['certifications'],
-    });
-    
-    const customCats = new Set<string>();
-    products.forEach((p) => {
-      p.certifications?.forEach((cert) => {
-        if (cert.startsWith("CUSTOM_CAT:")) {
-          customCats.add(cert.replace("CUSTOM_CAT:", ""));
-        }
-      });
-    });
-    customCategories = Array.from(customCats);
+    customCategories = await getAllCustomCategories();
   } catch (error) {
     console.error("Failed to fetch custom categories:", error);
+    customCategories = ["Areca Leaf", "Automobile spare parts"];
   }
 
   return (

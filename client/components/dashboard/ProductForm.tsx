@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { 
   ArrowLeft, Save, Loader2, Plus, X, 
@@ -164,6 +164,19 @@ export default function ProductForm({
     return searchParams.get("company") || searchParams.get("brand") || "";
   });
 
+  const [availableCustomCategories, setAvailableCustomCategories] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch("/api/categories/custom")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data?.categories)) {
+          setAvailableCustomCategories(data.categories);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [newCertification, setNewCertification] = useState("");
@@ -179,11 +192,18 @@ export default function ProductForm({
     const { name, value, type } = e.target;
     setErrors((prev) => ({ ...prev, [name]: "" }));
 
-    if (name === "category" && value === "CUSTOM") {
-      const defaultName = customCategory || "Automobile Spare Parts";
-      setCustomCategory(defaultName);
-      setForm((prev) => ({ ...prev, category: `CUSTOM_CAT:${defaultName}` }));
-      return;
+    if (name === "category") {
+      if (value === "CUSTOM") {
+        const defaultName = customCategory || "Automobile Spare Parts";
+        setCustomCategory(defaultName);
+        setForm((prev) => ({ ...prev, category: `CUSTOM_CAT:${defaultName}` }));
+        return;
+      } else if (value.startsWith("CUSTOM_CAT:")) {
+        const rawName = value.replace("CUSTOM_CAT:", "");
+        setCustomCategory(rawName);
+        setForm((prev) => ({ ...prev, category: value }));
+        return;
+      }
     }
 
     if (type === "number") {
@@ -246,6 +266,20 @@ export default function ProductForm({
         const catName = customCategory.trim() || form.category.replace("CUSTOM_CAT:", "").trim() || "Custom";
         certs.push(`CUSTOM_CAT:${catName}`);
         finalCategory = "OTHER";
+
+        // Persist new custom category for both client & server
+        try {
+          fetch("/api/categories/custom", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: catName }),
+          }).catch(() => {});
+
+          const stored = JSON.parse(localStorage.getItem("renote_custom_categories") || "[]");
+          if (!stored.some((s: string) => s.toLowerCase() === catName.toLowerCase())) {
+            localStorage.setItem("renote_custom_categories", JSON.stringify([...stored, catName]));
+          }
+        } catch {}
       }
 
       if (subCategory.trim()) {
@@ -359,17 +393,28 @@ export default function ProductForm({
                   <label className={labelClass}>Primary Category *</label>
                   <select
                     name="category"
-                    value={form.category.startsWith("CUSTOM_CAT:") ? "CUSTOM" : form.category}
+                    value={form.category}
                     onChange={handleChange}
                     className={inputClass}
                   >
-                    {CATEGORIES.map(c => (
-                      <option key={c.value} value={c.value}>{c.label}</option>
-                    ))}
-                    <option value="CUSTOM">Custom Category (Enter below)</option>
-                    {customCategory && (
-                       <option value={`CUSTOM_CAT:${customCategory}`}>{customCategory}</option>
+                    <optgroup label="Standard Categories">
+                      {CATEGORIES.map(c => (
+                        <option key={c.value} value={c.value}>{c.label}</option>
+                      ))}
+                    </optgroup>
+                    {availableCustomCategories.length > 0 && (
+                      <optgroup label="Saved Custom Categories">
+                        {availableCustomCategories.map(c => (
+                          <option key={c} value={`CUSTOM_CAT:${c}`}>{c} (Custom)</option>
+                        ))}
+                      </optgroup>
                     )}
+                    {customCategory && !availableCustomCategories.some(c => c.toLowerCase() === customCategory.toLowerCase()) && (
+                      <option value={`CUSTOM_CAT:${customCategory}`}>{customCategory} (Custom)</option>
+                    )}
+                    <optgroup label="Other">
+                      <option value="CUSTOM">+ Enter New Custom Category</option>
+                    </optgroup>
                   </select>
                   {(form.category.startsWith("CUSTOM_CAT:") || form.category === "CUSTOM") && (
                     <div className="mt-3">
