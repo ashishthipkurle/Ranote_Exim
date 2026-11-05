@@ -66,9 +66,32 @@ export default function CheckoutPage() {
     const [productsById, setProductsById] = useState<Record<string, Product>>({});
     const [submitting, setSubmitting] = useState(false);
     const [orderId, setOrderId] = useState<string | null>(null);
+    const [quotedOrder, setQuotedOrder] = useState<any>(null);
+    const [loadingQuotedOrder, setLoadingQuotedOrder] = useState(false);
     const [razorpayPaymentId, setRazorpayPaymentId] = useState<string | null>(null);
     const [paymentReady, setPaymentReady] = useState(false);
     const [isDev, setIsDev] = useState(false);
+
+    // Load Quoted Order if present in URL
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            const qOrderId = params.get("orderId");
+            if (qOrderId) {
+                setOrderId(qOrderId);
+                setLoadingQuotedOrder(true);
+                fetch(`/api/orders/${qOrderId}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data?.order) {
+                            setQuotedOrder(data.order);
+                        }
+                    })
+                    .catch(err => console.error("Failed to load quoted order", err))
+                    .finally(() => setLoadingQuotedOrder(false));
+            }
+        }
+    }, []);
 
     // Step management: 0 = address, 1 = payment, 2 = confirm
     const [step, setStep] = useState(0);
@@ -128,7 +151,9 @@ export default function CheckoutPage() {
         return isImporter ? (product.b2bPrice ?? product.price) : (product.regularPrice ?? product.price);
     };
 
-    const total = rows.reduce((sum, r) => sum + getPrice(r.product) * r.item.quantity, 0);
+    const total = quotedOrder
+        ? quotedOrder.totalPrice
+        : rows.reduce((sum, r) => sum + getPrice(r.product) * r.item.quantity, 0);
 
     const fullAddress = [shippingAddress, shippingCity, shippingZip, shippingCountry].filter(Boolean).join(", ");
 
@@ -195,15 +220,15 @@ export default function CheckoutPage() {
                 productId: r.item.productId,
                 quantity: r.item.quantity
             }));
+            const payload = quotedOrder
+                ? { orderId: quotedOrder.id, shippingAddress: fullAddress, phone: phoneNumber }
+                : { items: orderItems, shippingAddress: fullAddress, phone: phoneNumber };
+
             const res = await fetch("/api/checkout/create-intent", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify({
-                    items: orderItems,
-                    shippingAddress: fullAddress,
-                    phone: phoneNumber,
-                }),
+                body: JSON.stringify(payload),
             });
             const data = await res.json();
             if (!res.ok) {
@@ -230,7 +255,9 @@ export default function CheckoutPage() {
                 amount: data.amount,
                 currency: data.currency,
                 name: "Ranote Exim",
-                description: `Order payment for ${orderItems.length} item(s)`,
+                description: quotedOrder
+                    ? `Payment for Quoted Order #${quotedOrder.orderNumber}`
+                    : `Order payment for ${orderItems.length} item(s)`,
                 order_id: data.razorpayOrderId,
                 handler: async (response: RazorpayPaymentResponse) => {
                     // Payment succeeded — confirm on server
@@ -240,6 +267,7 @@ export default function CheckoutPage() {
                             headers: { "Content-Type": "application/json" },
                             credentials: "include",
                             body: JSON.stringify({
+                                orderId: quotedOrder ? quotedOrder.id : undefined,
                                 razorpay_order_id: response.razorpay_order_id,
                                 razorpay_payment_id: response.razorpay_payment_id,
                                 razorpay_signature: response.razorpay_signature,
@@ -630,33 +658,68 @@ export default function CheckoutPage() {
                         {/* Order Summary Sidebar */}
                         <div className="lg:col-span-4">
                             <div className="sticky top-24 rounded-xl border border-border bg-card p-6 space-y-5">
-                                <h3 className="text-lg font-bold flex items-center gap-2">
-                                    Order Summary
-                                    <Lock className="h-3 w-3 text-primary" />
+                                <h3 className="text-lg font-bold flex items-center justify-between">
+                                    <span>{quotedOrder ? "Quotation Summary" : "Order Summary"}</span>
+                                    <Lock className="h-3.5 w-3.5 text-primary" />
                                 </h3>
 
+                                {loadingQuotedOrder && (
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground p-3 rounded-lg bg-muted/30">
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" /> Loading quotation details...
+                                    </div>
+                                )}
+
+                                {quotedOrder && (
+                                    <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-xs">
+                                        <p className="font-bold text-primary">Quotation #{quotedOrder.orderNumber}</p>
+                                        <p className="text-muted-foreground mt-0.5">Wholesale Agreed Rate</p>
+                                    </div>
+                                )}
+
                                 <div className="flex flex-col gap-4">
-                                    {rows.map(({ item, product }) => {
-                                        const img = product?.images?.[0] ?? null;
-                                        return (
-                                            <div key={item.productId} className="flex items-center gap-4">
-                                                <div className="w-14 h-14 rounded-lg bg-muted border border-border flex-shrink-0 overflow-hidden relative">
-                                                    {img ? (
-                                                        <Image src={img} alt={product?.name ?? "Product"} fill className="object-cover" />
-                                                    ) : (
-                                                        <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">N/A</div>
-                                                    )}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium truncate">{product?.name ?? item.productId}</p>
-                                                    <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
-                                                </div>
-                                                <p className="text-sm font-semibold">
-                                                    {formatMoney(getPrice(product) * item.quantity)}
-                                                </p>
+                                    {quotedOrder ? (
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-14 h-14 rounded-lg bg-muted border border-border flex-shrink-0 overflow-hidden relative">
+                                                {quotedOrder.product?.images?.[0] ? (
+                                                    <Image src={quotedOrder.product.images[0]} alt={quotedOrder.product.name} fill className="object-cover" />
+                                                ) : (
+                                                    <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">N/A</div>
+                                                )}
                                             </div>
-                                        );
-                                    })}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium truncate">{quotedOrder.product?.name || "Quoted Product"}</p>
+                                                <p className="text-xs text-muted-foreground">Qty: {quotedOrder.quantity} {quotedOrder.product?.unit || 'Units'}</p>
+                                                {quotedOrder.notes && (
+                                                    <p className="text-[10px] text-muted-foreground/80 truncate mt-0.5">{quotedOrder.notes}</p>
+                                                )}
+                                            </div>
+                                            <p className="text-sm font-semibold">
+                                                {formatMoney(quotedOrder.totalPrice)}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        rows.map(({ item, product }) => {
+                                            const img = product?.images?.[0] ?? null;
+                                            return (
+                                                <div key={item.productId} className="flex items-center gap-4">
+                                                    <div className="w-14 h-14 rounded-lg bg-muted border border-border flex-shrink-0 overflow-hidden relative">
+                                                        {img ? (
+                                                            <Image src={img} alt={product?.name ?? "Product"} fill className="object-cover" />
+                                                        ) : (
+                                                            <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">N/A</div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium truncate">{product?.name ?? item.productId}</p>
+                                                        <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                                                    </div>
+                                                    <p className="text-sm font-semibold">
+                                                        {formatMoney(getPrice(product) * item.quantity)}
+                                                    </p>
+                                                </div>
+                                            );
+                                        })
+                                    )}
                                 </div>
 
                                 <div className="border-t border-border pt-4 space-y-2">

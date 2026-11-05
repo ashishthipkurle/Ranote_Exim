@@ -36,6 +36,9 @@ import { format } from "date-fns";
 // Session components
 import { VideoPlayer } from "@/components/session/VideoPlayer";
 import ScheduleCallModal from "@/components/calls/ScheduleCallModal";
+import SendQuotationModal from "@/components/dashboard/SendQuotationModal";
+import QuotationOfferCard, { parseQuotationOffer } from "@/components/messaging/QuotationOfferCard";
+import { FileText } from "lucide-react";
 
 interface Partner {
  id: string;
@@ -99,6 +102,7 @@ export default function ExporterBuyersPage() {
 
  // Comms state
  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+ const [isSendQuoteModalOpen, setIsSendQuoteModalOpen] = useState(false);
  const { messages, sendMessage, loading: messagesLoading } = useChat(selectedId);
  const [msgInput, setMsgInput] = useState("");
  const scrollRef = useRef<HTMLDivElement>(null);
@@ -326,6 +330,13 @@ export default function ExporterBuyersPage() {
 
  <div className="flex items-center gap-4">
  <Button 
+ className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground gap-2.5 h-14 px-6 shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 active:scale-95"
+ onClick={() => setIsSendQuoteModalOpen(true)}
+ >
+ <FileText className="w-5 h-5" />
+ <span className="hidden lg:inline text-[11px] font-black uppercase tracking-[0.2em]">Send Quotation</span>
+ </Button>
+ <Button 
  className="rounded-lg border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 gap-3 h-14 px-8"
  onClick={() => initiateCall("AUDIO")}
  >
@@ -374,6 +385,16 @@ export default function ExporterBuyersPage() {
  ) : (
  messages.map((msg) => {
  const isMe = msg.senderId !== selectedId;
+ const quoteOffer = parseQuotationOffer(msg.body);
+
+ if (quoteOffer) {
+ return (
+ <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
+ <QuotationOfferCard offer={quoteOffer} isBuyer={false} />
+ </div>
+ );
+ }
+
  return (
  <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
  <div className={`max-w-[85%] lg:max-w-[70%] px-8 py-6 rounded-lg shadow-2xl text-[13px] leading-relaxed transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 ${isMe ? "bg-primary text-white rounded-tr-none shadow-primary/20" : "bg-card border border-border text-foreground rounded-tl-none shadow-black/5"}`}>
@@ -531,6 +552,14 @@ export default function ExporterBuyersPage() {
  onOpenChange={setIsScheduleModalOpen}
  receiver={selectedUser ? { id: selectedId!, name: selectedUser.name } : null}
  onScheduled={() => toast.success("Negotiation session requested.")}
+ />
+ <SendQuotationModal
+ open={isSendQuoteModalOpen}
+ onClose={() => setIsSendQuoteModalOpen(false)}
+ buyer={selectedUser}
+ onQuotationSent={() => {
+   if (selectedId) void fetchHistory(selectedId);
+ }}
  />
  </div>
  );

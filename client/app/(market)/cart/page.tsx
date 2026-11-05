@@ -5,13 +5,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import axios from "axios";
-import { Heart, Minus, Plus, Trash2, Lock, ChevronLeft } from "lucide-react";
+import { Minus, Plus, Trash2, Lock, ChevronLeft, Send } from "lucide-react";
 import { toast } from "sonner";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 import { getCart, removeFromCart, updateQuantity, type CartItem } from "@/lib/cart";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useTradeMode } from "@/hooks/useTradeMode";
+import QuoteRequestModal from "@/components/cart/QuoteRequestModal";
 
 type Product = {
  id: string;
@@ -36,6 +38,8 @@ function formatMoney(amount: number) {
 
 export default function CartPage() {
  const { user } = useAuth();
+ const { b2cActive } = useTradeMode();
+ const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
  const [items, setItems] = useState<CartItem[]>([]);
  const [productsById, setProductsById] = useState<Record<string, Product>>({});
  const [loading, setLoading] = useState(true);
@@ -103,14 +107,16 @@ export default function CartPage() {
  type="button"
  className="relative pb-4 text-lg font-extrabold border-b-2 border-primary text-foreground"
  >
- My Shopping Cart
+ {b2cActive ? "My Shopping Cart" : "My Quotation List"}
  <span className="ml-2 px-2 py-0.5 text-xs bg-primary/15 text-primary rounded-full border border-primary/20">
  {items.length}
  </span>
  </button>
  </div>
  <div className="pb-4 hidden sm:block">
- <p className="text-sm text-muted-foreground ">“Free shipping on orders over $5,000”</p>
+ <p className="text-sm text-muted-foreground ">
+   {b2cActive ? "“Free shipping on orders over $5,000”" : "“Custom bulk export rates calculated upon request”"}
+ </p>
  </div>
  </div>
 
@@ -170,7 +176,13 @@ export default function CartPage() {
  <span className="text-emerald-500">In Stock</span>
  </p>
  </div>
- <p className="text-xl font-extrabold">{formatMoney(getPrice(product))}</p>
+ {b2cActive ? (
+   <p className="text-xl font-extrabold">{formatMoney(getPrice(product))}</p>
+ ) : (
+   <span className="text-xs uppercase font-bold px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+     Wholesale Bulk
+   </span>
+ )}
  </div>
  <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
  Origin {product.originCountry} • MOQ {product.minOrderQty} {product.unit}
@@ -234,6 +246,8 @@ export default function CartPage() {
 
  <div className="lg:col-span-1">
  <div className="sticky top-28 rounded-lg border border-border bg-card/80 dark:bg-card/40 backdrop-blur-sm p-6">
+ {b2cActive ? (
+   <>
  <h3 className="text-xl font-extrabold mb-6">Order Summary</h3>
 
  <div className="space-y-4 mb-6 text-sm">
@@ -292,6 +306,54 @@ export default function CartPage() {
  <p className="mt-4 text-xs text-muted-foreground text-center">
  Checkout flow is UI-first; order creation runs on submit.
  </p>
+ </>
+ ) : (
+ <>
+ <div className="flex items-center justify-between mb-6">
+   <h3 className="text-xl font-extrabold">Quotation Summary</h3>
+   <span className="text-xs uppercase font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+     B2B Wholesale
+   </span>
+ </div>
+
+ <div className="space-y-4 mb-6 text-sm">
+ <div className="flex justify-between">
+ <span className="text-muted-foreground">Total Inquired Units</span>
+ <span className="font-semibold">{items.reduce((s, i) => s + i.quantity, 0)} Units</span>
+ </div>
+ <div className="flex justify-between">
+ <span className="text-muted-foreground">Product Varieties</span>
+ <span className="font-semibold">{rows.length}</span>
+ </div>
+ <div className="flex justify-between">
+ <span className="text-muted-foreground">Pricing Tier</span>
+ <span className="text-primary font-bold">Custom Export Rate</span>
+ </div>
+ <div className="flex justify-between">
+ <span className="text-muted-foreground">Freight Logistics</span>
+ <span className="text-foreground font-medium">Port-to-Port Quoted</span>
+ </div>
+ </div>
+
+ <div className="pt-4 border-t border-border mb-6">
+   <p className="text-xs text-muted-foreground leading-relaxed">
+     Submit your quotation request. Our export administration will review your quantities and send formal rates to your account.
+   </p>
+ </div>
+
+ <button
+ onClick={() => setIsQuoteModalOpen(true)}
+ className="w-full inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-black py-4 rounded-lg shadow-xl shadow-primary/20 transition-all active:scale-[0.98]"
+ >
+ <Send className="h-4 w-4" />
+ Ask for Quotation
+ </button>
+
+ <p className="mt-4 text-xs text-muted-foreground text-center">
+ You will receive formal quote terms in your buyer account & email.
+ </p>
+ </>
+ )}
  </div>
  </div>
  </div>
@@ -299,6 +361,14 @@ export default function CartPage() {
  </div>
  </div>
  </div>
+
+ <QuoteRequestModal
+   open={isQuoteModalOpen}
+   onClose={() => setIsQuoteModalOpen(false)}
+   items={items}
+   productsById={productsById}
+   onSuccess={() => setItems([])}
+ />
  </SidebarProvider>
  );
 }

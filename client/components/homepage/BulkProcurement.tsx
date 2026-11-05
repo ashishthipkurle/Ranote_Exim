@@ -95,7 +95,7 @@ export default function BulkProcurement() {
               </li>
             </ul>
             <div className="mt-auto relative z-10">
-              <Link href="/quotation" className="bg-[#D4AF37] hover:bg-[#B8962E] text-white font-bold py-3.5 px-8 rounded-xl transition-all duration-300 flex items-center gap-2 group/btn max-w-max text-sm shadow-xl shadow-[#D4AF37]/20 hover:shadow-[#D4AF37]/40 hover:-translate-y-1">
+              <Link href="/products" className="bg-[#D4AF37] hover:bg-[#B8962E] text-white font-bold py-3.5 px-8 rounded-xl transition-all duration-300 flex items-center gap-2 group/btn max-w-max text-sm shadow-xl shadow-[#D4AF37]/20 hover:shadow-[#D4AF37]/40 hover:-translate-y-1">
                 {t("bulk.button", "Request Bulk Quote")}
                 <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
               </Link>

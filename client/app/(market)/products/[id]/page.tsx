@@ -23,6 +23,7 @@ import { prisma } from "@/lib/prisma";
 import AddToCartButton from "@/components/marketplace/AddToCartButton";
 import BuyNowButton from "@/components/marketplace/BuyNowButton";
 import WishlistButton from "@/components/marketplace/WishlistButton";
+import { isB2CActive } from "@/lib/trade-mode";
 import { getServerAuthContext } from "@/lib/auth-server";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
@@ -72,6 +73,7 @@ export default async function ProductDetailPage({
 
   const auth = await getServerAuthContext();
   const role = auth?.role || "USER";
+  const b2cActive = isB2CActive();
 
   // Fetch related products
   const relatedProducts = await prisma.product.findMany({
@@ -223,17 +225,35 @@ export default async function ProductDetailPage({
                         <div className="rounded-lg border border-border bg-card p-6 shadow-lg space-y-6">
                           <div className="flex justify-between items-end">
                             <div>
-                              <p className="text-muted-foreground text-xs font-medium mb-1">
-                                {role === "IMPORTER" ? "B2B Special Price" : "Unit Price"}
-                              </p>
-                              <div className="flex items-baseline gap-2">
-                                <span className="text-4xl font-extrabold tracking-tight text-foreground">
-                                  {formatMoney(currentPrice)}
-                                </span>
-                                <span className="text-muted-foreground/50 text-sm line-through">
-                                  {formatMoney(oldPrice)}
-                                </span>
-                              </div>
+                              {b2cActive ? (
+                                <>
+                                  <p className="text-muted-foreground text-xs font-medium mb-1">
+                                    {role === "IMPORTER" ? "B2B Special Price" : "Unit Price"}
+                                  </p>
+                                  <div className="flex items-baseline gap-2">
+                                    <span className="text-4xl font-extrabold tracking-tight text-foreground">
+                                      {formatMoney(currentPrice)}
+                                    </span>
+                                    <span className="text-muted-foreground/50 text-sm line-through">
+                                      {formatMoney(oldPrice)}
+                                    </span>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <p className="text-muted-foreground text-xs font-semibold mb-1 uppercase tracking-wider text-primary">
+                                    Pricing Model
+                                  </p>
+                                  <div className="flex items-baseline gap-2">
+                                    <span className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground">
+                                      Wholesale Quotation
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Custom bulk export rates calculated based on order quantity & port.
+                                  </p>
+                                </>
+                              )}
                             </div>
                             <div className="text-right">
                               <span
@@ -270,23 +290,40 @@ export default async function ProductDetailPage({
                             </div>
                           </div>
 
-                          <BuyNowButton
-                            productId={product.id}
-                            quantity={product.minOrderQty || 1}
-                            className="w-full h-14 rounded-xl bg-primary px-6 text-base font-bold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-[0.98]"
-                          />
+                          {b2cActive ? (
+                            <>
+                              <BuyNowButton
+                                productId={product.id}
+                                quantity={product.minOrderQty || 1}
+                                className="w-full h-14 rounded-xl bg-primary px-6 text-base font-bold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-[0.98]"
+                              />
 
-                          <div className="grid grid-cols-2 gap-3">
-                            <AddToCartButton
-                              productId={product.id}
-                              quantity={product.minOrderQty || 1}
-                              className="w-full h-12 rounded-xl border border-border bg-background text-foreground hover:bg-accent font-medium"
-                            />
-                            <WishlistButton
-                              productId={product.id}
-                              className="w-full h-12 rounded-xl border border-border bg-background font-medium"
-                            />
-                          </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <AddToCartButton
+                                  productId={product.id}
+                                  quantity={product.minOrderQty || 1}
+                                  className="w-full h-12 rounded-xl border border-border bg-background text-foreground hover:bg-accent font-medium"
+                                />
+                                <WishlistButton
+                                  productId={product.id}
+                                  className="w-full h-12 rounded-xl border border-border bg-background font-medium"
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            <div className="space-y-3">
+                              <AddToCartButton
+                                productId={product.id}
+                                quantity={product.minOrderQty || 1}
+                                label="Add to Quotation Cart"
+                                className="w-full h-14 rounded-xl bg-primary px-6 text-base font-bold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-[0.98]"
+                              />
+                              <WishlistButton
+                                productId={product.id}
+                                className="w-full h-12 rounded-xl border border-border bg-background font-medium"
+                              />
+                            </div>
+                          )}
                         </div>
 
                         {product.trustDocumentUrl && (

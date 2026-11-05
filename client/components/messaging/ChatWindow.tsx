@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { useChat } from "@/hooks/useChat";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/auth/AuthProvider";
+import QuotationOfferCard, { parseQuotationOffer } from "@/components/messaging/QuotationOfferCard";
 
 interface ChatWindowProps {
  otherUserId: string;
@@ -149,15 +150,29 @@ export default function ChatWindow({ otherUserId, orderId, onBack }: ChatWindowP
  {isMe ? "Sent" : otherUser?.name || "Received"} • {format(new Date(msg.createdAt), "HH:mm")}
  </span>
  )}
- <div 
- className={`max-w-[85%] sm:max-w-[70%] px-4 py-3 text-sm transition-all duration-300 ${
- isMe 
- ? "bg-primary text-primary-foreground rounded-lg rounded-tr-none shadow-[0_4px_15px_rgba(19,91,236,0.25)]" 
- : "bg-card border border-border text-foreground rounded-lg rounded-tl-none"
- }`}
- >
- {msg.body}
- </div>
+ {(() => {
+   const offer = parseQuotationOffer(msg.body);
+   if (offer) {
+     return (
+       <QuotationOfferCard
+         offer={offer}
+         isBuyer={!isMe}
+         onBargain={(text) => setInput(text)}
+       />
+     );
+   }
+   return (
+     <div 
+     className={`max-w-[85%] sm:max-w-[70%] px-4 py-3 text-sm transition-all duration-300 ${
+     isMe 
+     ? "bg-primary text-primary-foreground rounded-lg rounded-tr-none shadow-[0_4px_15px_rgba(19,91,236,0.25)]" 
+     : "bg-card border border-border text-foreground rounded-lg rounded-tl-none"
+     }`}
+     >
+     {msg.body}
+     </div>
+   );
+ })()}
  </div>
  );
  })

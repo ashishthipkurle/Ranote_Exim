@@ -10,6 +10,8 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardScaler } from "@/components/dashboard/DashboardScaler";
 import PageTransition from "@/components/ui/PageTransition";
 import { getServerAuthContext } from "@/lib/auth-server";
+import { isB2CActive } from "@/lib/trade-mode";
+import AddToCartButton from "@/components/marketplace/AddToCartButton";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +44,7 @@ export default async function ProductsPage({
 
   const auth = await getServerAuthContext();
   const role = auth?.role || "USER";
+  const b2cActive = isB2CActive();
 
   // Build Prisma where clause
   const where: Prisma.ProductWhereInput = { available: true };
@@ -282,31 +285,54 @@ export default async function ProductsPage({
                                       )}
                                     </div>
 
-                                    {/* Price */}
-                                    <div className="flex items-center flex-wrap gap-1.5 mt-1.5">
-                                      {product.regularPrice > product.price ? (
-                                        <>
-                                          <span className="text-[#388e3c] font-bold text-xs md:text-sm">
-                                            ↓{Math.round(((product.regularPrice - product.price) / product.regularPrice) * 100)}%
+                                    {/* Price or B2B Wholesale Indicator */}
+                                    {b2cActive ? (
+                                      <>
+                                        <div className="flex items-center flex-wrap gap-1.5 mt-1.5">
+                                          {product.regularPrice > product.price ? (
+                                            <>
+                                              <span className="text-[#388e3c] font-bold text-xs md:text-sm">
+                                                ↓{Math.round(((product.regularPrice - product.price) / product.regularPrice) * 100)}%
+                                              </span>
+                                              <span className="text-muted-foreground line-through text-xs md:text-sm">
+                                                {formatMoney(product.regularPrice)}
+                                              </span>
+                                            </>
+                                          ) : null}
+                                          <span className="font-bold text-sm md:text-base text-foreground">
+                                            {formatMoney(product.price)}
                                           </span>
-                                          <span className="text-muted-foreground line-through text-xs md:text-sm">
-                                            {formatMoney(product.regularPrice)}
-                                          </span>
-                                        </>
-                                      ) : null}
-                                      <span className="font-bold text-sm md:text-base text-foreground">
-                                        {formatMoney(product.price)}
-                                      </span>
-                                    </div>
+                                        </div>
 
-                                    {/* Badges */}
-                                    <div className="mt-1.5">
-                                      <span className="inline-block bg-[#e8f5e9] text-[#2e7d32] dark:bg-green-900/30 dark:text-green-400 px-1.5 py-0.5 text-[9px] md:text-[10px] rounded font-semibold border border-green-200 dark:border-green-800">
-                                        Hot Deal
-                                      </span>
-                                    </div>
+                                        {/* Badges */}
+                                        <div className="mt-1.5">
+                                          <span className="inline-block bg-[#e8f5e9] text-[#2e7d32] dark:bg-green-900/30 dark:text-green-400 px-1.5 py-0.5 text-[9px] md:text-[10px] rounded font-semibold border border-green-200 dark:border-green-800">
+                                            Hot Deal
+                                          </span>
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-border/40">
+                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
+                                          <span className="material-symbols-outlined text-[13px]">request_quote</span>
+                                          Wholesale Inquiry
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground font-mono">B2B Bulk</span>
+                                      </div>
+                                    )}
                                   </div>
                                 </Link>
+
+                                {!b2cActive && (
+                                  <div className="mt-2 pt-1">
+                                    <AddToCartButton
+                                      productId={product.id}
+                                      quantity={1}
+                                      label="Add to Quote"
+                                      className="w-full h-8 text-[11px] font-bold rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground border border-primary/20 transition-all shadow-none"
+                                    />
+                                  </div>
+                                )}
                               </div>
                             );
                           })}

@@ -113,7 +113,7 @@ export default function SriLankaCampaign() {
             </p>
 
             <Link
-              href="/quotation"
+              href="/products"
               className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#FF9933] to-[#EB7400] hover:from-[#FFa94d] hover:to-[#FF8C00] text-white font-bold py-4 px-10 rounded-xl transition-all duration-300 text-base shadow-[0_0_40px_-10px_rgba(255,153,51,0.5)] hover:shadow-[0_0_60px_-10px_rgba(255,153,51,0.7)] hover:-translate-y-1 uppercase tracking-wider"
             >
               Request a Sri Lanka Quote

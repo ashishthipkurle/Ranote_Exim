@@ -1,8 +1,9 @@
 "use client";
 
 import { useTransition } from "react";
+import Link from "next/link";
 import { updateQuotationStatus } from "./actions";
-import { Loader2 } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 
 export default function QuotationStatusButtons({
@@ -26,7 +27,15 @@ export default function QuotationStatusButtons({
   };
 
   return (
-    <div className="mt-2 flex items-center gap-2">
+    <div className="mt-2 flex items-center flex-wrap gap-2">
+      <Link
+        href="/dashboard/exporter/directory"
+        className="text-[10px] uppercase font-bold text-primary hover:text-primary-hover bg-primary/10 hover:bg-primary/20 px-2 py-1 rounded transition-colors inline-flex items-center gap-1"
+      >
+        <Send className="w-3 h-3" />
+        Send Quote via Buyers
+      </Link>
+
       {currentStatus !== "RESPONDED" && (
         <button
           type="button"
@@ -53,4 +62,3 @@ export default function QuotationStatusButtons({
     </div>
   );
 }
-

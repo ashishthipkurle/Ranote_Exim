@@ -5,6 +5,7 @@ import { authFetch } from "@/lib/api-utils";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { User, Globe, ShieldCheck, Mail, Building, Phone, Link2, Linkedin, Twitter, FileText, Zap, Camera } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import TradeModeToggle from "@/components/admin/TradeModeToggle";
 
 interface ProfileData {
  id: string;
@@ -125,7 +126,8 @@ export default function ExporterSettingsPage() {
  </header>
 
  <div className="flex-1 overflow-y-auto p-10 space-y-16 custom-scrollbar animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-20">
- <div className="max-w-[1200px] mx-auto space-y-16">
+ <div className="max-w-[1200px] mx-auto space-y-10">
+ <TradeModeToggle />
 
  {/* Identity Header Card */}
  <div className="bg-card/40 dark:bg-white/5 backdrop-blur-3xl border border-border dark:border-white/5 rounded-lg p-10 flex flex-col md:flex-row items-center gap-10 shadow-xl dark:shadow-2xl group">

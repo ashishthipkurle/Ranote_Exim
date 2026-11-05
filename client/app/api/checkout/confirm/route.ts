@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      // Items and order data passed from client (originally from create-intent)
+      orderId, // Quoted Order ID if present
       validatedItems,
       shippingAddress,
       phone,
@@ -25,23 +25,6 @@ export async function POST(req: NextRequest) {
 
     if (!razorpay_order_id) {
       return NextResponse.json({ error: 'Razorpay Order ID is required' }, { status: 400 });
-    }
-
-    if (!validatedItems || !Array.isArray(validatedItems) || validatedItems.length === 0) {
-      return NextResponse.json({ error: 'Order items are required' }, { status: 400 });
-    }
-
-    // Check if orders already exist for this Razorpay order (idempotency)
-    const existingOrders = await prisma.order.findMany({
-      where: { razorpayOrderId: razorpay_order_id },
-    });
-
-    if (existingOrders.length > 0) {
-      // Already confirmed
-      if (existingOrders[0].paymentStatus === 'PAID') {
-        return NextResponse.json({ success: true, message: 'Already confirmed' });
-      }
-      // Orders exist but not paid — shouldn't happen with new flow, but handle gracefully
     }
 
     // Verify Razorpay signature (skip in dev mode when no secret is configured)
@@ -60,10 +43,76 @@ export async function POST(req: NextRequest) {
       console.warn('RAZORPAY_KEY_SECRET not set — skipping payment signature verification (dev mode)');
     }
 
+    // Check if this is a payment for an existing Quoted B2B Order
+    const existingQuotedOrder = await prisma.order.findFirst({
+      where: {
+        OR: [
+          ...(orderId ? [{ id: orderId }] : []),
+          { razorpayOrderId: razorpay_order_id },
+        ],
+      },
+      include: { product: true, seller: true },
+    });
+
+    if (existingQuotedOrder) {
+      if (existingQuotedOrder.paymentStatus === 'PAID') {
+        return NextResponse.json({ success: true, message: 'Already confirmed', orderId: existingQuotedOrder.id });
+      }
+
+      await prisma.order.update({
+        where: { id: existingQuotedOrder.id },
+        data: {
+          orderStatus: 'QUOTE_CONFIRMED',
+          paymentStatus: 'PAID',
+          razorpayOrderId: razorpay_order_id,
+          razorpayPaymentId: razorpay_payment_id || `mock_${Date.now()}`,
+          notes: shippingAddress
+            ? `${existingQuotedOrder.notes ? existingQuotedOrder.notes + ' | ' : ''}Ship to: ${shippingAddress}${phone ? ` | Phone: ${phone}` : ''}`
+            : existingQuotedOrder.notes,
+        },
+      });
+
+      // Post confirmation notification message into chat channel
+      try {
+        await prisma.message.create({
+          data: {
+            senderId: auth.userId,
+            receiverId: existingQuotedOrder.sellerId,
+            orderId: existingQuotedOrder.id,
+            body: `[PAYMENT_CONFIRMED] Quoted Order #${existingQuotedOrder.orderNumber} has been paid successfully (${existingQuotedOrder.currency} ${existingQuotedOrder.totalPrice}). Exporter will now process shipment.`,
+          },
+        });
+      } catch (e) {
+        console.error('Error posting chat payment message:', e);
+      }
+
+      return NextResponse.json({
+        success: true,
+        orderId: existingQuotedOrder.id,
+        orderNumber: existingQuotedOrder.orderNumber,
+        isQuotedOrder: true,
+      });
+    }
+
+    // Flow B: Standard Cart Checkout
+    if (!validatedItems || !Array.isArray(validatedItems) || validatedItems.length === 0) {
+      return NextResponse.json({ error: 'Order items are required' }, { status: 400 });
+    }
+
+    // Check if orders already exist for this Razorpay order (idempotency)
+    const existingOrders = await prisma.order.findMany({
+      where: { razorpayOrderId: razorpay_order_id },
+    });
+
+    if (existingOrders.length > 0) {
+      if (existingOrders[0].paymentStatus === 'PAID') {
+        return NextResponse.json({ success: true, message: 'Already confirmed' });
+      }
+    }
+
     // Payment verified — now create orders and decrement inventory in a single transaction
     await prisma.$transaction(async (tx) => {
       for (const item of validatedItems) {
-        // Re-validate product exists
         const product = await tx.product.findUnique({
           where: { id: item.productId },
         });
@@ -72,13 +121,11 @@ export async function POST(req: NextRequest) {
           throw new Error(`Product not found: ${item.productId}`);
         }
 
-        // SSOT Pricing: Recalculate price on the server instead of trusting the client
         const unitPrice = auth.role === 'IMPORTER' 
           ? (product.b2bPrice ?? product.price) 
           : (product.regularPrice ?? product.price);
         const itemTotal = unitPrice * item.quantity;
 
-        // Create the order with PAID status directly
         await tx.order.create({
           data: {
             orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -87,42 +134,38 @@ export async function POST(req: NextRequest) {
             sellerId: item.sellerId,
             productId: item.productId,
             quantity: item.quantity,
-            unitPrice: unitPrice, // Using server calculated price
-            totalPrice: itemTotal, // Using server calculated price
+            unitPrice: unitPrice,
+            totalPrice: itemTotal,
             currency: item.currency,
             orderStatus: 'QUOTE_CONFIRMED',
             paymentStatus: 'PAID',
             razorpayOrderId: razorpay_order_id,
             razorpayPaymentId: razorpay_payment_id || null,
-            stripePaymentIntentId: razorpay_order_id, // backward compat
+            stripePaymentIntentId: razorpay_order_id,
             notes: shippingAddress
               ? `Ship to: ${shippingAddress}${phone ? ` | Phone: ${phone}` : ''}`
               : null,
           },
         });
 
-        // Decrement inventory (Atomic Optimistic Locking)
-        const updatedProduct = await tx.product.updateMany({
-          where: { 
-            id: item.productId,
-            stockQty: { gte: item.quantity } // Ensure enough stock
-          },
-          data: {
-            stockQty: {
-              decrement: item.quantity,
-            },
-          },
-        });
-
-        if (updatedProduct.count === 0) {
-           throw new Error(`Insufficient stock for product: ${item.productId}`);
+        if (product.stockQty >= item.quantity) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stockQty: { decrement: item.quantity } },
+          });
         }
       }
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      message: 'Payment verified and orders confirmed',
+    });
   } catch (error: any) {
-    console.error('Checkout Confirm Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Payment confirmation error:', error);
+    return NextResponse.json(
+      { error: error?.message || 'Failed to process payment confirmation' },
+      { status: 500 }
+    );
   }
 }
