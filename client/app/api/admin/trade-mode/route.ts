@@ -47,3 +47,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error?.message || "Failed to update trade mode" }, { status: 500 });
   }
 }
+

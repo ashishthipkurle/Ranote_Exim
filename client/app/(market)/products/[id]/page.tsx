@@ -16,7 +16,8 @@ import {
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
-  Heart,
+  Building2,
+  Layers,
 } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
@@ -29,7 +30,7 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardScaler } from "@/components/dashboard/DashboardScaler";
 import PageTransition from "@/components/ui/PageTransition";
-import HomeFooter from "@/components/homepage/HomeFooter";
+import { extractProductMeta } from "@/lib/categories";
 
 type ProductReview = {
   orderId: string;
@@ -74,6 +75,8 @@ export default async function ProductDetailPage({
   const auth = await getServerAuthContext();
   const role = auth?.role || "USER";
   const b2cActive = isB2CActive();
+
+  const meta = extractProductMeta(product);
 
   // Fetch related products
   const relatedProducts = await prisma.product.findMany({
@@ -149,10 +152,20 @@ export default async function ProductDetailPage({
                               No image available
                             </div>
                           )}
-                          <div className="absolute bottom-5 left-5">
-                            <span className="px-4 py-1.5 bg-primary text-[10px] font-black uppercase tracking-[0.15em] rounded-full text-primary-foreground shadow-lg">
-                              Verified Product
+                          <div className="absolute bottom-5 left-5 flex flex-wrap gap-2">
+                            <span className="px-3.5 py-1.5 bg-primary text-[10px] font-black uppercase tracking-[0.15em] rounded-full text-primary-foreground shadow-lg">
+                              Verified Listing
                             </span>
+                            {meta.company && (
+                              <span className="px-3.5 py-1.5 bg-emerald-600 text-[10px] font-black uppercase tracking-[0.15em] rounded-full text-white shadow-lg flex items-center gap-1">
+                                <Building2 className="w-3.5 h-3.5" /> {meta.company}
+                              </span>
+                            )}
+                            {meta.subCategory && (
+                              <span className="px-3.5 py-1.5 bg-blue-600 text-[10px] font-black uppercase tracking-[0.15em] rounded-full text-white shadow-lg flex items-center gap-1">
+                                <Layers className="w-3.5 h-3.5" /> {meta.subCategory}
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -213,10 +226,23 @@ export default async function ProductDetailPage({
                           ) : null}
                         </h1>
 
-                        <p className="text-xs font-mono text-muted-foreground uppercase tracking-[0.2em]">
-                          SKU: {product.id.slice(0, 8).toUpperCase()} |{" "}
-                          {product.category}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-muted-foreground uppercase tracking-[0.1em]">
+                          <span>SKU: {product.id.slice(0, 8).toUpperCase()}</span>
+                          <span>•</span>
+                          <span className="font-semibold text-foreground">{meta.categoryLabel}</span>
+                          {meta.subCategory && (
+                            <>
+                              <span>•</span>
+                              <span className="text-blue-600 dark:text-blue-400 font-semibold">{meta.subCategory}</span>
+                            </>
+                          )}
+                          {meta.company && (
+                            <>
+                              <span>•</span>
+                              <span className="text-emerald-600 dark:text-emerald-400 font-bold">Brand: {meta.company}</span>
+                            </>
+                          )}
+                        </div>
 
                         <p className="text-base text-muted-foreground leading-relaxed">
                           {product.description}
@@ -242,7 +268,7 @@ export default async function ProductDetailPage({
                               ) : (
                                 <>
                                   <p className="text-muted-foreground text-xs font-semibold mb-1 uppercase tracking-wider text-primary">
-                                    Pricing Model
+                                    Trade Model
                                   </p>
                                   <div className="flex items-baseline gap-2">
                                     <span className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground">
@@ -250,7 +276,11 @@ export default async function ProductDetailPage({
                                     </span>
                                   </div>
                                   <p className="text-xs text-muted-foreground mt-1">
-                                    Custom bulk export rates calculated based on order quantity & port.
+                                    {product.price > 0 ? (
+                                      <span>Benchmark Reference: <strong className="text-foreground">${product.price} / {product.unit}</strong>. Custom rates negotiated per volume.</span>
+                                    ) : (
+                                      <span>Rates provided upon inquiry based on quantity, packaging & FOB/CIF terms.</span>
+                                    )}
                                   </p>
                                 </>
                               )}
@@ -349,7 +379,7 @@ export default async function ProductDetailPage({
                         )}
 
                         <div className="rounded-xl border border-border bg-card/60 p-4">
-                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Exporter</p>
+                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Exporter / Merchant</p>
                           <p className="text-base font-extrabold text-foreground">
                             {product.exporter.businessName || product.exporter.name}
                           </p>
@@ -361,30 +391,42 @@ export default async function ProductDetailPage({
 
                   {/* ── Specifications ── */}
                   <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 border-t border-border">
-                    <h2 className="text-xl font-bold text-foreground mb-6">Product Specifications</h2>
+                    <h2 className="text-xl font-bold text-foreground mb-6">Product Specifications & Compliance</h2>
                     <div className="rounded-lg border border-border bg-card/50 p-8">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
                         <div className="flex items-center justify-between py-3 border-b border-border/50">
                           <span className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Zap className="h-4 w-4 text-primary/60" /> Category
                           </span>
-                          <span className="text-sm font-bold text-foreground">{product.category}</span>
+                          <span className="text-sm font-bold text-foreground">{meta.categoryLabel}</span>
                         </div>
                         <div className="flex items-center justify-between py-3 border-b border-border/50">
                           <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Thermometer className="h-4 w-4 text-primary/60" /> Origin
+                            <Layers className="h-4 w-4 text-primary/60" /> Sub-Category / Line
+                          </span>
+                          <span className="text-sm font-bold text-foreground">{meta.subCategory || "Standard / General"}</span>
+                        </div>
+                        <div className="flex items-center justify-between py-3 border-b border-border/50">
+                          <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Building2 className="h-4 w-4 text-primary/60" /> Manufacturer / Brand
+                          </span>
+                          <span className="text-sm font-bold text-foreground">{meta.company || product.exporter.businessName || "Certified Supplier"}</span>
+                        </div>
+                        <div className="flex items-center justify-between py-3 border-b border-border/50">
+                          <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Thermometer className="h-4 w-4 text-primary/60" /> Country of Origin
                           </span>
                           <span className="text-sm font-bold text-foreground">{product.originCountry}</span>
                         </div>
                         <div className="flex items-center justify-between py-3 border-b border-border/50">
                           <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Cpu className="h-4 w-4 text-primary/60" /> Unit
+                            <Cpu className="h-4 w-4 text-primary/60" /> Unit of Measure
                           </span>
                           <span className="text-sm font-bold text-foreground">{product.unit}</span>
                         </div>
                         <div className="flex items-center justify-between py-3 border-b border-border/50">
                           <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <HardDrive className="h-4 w-4 text-primary/60" /> MOQ
+                            <HardDrive className="h-4 w-4 text-primary/60" /> Min Order Quantity (MOQ)
                           </span>
                           <span className="text-sm font-bold text-foreground">{product.minOrderQty} {product.unit}</span>
                         </div>
@@ -392,14 +434,14 @@ export default async function ProductDetailPage({
                           <span className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Network className="h-4 w-4 text-primary/60" /> HS Code
                           </span>
-                          <span className="text-sm font-bold text-foreground">{product.hsCode || "Standard"}</span>
+                          <span className="text-sm font-bold text-foreground">{product.hsCode || "Standard Global Code"}</span>
                         </div>
                         <div className="flex items-center justify-between py-3 border-b border-border/50">
                           <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <ShieldCheck className="h-4 w-4 text-primary/60" /> Stock Status
+                            <ShieldCheck className="h-4 w-4 text-primary/60" /> Stock / Capacity
                           </span>
                           <span className="text-sm font-bold text-foreground">
-                            {product.stockQty > 0 ? `${product.stockQty} ${product.unit} Available` : "On Backorder"}
+                            {product.stockQty > 0 ? `${product.stockQty} ${product.unit} Available` : "Manufacture on Order"}
                           </span>
                         </div>
                       </div>
@@ -412,7 +454,7 @@ export default async function ProductDetailPage({
                       <div className="flex items-center justify-between mb-8">
                         <div>
                           <h2 className="text-2xl font-extrabold text-foreground">Related Products</h2>
-                          <p className="text-sm text-muted-foreground mt-1">Discover more items in {product.category}</p>
+                          <p className="text-sm text-muted-foreground mt-1">Discover more items in {meta.categoryLabel}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <button className="h-9 w-9 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
@@ -442,23 +484,21 @@ export default async function ProductDetailPage({
                               <div className="flex items-baseline justify-between mb-1">
                                 <p className="text-sm font-bold text-foreground line-clamp-1">{item.name}</p>
                                 <span className="text-sm font-extrabold text-primary ml-2 whitespace-nowrap">
-                                  {formatMoney(role === "IMPORTER" ? (item.b2bPrice || item.price) : (item.regularPrice || item.price))}
+                                  {b2cActive 
+                                    ? formatMoney(role === "IMPORTER" ? (item.b2bPrice || item.price) : (item.regularPrice || item.price))
+                                    : "Quote"
+                                  }
                                 </span>
                               </div>
                               <p className="text-[11px] text-muted-foreground line-clamp-2 mb-3">
                                 From {item.originCountry}
                               </p>
-                              <div className="w-full py-2 rounded-lg border border-border text-[10px] font-black uppercase tracking-[0.2em] text-center text-muted-foreground group-hover:bg-primary group-hover:text-white transition-colors">
-                                View Details
-                              </div>
                             </div>
                           </Link>
                         ))}
                       </div>
                     </section>
                   )}
-
-                  <HomeFooter />
                 </div>
               </PageTransition>
             </div>

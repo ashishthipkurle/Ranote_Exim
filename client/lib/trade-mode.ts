@@ -43,3 +43,4 @@ export function setTradeSettings(b2cActive: boolean): TradeSettings {
 
   return settings;
 }
+

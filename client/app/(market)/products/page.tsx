@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import { extractCategoriesFromProducts, getPrismaCategoryFilter } from "@/lib/categories";
+import { extractTaxonomyFromProducts, getPrismaMarketFilters, extractProductMeta } from "@/lib/categories";
 import EmptyState from "@/components/ui/EmptyState";
 import ImporterSidebar from "@/components/importer/ImporterSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -14,7 +14,6 @@ import { isB2CActive } from "@/lib/trade-mode";
 import AddToCartButton from "@/components/marketplace/AddToCartButton";
 
 export const dynamic = "force-dynamic";
-
 
 function formatMoney(amount: number) {
   return new Intl.NumberFormat(undefined, {
@@ -34,6 +33,10 @@ export default async function ProductsPage({
   console.log("[Products Page] Starting render at:", new Date(start).toLocaleTimeString());
 
   const categoryParam = typeof resolvedParams.category === "string" ? resolvedParams.category : undefined;
+  const subCategoryParam = typeof resolvedParams.subCategory === "string" ? resolvedParams.subCategory : undefined;
+  const companyParam = typeof resolvedParams.company === "string" 
+    ? resolvedParams.company 
+    : (typeof resolvedParams.brand === "string" ? resolvedParams.brand : undefined);
   const searchQuery = typeof resolvedParams.search === "string" ? resolvedParams.search : undefined;
   const originParam = typeof resolvedParams.origin === "string" ? resolvedParams.origin : undefined;
   const minPriceParam = typeof resolvedParams.minPrice === "string" ? parseFloat(resolvedParams.minPrice) : undefined;
@@ -46,12 +49,16 @@ export default async function ProductsPage({
   const role = auth?.role || "USER";
   const b2cActive = isB2CActive();
 
-  // Build Prisma where clause
+  // Build Prisma where clause with Category, SubCategory & Company
   const where: Prisma.ProductWhereInput = { available: true };
 
-  if (categoryParam) {
-    const catFilter = getPrismaCategoryFilter(categoryParam);
-    Object.assign(where, catFilter);
+  const marketFilter = getPrismaMarketFilters({
+    categoryParam,
+    subCategoryParam,
+    companyParam,
+  });
+  if (marketFilter && Object.keys(marketFilter).length > 0) {
+    Object.assign(where, marketFilter);
   }
 
   if (searchQuery && searchQuery.trim().length > 0) {
@@ -88,13 +95,13 @@ export default async function ProductsPage({
     certifications?: string[];
     images: string[];
     stockQty: number;
+    unit: string;
     exporter: { name: string | null; businessName: string | null; country: string | null };
     reviews: { rating: number }[];
   };
   let products: ProductWithExporter[] = [];
   let total = 0;
   let allProductCategories: Array<{ id?: string; name?: string | null; category?: string | null; certifications?: string[] | null }> = [];
-
 
   try {
     const [fetchedProducts, fetchedTotal, fetchedCategories] = await Promise.all([
@@ -113,6 +120,7 @@ export default async function ProductsPage({
           certifications: true,
           images: true,
           stockQty: true,
+          unit: true,
           exporter: { select: { name: true, businessName: true, country: true } },
         } as any,
       }) as unknown as Promise<ProductWithExporter[]>,
@@ -126,13 +134,11 @@ export default async function ProductsPage({
     products = fetchedProducts;
     total = fetchedTotal;
     allProductCategories = fetchedCategories || [];
-    
 
-    // Apply role-based price swap and mock reviews array (since DB push failed)
     products = products.map((p) => ({
       ...p,
       price: role === "IMPORTER" ? p.price : (p.regularPrice || p.price),
-      reviews: [] // Default to empty until DB is updated
+      reviews: []
     }));
   } catch (error) {
     console.error("Failed to fetch products from Prisma:", error);
@@ -148,6 +154,8 @@ export default async function ProductsPage({
     const params = new URLSearchParams();
     const merged: Record<string, string | undefined> = {
       category: categoryParam,
+      subCategory: subCategoryParam,
+      company: companyParam,
       search: searchQuery,
       origin: originParam,
       minPrice: minPriceParam?.toString(),
@@ -162,7 +170,17 @@ export default async function ProductsPage({
     return `/products${qs ? `?${qs}` : ""}`;
   }
 
-  const visibleCategories = extractCategoriesFromProducts(allProductCategories);
+  // Extract full taxonomy from products
+  const taxonomy = extractTaxonomyFromProducts(allProductCategories);
+  const visibleCategories = taxonomy.categories;
+  
+  // Filter sub-categories relevant to active category or all
+  const relevantSubCategories = categoryParam 
+    ? taxonomy.subCategories.filter(s => s.categoryKey.toUpperCase() === categoryParam.toUpperCase())
+    : taxonomy.subCategories;
+
+  const relevantCompanies = taxonomy.companies;
+  const hasActiveFilters = Boolean(categoryParam || subCategoryParam || companyParam || searchQuery || originParam);
 
   return (
     <SidebarProvider className="fixed inset-0 z-40 bg-board">
@@ -174,44 +192,166 @@ export default async function ProductsPage({
 
           <div className="flex flex-1 overflow-hidden relative">
             <ImporterSidebar basePath="/dashboard/importer">
-              <div className="flex flex-col py-2">
-                <div className="mb-2 flex items-center justify-between py-2 rounded-lg">
-                  <h3 className="font-headline font-semibold text-[10px] uppercase tracking-wider text-muted-foreground">Categories</h3>
-                </div>
+              <div className="flex flex-col py-2 space-y-6">
                 
-                <div className="flex flex-col space-y-1">
-                  <Link
-                    href={buildUrl({ category: undefined, page: undefined })}
-                    className={`flex items-center px-2 py-2 rounded-lg transition-all group ${!categoryParam ? "bg-primary/5 text-primary font-bold shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-primary"}`}
-                  >
-                    <span className="material-symbols-outlined mr-3 text-[20px]">auto_awesome</span>
-                    <span className="font-headline font-semibold text-sm uppercase tracking-tight">New Arrivals</span>
-                  </Link>
-
-                  {visibleCategories.map((cat) => {
-                    const isActive = categoryParam === cat.key;
-                    return (
+                {/* Active Filters Clear Bar */}
+                {hasActiveFilters && (
+                  <div className="p-2.5 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Active Filters</span>
                       <Link
-                        key={cat.key}
-                        href={buildUrl({ category: isActive ? undefined : cat.key, page: undefined })}
-                        className={`flex items-center px-2 py-2 rounded-lg transition-all group ${isActive ? "bg-primary/5 text-primary font-bold shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}
+                        href="/products"
+                        className="text-[10px] font-semibold text-primary hover:underline"
                       >
-                        <span className="material-symbols-outlined mr-3 text-[20px]">{cat.icon}</span>
-                        <span className="font-headline font-semibold text-sm uppercase tracking-tight truncate">{cat.label}</span>
+                        Clear All
                       </Link>
-                    );
-                  })}
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {categoryParam && (
+                        <Link
+                          href={buildUrl({ category: undefined, subCategory: undefined, page: undefined })}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border text-[10px] font-medium text-slate-700 dark:text-slate-300 hover:bg-red-50 hover:text-red-600 transition-colors"
+                        >
+                          {categoryParam.replace("CUSTOM_CAT:", "")} <span className="text-slate-400">×</span>
+                        </Link>
+                      )}
+                      {subCategoryParam && (
+                        <Link
+                          href={buildUrl({ subCategory: undefined, page: undefined })}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border text-[10px] font-medium text-blue-700 dark:text-blue-300 hover:bg-red-50 hover:text-red-600 transition-colors"
+                        >
+                          {subCategoryParam} <span className="text-slate-400">×</span>
+                        </Link>
+                      )}
+                      {companyParam && (
+                        <Link
+                          href={buildUrl({ company: undefined, page: undefined })}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border text-[10px] font-medium text-emerald-700 dark:text-emerald-300 hover:bg-red-50 hover:text-red-600 transition-colors"
+                        >
+                          {companyParam} <span className="text-slate-400">×</span>
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Categories Section */}
+                <div>
+                  <div className="mb-2 flex items-center justify-between py-1 rounded-lg">
+                    <h3 className="font-headline font-semibold text-[10px] uppercase tracking-wider text-muted-foreground">Categories</h3>
+                  </div>
+                  
+                  <div className="flex flex-col space-y-1">
+                    <Link
+                      href={buildUrl({ category: undefined, subCategory: undefined, page: undefined })}
+                      className={`flex items-center justify-between px-2 py-2 rounded-lg transition-all group ${!categoryParam ? "bg-primary/5 text-primary font-bold shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-primary"}`}
+                    >
+                      <div className="flex items-center min-w-0">
+                        <span className="material-symbols-outlined mr-3 text-[20px]">auto_awesome</span>
+                        <span className="font-headline font-semibold text-sm uppercase tracking-tight truncate">All Products</span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground font-mono">{allProductCategories.length}</span>
+                    </Link>
+
+                    {visibleCategories.map((cat) => {
+                      const isActive = categoryParam === cat.key;
+                      return (
+                        <Link
+                          key={cat.key}
+                          href={buildUrl({ category: isActive ? undefined : cat.key, subCategory: undefined, page: undefined })}
+                          className={`flex items-center justify-between px-2 py-2 rounded-lg transition-all group ${isActive ? "bg-primary/5 text-primary font-bold shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}
+                        >
+                          <div className="flex items-center min-w-0">
+                            <span className="material-symbols-outlined mr-3 text-[20px]">{cat.icon}</span>
+                            <span className="font-headline font-semibold text-sm uppercase tracking-tight truncate">{cat.label}</span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground font-mono ml-2">{cat.count}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {/* Sub-Categories Section (if any exist) */}
+                {relevantSubCategories.length > 0 && (
+                  <div className="pt-2 border-t border-border/40">
+                    <div className="mb-2 flex items-center justify-between py-1 rounded-lg">
+                      <h3 className="font-headline font-semibold text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[14px]">layers</span> Sub-Categories
+                      </h3>
+                      {subCategoryParam && (
+                        <Link href={buildUrl({ subCategory: undefined, page: undefined })} className="text-[9px] text-primary hover:underline">
+                          Clear
+                        </Link>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col space-y-1 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                      {relevantSubCategories.map((sub) => {
+                        const isActive = subCategoryParam === sub.name;
+                        return (
+                          <Link
+                            key={sub.name}
+                            href={buildUrl({ subCategory: isActive ? undefined : sub.name, page: undefined })}
+                            className={`flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition-all ${
+                              isActive 
+                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold" 
+                                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900"
+                            }`}
+                          >
+                            <span className="truncate">{sub.name}</span>
+                            <span className="text-[10px] opacity-70 ml-1.5 font-mono">{sub.count}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Companies / Brands Section (if any exist) */}
+                {relevantCompanies.length > 0 && (
+                  <div className="pt-2 border-t border-border/40">
+                    <div className="mb-2 flex items-center justify-between py-1 rounded-lg">
+                      <h3 className="font-headline font-semibold text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[14px]">apartment</span> Brands / Companies
+                      </h3>
+                      {companyParam && (
+                        <Link href={buildUrl({ company: undefined, page: undefined })} className="text-[9px] text-primary hover:underline">
+                          Clear
+                        </Link>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col space-y-1 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                      {relevantCompanies.map((comp) => {
+                        const isActive = companyParam === comp.name;
+                        return (
+                          <Link
+                            key={comp.name}
+                            href={buildUrl({ company: isActive ? undefined : comp.name, page: undefined })}
+                            className={`flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition-all ${
+                              isActive 
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold" 
+                                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900"
+                            }`}
+                          >
+                            <span className="truncate">{comp.name}</span>
+                            <span className="text-[10px] opacity-70 ml-1.5 font-mono">{comp.count}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
               </div>
             </ImporterSidebar>
             
             <SidebarInset className="overflow-hidden">
               <div className="w-full h-full overflow-y-auto custom-scrollbar bg-surface">
                 <PageTransition>
-                  {/* Editorial Header Section */}
                   <div className="w-full px-0 py-2 sm:py-4 md:py-6 lg:px-4">
                   
-
                     {/* ─── Product Grid ─── */}
                     <div className="w-full">
                       {products.length === 0 ? (
@@ -219,7 +359,7 @@ export default async function ProductsPage({
                           <EmptyState
                             iconName="searchX"
                             title="No Listings Found"
-                            description="We couldn't find any products matching your current filters. Try broadening your search or clearing filters."
+                            description="We couldn't find any products matching your current category, sub-category, or company filters. Try broadening your selection."
                             actionLabel="Clear all filters"
                             href="/products"
                           />
@@ -228,7 +368,7 @@ export default async function ProductsPage({
                         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 border-t border-l border-border/50">
                           {products.map((product) => {
                             const image = product.images?.[0] ?? null;
-                            const isInStock = product.stockQty > 0;
+                            const meta = extractProductMeta(product);
                             const reviewsCount = product.reviews?.length || 0;
                             const averageRating = reviewsCount > 0 
                               ? product.reviews.reduce((acc, r) => acc + r.rating, 0) / reviewsCount 
@@ -238,93 +378,117 @@ export default async function ProductsPage({
                             const hasHalfStar = averageRating - fullStars >= 0.5;
 
                             return (
-                              <div key={product.id} className="group relative bg-white dark:bg-card p-2 md:p-3 hover:shadow-md transition-shadow duration-300 border-r border-b border-border/50">
-                                {/* Wishlist Heart */}
-                                <div className="absolute top-2 right-2 z-10 cursor-pointer p-1 rounded-full bg-white/50 dark:bg-black/50 backdrop-blur-sm hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">
-                                  <span className="material-symbols-outlined text-gray-400 hover:text-red-500 transition-colors text-[20px] md:text-[22px]">favorite_border</span>
-                                </div>
-                                <Link href={`/products/${product.id}`} className="block">
-                                  {/* Card Image */}
-                                  <div className="relative mb-2 overflow-hidden bg-transparent aspect-square flex items-center justify-center">
-                                    {image ? (
-                                      <Image
-                                        src={image}
-                                        alt={product.name}
-                                        fill
-                                        sizes="(max-width:640px) 100vw,(max-width:1280px) 50vw,33vw"
-                                        className="object-contain transition-transform duration-700 group-hover:scale-105"
-                                      />
-                                    ) : (
-                                      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/30">
-                                        <span className="material-symbols-outlined text-6xl">inventory_2</span>
-                                      </div>
-                                    )}
+                              <div key={product.id} className="group relative bg-white dark:bg-card p-2 md:p-3 hover:shadow-md transition-shadow duration-300 border-r border-b border-border/50 flex flex-col justify-between">
+                                <div>
+                                  {/* Wishlist Heart */}
+                                  <div className="absolute top-2 right-2 z-10 cursor-pointer p-1 rounded-full bg-white/50 dark:bg-black/50 backdrop-blur-sm hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">
+                                    <span className="material-symbols-outlined text-gray-400 hover:text-red-500 transition-colors text-[20px] md:text-[22px]">favorite_border</span>
                                   </div>
 
-                                  {/* Sponsored / Hashtag */}
-                                  <p className="text-[10px] md:text-[11px] text-[#2874f0] dark:text-blue-400 font-semibold mb-1">#BestSeller</p>
-
-                                  {/* Card Body */}
-                                  <div>
-                                    <h2 className="text-[11px] sm:text-xs md:text-sm font-medium text-foreground/90 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                                      {product.name}
-                                    </h2>
-                                    
-                                    {/* Ratings */}
-                                    <div className="flex items-center gap-1 mt-1.5">
-                                      <div className="flex items-center text-[#388e3c]">
-                                        {[...Array(5)].map((_, i) => {
-                                          if (i < fullStars) return <span key={i} className="material-symbols-outlined text-[12px] md:text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>;
-                                          if (i === fullStars && hasHalfStar) return <span key={i} className="material-symbols-outlined text-[12px] md:text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star_half</span>;
-                                          return <span key={i} className="material-symbols-outlined text-[12px] md:text-[14px]">star</span>;
-                                        })}
-                                      </div>
-                                      <span className="text-[10px] text-muted-foreground ml-0.5">({ratingDisplay})</span>
-                                      {averageRating >= 4.5 && (
-                                        <span className="ml-1 bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm uppercase tracking-wider">Top</span>
+                                  <Link href={`/products/${product.id}`} className="block">
+                                    {/* Card Image */}
+                                    <div className="relative mb-2 overflow-hidden bg-transparent aspect-square flex items-center justify-center">
+                                      {image ? (
+                                        <Image
+                                          src={image}
+                                          alt={product.name}
+                                          fill
+                                          sizes="(max-width:640px) 100vw,(max-width:1280px) 50vw,33vw"
+                                          className="object-contain transition-transform duration-700 group-hover:scale-105"
+                                        />
+                                      ) : (
+                                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/30">
+                                          <span className="material-symbols-outlined text-6xl">inventory_2</span>
+                                        </div>
                                       )}
                                     </div>
 
-                                    {/* Price or B2B Wholesale Indicator */}
-                                    {b2cActive ? (
-                                      <>
-                                        <div className="flex items-center flex-wrap gap-1.5 mt-1.5">
-                                          {product.regularPrice > product.price ? (
-                                            <>
-                                              <span className="text-[#388e3c] font-bold text-xs md:text-sm">
-                                                ↓{Math.round(((product.regularPrice - product.price) / product.regularPrice) * 100)}%
-                                              </span>
-                                              <span className="text-muted-foreground line-through text-xs md:text-sm">
-                                                {formatMoney(product.regularPrice)}
-                                              </span>
-                                            </>
-                                          ) : null}
-                                          <span className="font-bold text-sm md:text-base text-foreground">
-                                            {formatMoney(product.price)}
-                                          </span>
-                                        </div>
-
-                                        {/* Badges */}
-                                        <div className="mt-1.5">
-                                          <span className="inline-block bg-[#e8f5e9] text-[#2e7d32] dark:bg-green-900/30 dark:text-green-400 px-1.5 py-0.5 text-[9px] md:text-[10px] rounded font-semibold border border-green-200 dark:border-green-800">
-                                            Hot Deal
-                                          </span>
-                                        </div>
-                                      </>
-                                    ) : (
-                                      <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-border/40">
-                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
-                                          <span className="material-symbols-outlined text-[13px]">request_quote</span>
-                                          Wholesale Inquiry
+                                    {/* Brand & Subcategory Badges */}
+                                    <div className="flex flex-wrap items-center gap-1 mb-1">
+                                      {meta.company ? (
+                                        <span className="inline-block bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 text-[9px] md:text-[10px] rounded font-bold border border-emerald-200 dark:border-emerald-800">
+                                          {meta.company}
                                         </span>
-                                        <span className="text-[10px] text-muted-foreground font-mono">B2B Bulk</span>
+                                      ) : (
+                                        <span className="text-[10px] md:text-[11px] text-[#2874f0] dark:text-blue-400 font-semibold">#BestSeller</span>
+                                      )}
+
+                                      {meta.subCategory && (
+                                        <span className="inline-block bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 text-[9px] md:text-[10px] rounded font-medium border border-blue-200 dark:border-blue-800 truncate max-w-[120px]">
+                                          {meta.subCategory}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {/* Card Body */}
+                                    <div>
+                                      <h2 className="text-[11px] sm:text-xs md:text-sm font-medium text-foreground/90 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+                                        {product.name}
+                                      </h2>
+                                      
+                                      {/* Ratings */}
+                                      <div className="flex items-center gap-1 mt-1.5">
+                                        <div className="flex items-center text-[#388e3c]">
+                                          {[...Array(5)].map((_, i) => {
+                                            if (i < fullStars) return <span key={i} className="material-symbols-outlined text-[12px] md:text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>;
+                                            if (i === fullStars && hasHalfStar) return <span key={i} className="material-symbols-outlined text-[12px] md:text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star_half</span>;
+                                            return <span key={i} className="material-symbols-outlined text-[12px] md:text-[14px]">star</span>;
+                                          })}
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground ml-0.5">({ratingDisplay})</span>
+                                        {averageRating >= 4.5 && (
+                                          <span className="ml-1 bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm uppercase tracking-wider">Top</span>
+                                        )}
                                       </div>
-                                    )}
-                                  </div>
-                                </Link>
+
+                                      {/* Price or B2B Wholesale Indicator */}
+                                      {b2cActive ? (
+                                        <>
+                                          <div className="flex items-center flex-wrap gap-1.5 mt-1.5">
+                                            {product.regularPrice > product.price ? (
+                                              <>
+                                                <span className="text-[#388e3c] font-bold text-xs md:text-sm">
+                                                  ↓{Math.round(((product.regularPrice - product.price) / product.regularPrice) * 100)}%
+                                                </span>
+                                                <span className="text-muted-foreground line-through text-xs md:text-sm">
+                                                  {formatMoney(product.regularPrice)}
+                                                </span>
+                                              </>
+                                            ) : null}
+                                            <span className="font-bold text-sm md:text-base text-foreground">
+                                              {formatMoney(product.price)}
+                                            </span>
+                                          </div>
+
+                                          <div className="mt-1.5">
+                                            <span className="inline-block bg-[#e8f5e9] text-[#2e7d32] dark:bg-green-900/30 dark:text-green-400 px-1.5 py-0.5 text-[9px] md:text-[10px] rounded font-semibold border border-green-200 dark:border-green-800">
+                                              Hot Deal
+                                            </span>
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <div className="mt-2 pt-1.5 border-t border-border/40">
+                                          <div className="flex items-center justify-between">
+                                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
+                                              <span className="material-symbols-outlined text-[13px]">request_quote</span>
+                                              Wholesale Quote
+                                            </span>
+                                            {product.price > 0 ? (
+                                              <span className="text-[11px] text-foreground font-bold font-mono">
+                                                Ref ${product.price}
+                                              </span>
+                                            ) : (
+                                              <span className="text-[10px] text-muted-foreground font-mono">On Demand</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </Link>
+                                </div>
 
                                 {!b2cActive && (
-                                  <div className="mt-2 pt-1">
+                                  <div className="mt-3 pt-1">
                                     <AddToCartButton
                                       productId={product.id}
                                       quantity={1}

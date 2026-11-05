@@ -47,6 +47,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
+    const subCategory = searchParams.get('subCategory');
+    const company = searchParams.get('company');
     const country = searchParams.get('country');
     const minPrice = searchParams.get('minPrice');
     const maxPrice = searchParams.get('maxPrice');
@@ -66,6 +68,20 @@ export async function GET(request: NextRequest) {
         where.category = parsed.data as any;
       }
     }
+
+    const certFilters: string[] = [];
+    if (subCategory && subCategory.trim()) {
+      certFilters.push(`SUB_CAT:${subCategory.trim()}`);
+    }
+    if (company && company.trim()) {
+      certFilters.push(`COMPANY:${company.trim()}`);
+    }
+    if (certFilters.length > 0) {
+      where.certifications = {
+        hasSome: certFilters,
+      };
+    }
+
     if (country) where.originCountry = country;
     if (minPrice || maxPrice) {
       const price: Prisma.FloatFilter = {};
@@ -155,7 +171,7 @@ export async function POST(request: NextRequest) {
     const validatedData = productSchema.parse(body);
 
     const product = await prisma.$transaction(async (tx) => {
-      const { quantity, category, ...restOfData } = validatedData as any;
+      const { quantity, category, subCategory, company, brand, ...restOfData } = validatedData as any;
 
       // Map frontend uppercase categories to Prisma schema ENUM
       const categoryMap: Record<string, string> = {
@@ -184,9 +200,20 @@ export async function POST(request: NextRequest) {
 
       const prismaCategory = categoryMap[category] || "Other";
 
+      // Ensure subCategory and company are encoded in certifications array
+      let certs: string[] = Array.isArray(restOfData.certifications) ? [...restOfData.certifications] : [];
+      if (subCategory && subCategory.trim() && !certs.some(c => c.startsWith("SUB_CAT:"))) {
+        certs.push(`SUB_CAT:${subCategory.trim()}`);
+      }
+      const companyVal = (company || brand)?.trim();
+      if (companyVal && !certs.some(c => c.startsWith("COMPANY:") || c.startsWith("BRAND:"))) {
+        certs.push(`COMPANY:${companyVal}`);
+      }
+
       const newProduct = await tx.product.create({
         data: {
           ...restOfData,
+          certifications: certs,
           category: prismaCategory,
           stockQty: quantity,
           exporterId: auth.userId,
@@ -208,7 +235,7 @@ export async function POST(request: NextRequest) {
         data: {
           productId: newProduct.id,
           price: newProduct.price,
-          currency: "USD", // Fallback if required by client
+          currency: "USD",
         } as any,
       });
 

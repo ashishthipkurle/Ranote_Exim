@@ -7,8 +7,8 @@ import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 
 export async function GET(
- request,
- { params }
+ request: NextRequest,
+ { params }: { params: Promise<{ id: string }> }
 ) {
  try {
  const { id } = await params;
@@ -55,8 +55,8 @@ export async function GET(
 }
 
 export async function PUT(
- request,
- { params }
+ request: NextRequest,
+ { params }: { params: Promise<{ id: string }> }
 ) {
  try {
  const { id } = await params;
@@ -106,6 +106,32 @@ export async function PUT(
   if (prismaData.quantity !== undefined) {
     prismaData.stockQty = prismaData.quantity;
     delete prismaData.quantity;
+  }
+
+  const subCatVal = prismaData.subCategory !== undefined ? (prismaData.subCategory?.trim() || "") : undefined;
+  const compVal = (prismaData.company !== undefined || prismaData.brand !== undefined) 
+    ? ((prismaData.company || prismaData.brand)?.trim() || "") 
+    : undefined;
+  delete prismaData.subCategory;
+  delete prismaData.company;
+  delete prismaData.brand;
+
+  if (prismaData.certifications !== undefined || subCatVal !== undefined || compVal !== undefined) {
+    let certs: string[] = Array.isArray(prismaData.certifications)
+      ? [...prismaData.certifications]
+      : [...(existingProduct.certifications || [])];
+
+    if (subCatVal !== undefined) {
+      certs = certs.filter(c => !c.startsWith("SUB_CAT:"));
+      if (subCatVal) certs.push(`SUB_CAT:${subCatVal}`);
+    }
+
+    if (compVal !== undefined) {
+      certs = certs.filter(c => !c.startsWith("COMPANY:") && !c.startsWith("BRAND:"));
+      if (compVal) certs.push(`COMPANY:${compVal}`);
+    }
+
+    prismaData.certifications = certs;
   }
 
   // Map frontend uppercase categories to Prisma schema ENUM
@@ -177,8 +203,8 @@ export async function PUT(
 }
 
 export async function DELETE(
- request,
- { params }
+ request: NextRequest,
+ { params }: { params: Promise<{ id: string }> }
 ) {
  try {
  const { id } = await params;

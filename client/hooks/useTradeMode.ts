@@ -57,3 +57,4 @@ export function useTradeMode() {
 
   return { b2cActive, loading, toggleTradeMode, refresh: fetchTradeMode };
 }
+

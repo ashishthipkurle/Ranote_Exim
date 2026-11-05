@@ -7,12 +7,12 @@ import {
   Package, Search, Edit2, Trash2, Filter, 
   MoreHorizontal, Eye, Box, AlertCircle,
   CheckCircle2, PauseCircle, Loader2,
-  ArrowLeft, ArrowRight
+  ArrowLeft, ArrowRight, Building2, Layers
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 import { authFetch } from "@/lib/api-utils";
-// Removed motion/AnimatePresence
+import { extractProductMeta } from "@/lib/categories";
 
 type Product = {
   id: string;
@@ -26,6 +26,7 @@ type Product = {
   available: boolean;
   stockQty: number;
   images: string[];
+  certifications?: string[];
 };
 
 export default function InventoryTable({
@@ -91,7 +92,7 @@ export default function InventoryTable({
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search products..."
+            placeholder="Search by part, company, or sub-category..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={inputClass}
@@ -123,7 +124,7 @@ export default function InventoryTable({
           >
             <option value="ALL">All Status</option>
             <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
+            <option value="INACTIVE">Halted</option>
           </select>
 
           {(searchQuery || categoryFilter || statusFilter !== "ALL") && (
@@ -154,82 +155,116 @@ export default function InventoryTable({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]">
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Product Details</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Product Details & Brand</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Pricing</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">B2B Rate</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Stock</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Status</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-              {products.map((product) => (
-                  <tr key={product.id} className={`group hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors ${isDeletingId === product.id ? "opacity-30 pointer-events-none" : ""}`}>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-24 h-24 rounded-xl border border-slate-200 dark:border-white/10 overflow-hidden bg-slate-100 dark:bg-white/5 flex-shrink-0 flex items-center justify-center p-1">
-                          {product.images?.[0] ? (
-                            <img src={product.images[0]} alt="" className="max-w-full max-h-full object-contain drop-shadow-sm" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-300">
-                              <Package className="w-6 h-6" />
+              {products.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400 text-sm">
+                    No products found in inventory matching your criteria.
+                  </td>
+                </tr>
+              ) : (
+                products.map((product) => {
+                  const meta = extractProductMeta(product);
+                  return (
+                    <tr key={product.id} className={`group hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors ${isDeletingId === product.id ? "opacity-30 pointer-events-none" : ""}`}>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-20 h-20 rounded-xl border border-slate-200 dark:border-white/10 overflow-hidden bg-slate-100 dark:bg-white/5 flex-shrink-0 flex items-center justify-center p-1">
+                            {product.images?.[0] ? (
+                              <img src={product.images[0]} alt="" className="max-w-full max-h-full object-contain drop-shadow-sm" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                <Package className="w-6 h-6" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0 max-w-md">
+                            <div className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-primary transition-colors">
+                              {product.name}
                             </div>
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                              {meta.company && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold border border-emerald-200 dark:border-emerald-800">
+                                  <Building2 className="w-3 h-3 text-emerald-600" /> {meta.company}
+                                </span>
+                              )}
+                              {meta.subCategory && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-[10px] font-semibold border border-blue-200 dark:border-blue-800">
+                                  <Layers className="w-3 h-3 text-blue-600" /> {meta.subCategory}
+                                </span>
+                              )}
+                              <span className="text-[10px] text-slate-400 uppercase tracking-wide">
+                                Origin: {product.originCountry}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex px-2.5 py-1 rounded-full bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                          {meta.categoryLabel}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {product.price > 0 ? (
+                          <>
+                            <div className="text-sm font-bold text-slate-900 dark:text-white">{formatCurrency(product.price)}</div>
+                            <div className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-tighter">Per {product.unit} (Ref)</div>
+                          </>
+                        ) : (
+                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 text-[10px] font-bold border border-amber-200 dark:border-amber-800">
+                            Quote on Demand
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="text-sm font-bold text-slate-800 dark:text-slate-200">{product.stockQty}</div>
+                        <div className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-tighter">{product.unit}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex justify-center">
+                          {product.available ? (
+                            <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Active
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                              <PauseCircle className="w-3.5 h-3.5" /> Halted
+                            </span>
                           )}
                         </div>
-                        <div className="min-w-0">
-                          <div className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-primary transition-colors">{product.name}</div>
-                          <div className="text-[11px] text-slate-500 mt-1 uppercase tracking-wide">{product.originCountry}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex justify-end gap-2">
+                          <Link
+                            href={`/dashboard/exporter/inventory/${product.id}/edit`}
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-primary"
+                            title="Edit Details"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Link>
+                          <button
+                            onClick={() => deleteProduct(product.id, product.name)}
+                            disabled={isDeletingId === product.id}
+                            className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors text-slate-400 hover:text-red-500"
+                            title="Delete Product"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex px-2.5 py-1 rounded-full bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                        {product.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-bold text-slate-900 dark:text-white">{formatCurrency(product.price)}</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-tighter">Per {product.unit}</div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="text-sm font-bold text-slate-800 dark:text-slate-200">{product.stockQty}</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-tighter">{product.unit}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-center">
-                        {product.available ? (
-                          <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Active
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                            <PauseCircle className="w-3.5 h-3.5" /> Halted
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-end gap-2">
-                        <Link
-                          href={`/dashboard/exporter/inventory/${product.id}/edit`}
-                          className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-primary"
-                          title="Edit Details"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Link>
-                        <button
-                          onClick={() => deleteProduct(product.id, product.name)}
-                          disabled={isDeletingId === product.id}
-                          className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors text-slate-400 hover:text-red-500"
-                          title="Delete Product"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              }
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
