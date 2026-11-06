@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
  });
  }
 
- if (auth.role === 'IMPORTER') {
+ if (auth.role === 'IMPORTER' || auth.role === 'ADMIN') {
  const [
  totalOrders,
  totalShipments,
@@ -104,22 +104,22 @@ export async function GET(request: NextRequest) {
  supplierBreakdown,
  categorySpending,
  ] = await Promise.all([
- prisma.order.count({ where: { importerId: auth.userId } }),
- prisma.shipment.count({ where: { order: { importerId: auth.userId } } }),
+ prisma.order.count({ where: { buyerId: auth.userId } }),
+ prisma.shipment.count({ where: { order: { buyerId: auth.userId } } }),
  prisma.shipment.count({
  where: {
- order: { importerId: auth.userId },
+ order: { buyerId: auth.userId },
  currentStatus: { in: ['PREPARING', 'IN_TRANSIT', 'OUT_FOR_DELIVERY'] },
  },
  }),
  prisma.shipment.count({
  where: {
- order: { importerId: auth.userId },
+ order: { buyerId: auth.userId },
  currentStatus: 'CUSTOMS',
  },
  }),
  prisma.order.aggregate({
- where: { importerId: auth.userId, paymentStatus: { in: ['PAID', 'PARTIAL'] } },
+ where: { buyerId: auth.userId, paymentStatus: { in: ['PAID', 'PARTIAL'] } },
  _sum: { totalPrice: true },
  }),
  // Unique origin countries from products ordered
@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
  SELECT COUNT(DISTINCT p."originCountry") as count
  FROM orders o
  JOIN products p ON o."productId" = p.id
- WHERE o."importerId" = ${auth.userId}
+ WHERE o."buyerId" = ${auth.userId}
  ` as Promise<Array<{ count: number }>>,
  // Monthly spending for last 6 months
  prisma.$queryRaw`
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
  COALESCE(SUM(o."totalPrice"), 0) as spent,
  COUNT(o.id) as "orderCount"
  FROM orders o
- WHERE o."importerId" = ${auth.userId}
+ WHERE o."buyerId" = ${auth.userId}
  AND o."paymentStatus" IN ('PAID', 'PARTIAL')
  AND o."createdAt" >= NOW() - INTERVAL '6 months'
  GROUP BY DATE_TRUNC('month', o."createdAt")
@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
  FROM orders o
  JOIN products p ON o."productId" = p.id
  JOIN users u ON p."exporterId" = u.id
- WHERE o."importerId" = ${auth.userId}
+ WHERE o."buyerId" = ${auth.userId}
  AND o."paymentStatus" IN ('PAID', 'PARTIAL')
  GROUP BY u.id, u.name, u."businessName"
  ORDER BY spent DESC
@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
  COUNT(o.id) as "orderCount"
  FROM orders o
  JOIN products p ON o."productId" = p.id
- WHERE o."importerId" = ${auth.userId}
+ WHERE o."buyerId" = ${auth.userId}
  AND o."paymentStatus" IN ('PAID', 'PARTIAL')
  GROUP BY p.category
  ORDER BY spent DESC

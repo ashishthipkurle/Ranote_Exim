@@ -110,7 +110,7 @@ export default function ImporterDirectoryPage() {
  const fetchExporters = async () => {
  setLoading(true);
  try {
- const params = new URLSearchParams({ page: "1", limit: "50" });
+ const params = new URLSearchParams({ page: "1", limit: "50", role: "EXPORTER" });
  if (search) params.set("search", search);
  const res = await authFetch<{ partners: Exporter[] }>(`/api/dashboard/directory?${params}`);
  setExporters(res.partners || []);

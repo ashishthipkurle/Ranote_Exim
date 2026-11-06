@@ -110,7 +110,7 @@ export default function ExporterBuyersPage() {
  // 3. Data Fetching
  const fetchPartners = useCallback(() => {
  setLoading(true);
- const params = new URLSearchParams({ page: String(page), limit: "50" });
+ const params = new URLSearchParams({ page: String(page), limit: "50", role: "IMPORTER" });
  if (search) params.set("search", search);
  authFetch<DirectoryResponse>(`/api/dashboard/directory?${params}`)
  .then(setData)

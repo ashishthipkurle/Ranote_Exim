@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
  where: { product: { exporterId: auth.userId } },
  include: {
  product: { select: { name: true } },
- importer: { select: { name: true, businessName: true } },
+ buyer: { select: { name: true, businessName: true } },
  },
  orderBy: { createdAt: 'desc' },
  take: 5,
@@ -55,24 +55,24 @@ export async function GET(request: NextRequest) {
  status: o.paymentStatus,
  orderStatus: o.orderStatus,
  product: o.product.name,
- buyer: o.importer.businessName || o.importer.name,
+ buyer: o.buyer?.businessName || o.buyer?.name || 'Buyer',
  date: o.createdAt,
  })),
  });
  }
 
- if (auth.role === 'IMPORTER') {
+ if (auth.role === 'IMPORTER' || auth.role === 'ADMIN') {
  const [totalSpent, pendingPayments, recentOrders, user] = await Promise.all([
  prisma.order.aggregate({
- where: { importerId: auth.userId, paymentStatus: 'PAID' },
+ where: { buyerId: auth.userId, paymentStatus: 'PAID' },
  _sum: { totalPrice: true },
  }),
  prisma.order.aggregate({
- where: { importerId: auth.userId, paymentStatus: { in: ['PENDING', 'PARTIAL'] } },
+ where: { buyerId: auth.userId, paymentStatus: { in: ['PENDING', 'PARTIAL'] } },
  _sum: { totalPrice: true },
  }),
  prisma.order.findMany({
- where: { importerId: auth.userId },
+ where: { buyerId: auth.userId },
  include: {
  product: {
  select: {
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
 
  const monthlyOrders = await prisma.order.findMany({
  where: {
- importerId: auth.userId,
+ buyerId: auth.userId,
  createdAt: { gte: sixMonthsAgo },
  paymentStatus: 'PAID',
  },

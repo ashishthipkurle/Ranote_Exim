@@ -6,60 +6,54 @@ export const dynamic = 'force-dynamic';
 
 // GET /api/dashboard/directory/[partnerId] — Get trade history with a specific partner
 export async function GET(
- request: NextRequest,
- { params }: { params: { partnerId: string } }
+  request: NextRequest,
+  { params }: { params: { partnerId: string } }
 ) {
- try {
- const { auth, error: authError } = await getApiAuthContext(request);
- if (authError || !auth) {
- return authError || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
- }
+  try {
+    const { auth, error: authError } = await getApiAuthContext(request);
+    if (authError || !auth) {
+      return authError || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
- const { partnerId } = params;
+    const { partnerId } = params;
 
- if (auth.role === 'EXPORTER') {
- // Find orders where Exporter is the user and Importer is the partner
- const orders = await prisma.order.findMany({
- where: {
- buyerId: partnerId,
- product: {
- exporterId: auth.userId,
- },
- },
- include: {
- product: {
- select: { name: true, category: true, images: true, unit: true },
- },
- },
- orderBy: { createdAt: 'desc' },
- });
+    const partner = await prisma.user.findUnique({
+      where: { id: partnerId },
+      select: { id: true, name: true, businessName: true, role: true },
+    });
 
- return NextResponse.json({ orders });
- }
+    if (!partner) {
+      return NextResponse.json({ orders: [] });
+    }
 
- if (auth.role === 'IMPORTER') {
- // Find orders where Importer is the user and Exporter is the partner
- const orders = await prisma.order.findMany({
- where: {
- buyerId: auth.userId,
- product: {
- exporterId: partnerId,
- },
- },
- include: {
- product: {
- select: { name: true, category: true, images: true, unit: true, exporter: { select: { name: true, businessName: true } } },
- },
- },
- orderBy: { createdAt: 'desc' },
- });
+    const isPartnerSeller = partner.role === 'EXPORTER' || partner.role === 'ADMIN';
+    const isAuthBuyer = auth.role === 'IMPORTER' || auth.role === 'CONSUMER' || auth.role === 'USER';
 
- return NextResponse.json({ orders });
- }
+    const whereClause: any = (isPartnerSeller && isAuthBuyer)
+      ? { buyerId: auth.userId, sellerId: partnerId }
+      : (auth.role === 'ADMIN')
+      ? { OR: [{ buyerId: partnerId }, { sellerId: partnerId }] }
+      : { buyerId: partnerId, sellerId: auth.userId };
 
- return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
- } catch (error) {
- console.error('Directory trade history error:', error);
- return NextResponse.json({ error: 'Failed to fetch trade history' }, { status: 500 });
- }
+    const orders = await prisma.order.findMany({
+      where: whereClause,
+      include: {
+        product: {
+          select: {
+            name: true,
+            category: true,
+            images: true,
+            unit: true,
+            exporter: { select: { name: true, businessName: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return NextResponse.json({ orders });
+  } catch (error) {
+    console.error('Directory trade history error:', error);
+    return NextResponse.json({ error: 'Failed to fetch trade history' }, { status: 500 });
+  }
 }
