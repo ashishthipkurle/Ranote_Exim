@@ -11,6 +11,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = registerSchema.parse(body);
 
+    // Default new client accounts to IMPORTER so they get full Importer Dashboard access
+    const userRole = (!validatedData.role || validatedData.role === "USER" || (validatedData.role as string) === "CONSUMER")
+      ? "IMPORTER"
+      : validatedData.role;
+
     const cookieStore = cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,7 +34,7 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    console.log("[Register] Attempting Supabase sign-up for:", validatedData.email);
+    console.log("[Register] Attempting Supabase sign-up for:", validatedData.email, "as role:", userRole);
 
     const { data, error } = await supabase.auth.signUp({
       email: validatedData.email,
@@ -37,7 +42,7 @@ export async function POST(request: NextRequest) {
       options: {
         data: {
           name: validatedData.name,
-          role: validatedData.role,
+          role: userRole,
           businessName: validatedData.businessName,
           country: validatedData.country,
           phone: validatedData.phone,
@@ -61,7 +66,7 @@ export async function POST(request: NextRequest) {
         where: { email: validatedData.email },
         update: {
           name: validatedData.name,
-          role: validatedData.role,
+          role: userRole as any,
           businessName: validatedData.businessName || null,
           country: validatedData.country,
           phone: validatedData.phone || null,
@@ -70,7 +75,7 @@ export async function POST(request: NextRequest) {
           id: userId,
           email: validatedData.email,
           name: validatedData.name,
-          role: validatedData.role,
+          role: userRole as any,
           businessName: validatedData.businessName || null,
           country: validatedData.country,
           phone: validatedData.phone || null,
@@ -84,7 +89,7 @@ export async function POST(request: NextRequest) {
           userId: userId,
           type: "ORDER_UPDATE",
           title: "Welcome to Ranote Exim!",
-          message: `Welcome ${validatedData.name ?? ""}! Your account has been created successfully.`,
+          message: `Welcome ${validatedData.name ?? ""}! Your importer account has been created successfully.`,
         },
       });
     } catch (e: any) {
@@ -96,7 +101,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           message: "Registration successful",
-          user: { id: userId, name: validatedData.name, email: validatedData.email, role: validatedData.role },
+          user: { id: userId, name: validatedData.name, email: validatedData.email, role: userRole },
           token: data.session.access_token,
         },
         { status: 201 }

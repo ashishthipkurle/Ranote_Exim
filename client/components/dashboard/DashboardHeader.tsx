@@ -209,7 +209,7 @@ export default function DashboardHeader() {
                         <div className="p-3">
                           <div className="flex items-center justify-between gap-2">
                             <p className="text-sm font-bold leading-none truncate">
-                              {user.businessName || user.name || (user.role === "EXPORTER" ? "Exporter Account" : user.role === "ADMIN" ? "Admin Account" : "User")}
+                              {user.businessName || user.name || (user.role === "EXPORTER" ? "Exporter Account" : user.role === "ADMIN" ? "Admin Account" : user.role === "IMPORTER" ? "Importer Account" : "User")}
                             </p>
                             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 shrink-0">
                               {user.role}

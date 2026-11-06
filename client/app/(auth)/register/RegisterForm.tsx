@@ -71,7 +71,7 @@ function RegisterFormContent() {
       email: "",
       password: "",
       confirmPassword: "",
-      role: "USER",
+      role: "IMPORTER",
       businessName: "",
       country: "IN",
       phone: "",
@@ -158,7 +158,7 @@ function RegisterFormContent() {
         await refreshUser();
         toast.success("Registration successful! Welcome aboard!");
         const role = response.data.user.role;
-        if (role === "USER") {
+        if (role === "USER" || role === "CONSUMER") {
           router.push("/products");
         } else {
           router.push(`/dashboard/${role.toLowerCase()}`);

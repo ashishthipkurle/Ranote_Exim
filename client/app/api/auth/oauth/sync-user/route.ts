@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         email,
         name: displayName || email.split("@")[0],
         avatar: avatarUrl || null,
-        role: "USER", // Default role for OAuth sign-ups
+        role: "IMPORTER", // Default role for OAuth sign-ups (Importers)
       },
     });
 
