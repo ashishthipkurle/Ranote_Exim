@@ -18,9 +18,9 @@ export async function POST(request: NextRequest) {
   try {
     const { auth } = await getApiAuthContext(request);
     
-    // Allow ADMIN or EXPORTER to toggle
-    if (auth && auth.role !== "ADMIN" && auth.role !== "EXPORTER") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    // Only allow ADMIN to toggle global website trade mode
+    if (!auth || auth.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized. Admin role required." }, { status: 403 });
     }
 
     const body = await request.json();

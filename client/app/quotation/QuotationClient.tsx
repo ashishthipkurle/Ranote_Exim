@@ -5,11 +5,11 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, Minus, Send, CheckCircle2, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import ImporterSidebar from "@/components/importer/ImporterSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarContent, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardScaler } from "@/components/dashboard/DashboardScaler";
 import { ExtractedCategory, resolveProductCategory } from "@/lib/categories";
+import { cn } from "@/lib/utils";
 
 type Product = {
   id: string;
@@ -130,25 +130,27 @@ export default function QuotationClient({
 
           <div className="flex flex-1 overflow-hidden relative">
             {/* Left Sidebar: Categories matching Marketplace */}
-            <ImporterSidebar basePath="/dashboard/importer">
-              <div className="flex flex-col py-2">
-                <div className="mb-2 flex items-center justify-between py-2 rounded-lg">
-                  <h3 className="font-headline font-semibold text-[10px] uppercase tracking-wider text-muted-foreground">
+            <Sidebar className="bg-transparent border-none">
+              <SidebarContent className="bg-transparent px-3 pt-3 no-scrollbar overflow-y-auto">
+                <div className="flex flex-col py-2">
+                <div className="mb-2 flex items-center justify-between py-1 px-1">
+                  <h3 className="text-[11px] font-[700] uppercase tracking-[0.14em] text-[#6B6A66]">
                     Categories
                   </h3>
                 </div>
 
-                <div className="flex flex-col space-y-1">
+                <div className="flex flex-col space-y-[2px]">
                   <button
                     onClick={() => setSelectedCategory(null)}
-                    className={`flex items-center w-full px-2 py-2 rounded-lg transition-all group ${
+                    className={cn(
+                      "h-[42px] px-3 rounded-[14px] text-[14px] font-[600] flex items-center w-full transition-colors",
                       !selectedCategory
-                        ? "bg-primary/5 text-primary font-bold shadow-sm"
-                        : "text-slate-500 hover:bg-slate-50 hover:text-primary"
-                    }`}
+                        ? "bg-[#FBF1D6] text-[#7A560A] font-[700]"
+                        : "text-[#4A483F] hover:bg-[rgba(251,241,214,0.55)] hover:text-[#15130D]"
+                    )}
                   >
-                    <span className="material-symbols-outlined mr-3 text-[20px]">auto_awesome</span>
-                    <span className="font-headline font-semibold text-sm uppercase tracking-tight">
+                    <span className={cn("material-symbols-outlined mr-3 text-[18px]", !selectedCategory ? "text-[#C4912A]" : "text-[#6B6A66]")}>auto_awesome</span>
+                    <span className="truncate">
                       All Products
                     </span>
                   </button>
@@ -159,14 +161,15 @@ export default function QuotationClient({
                       <button
                         key={cat.key}
                         onClick={() => setSelectedCategory(isActive ? null : cat.key)}
-                        className={`flex items-center w-full px-2 py-2 rounded-lg transition-all group ${
+                        className={cn(
+                          "h-[42px] px-3 rounded-[14px] text-[14px] font-[600] flex items-center w-full transition-colors",
                           isActive
-                            ? "bg-primary/5 text-primary font-bold shadow-sm"
-                            : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-                        }`}
+                            ? "bg-[#FBF1D6] text-[#7A560A] font-[700]"
+                            : "text-[#4A483F] hover:bg-[rgba(251,241,214,0.55)] hover:text-[#15130D]"
+                        )}
                       >
-                        <span className="material-symbols-outlined mr-3 text-[20px]">{cat.icon}</span>
-                        <span className="font-headline font-semibold text-sm uppercase tracking-tight truncate">
+                        <span className={cn("material-symbols-outlined mr-3 text-[18px]", isActive ? "text-[#C4912A]" : "text-[#6B6A66]")}>{cat.icon}</span>
+                        <span className="truncate">
                           {cat.label}
                         </span>
                       </button>
@@ -174,7 +177,8 @@ export default function QuotationClient({
                   })}
                 </div>
               </div>
-            </ImporterSidebar>
+            </SidebarContent>
+          </Sidebar>
 
             {/* Main Content Area */}
             <SidebarInset className="flex-1 flex flex-col h-full overflow-hidden bg-board relative">

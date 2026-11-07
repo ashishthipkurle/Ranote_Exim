@@ -17,24 +17,43 @@ export async function POST(request: NextRequest) {
       : validatedData.role;
 
     const cookieStore = cookies();
+    const cookiesToSetList: Array<{ name: string; value: string; options?: any }> = [];
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
           getAll() {
-            return cookieStore.getAll()
+            return cookieStore.getAll();
           },
           setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
+            cookiesToSet.forEach(({ name, value, options }) => {
+              try {
+                cookieStore.set(name, value, options);
+              } catch {
+                // Non-blocking in route handler
+              }
+              cookiesToSetList.push({ name, value, options });
+            });
           },
         },
       }
-    )
+    );
 
     console.log("[Register] Attempting Supabase sign-up for:", validatedData.email, "as role:", userRole);
+
+    const nowIso = new Date().toISOString();
+    const legalApproval = {
+      termsAccepted: true,
+      termsVersion: "1.2.0",
+      termsAcceptedAt: nowIso,
+      privacyAccepted: true,
+      privacyVersion: "1.2.0",
+      privacyAcceptedAt: nowIso,
+      legalStatus: "APPROVED",
+      status: "APPROVED",
+    };
 
     const { data, error } = await supabase.auth.signUp({
       email: validatedData.email,
@@ -46,6 +65,12 @@ export async function POST(request: NextRequest) {
           businessName: validatedData.businessName,
           country: validatedData.country,
           phone: validatedData.phone,
+          termsAccepted: true,
+          termsVersion: "1.2.0",
+          privacyAccepted: true,
+          privacyVersion: "1.2.0",
+          legalStatus: "APPROVED",
+          status: "APPROVED",
         },
       },
     });
@@ -70,6 +95,7 @@ export async function POST(request: NextRequest) {
           businessName: validatedData.businessName || null,
           country: validatedData.country,
           phone: validatedData.phone || null,
+          contactInfo: legalApproval,
         },
         create: {
           id: userId,
@@ -79,9 +105,35 @@ export async function POST(request: NextRequest) {
           businessName: validatedData.businessName || null,
           country: validatedData.country,
           phone: validatedData.phone || null,
-          verificationStatus: "VERIFIED", 
+          verificationStatus: "VERIFIED",
+          contactInfo: legalApproval,
         },
       });
+
+      // Auto-log approved consent directly into legal_consents table
+      try {
+        await prisma.$executeRawUnsafe(`
+          CREATE TABLE IF NOT EXISTS legal_consents (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            "userId" TEXT,
+            "userEmail" TEXT,
+            document TEXT NOT NULL,
+            version TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'APPROVED',
+            "acceptedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            "ipHash" TEXT,
+            "userAgent" TEXT
+          );
+        `);
+
+        await prisma.$executeRawUnsafe(`
+          INSERT INTO legal_consents ("userId", "userEmail", document, version, status, "acceptedAt")
+          VALUES ($1, $2, 'TERMS', '1.2.0', 'APPROVED', NOW()),
+                 ($1, $2, 'PRIVACY_POLICY', '1.2.0', 'APPROVED', NOW());
+        `, userId, validatedData.email);
+      } catch (consentErr) {
+        console.warn("[Register Consent Log DB Warning]:", consentErr);
+      }
 
       // Welcome notification
       await prisma.notification.create({
@@ -98,14 +150,25 @@ export async function POST(request: NextRequest) {
 
     // If auto login succeeded during signup
     if (data.session?.access_token) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         {
           message: "Registration successful",
           user: { id: userId, name: validatedData.name, email: validatedData.email, role: userRole },
           token: data.session.access_token,
+          session: data.session,
         },
         { status: 201 }
       );
+
+      cookiesToSetList.forEach(({ name, value, options }) => {
+        const opts = { ...options, path: options?.path || "/" };
+        if (process.env.NODE_ENV !== "production") {
+          opts.secure = false;
+        }
+        response.cookies.set(name, value, opts);
+      });
+
+      return response;
     }
 
     // If require email verification was turned on

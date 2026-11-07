@@ -8,16 +8,21 @@ import { toast } from "sonner";
 
 export default function QuotationStatusButtons({
   quoteId,
+  quotationId,
   currentStatus,
 }: {
-  quoteId: string;
+  quoteId?: string;
+  quotationId?: string;
   currentStatus: string;
+  clientEmail?: string;
 }) {
   const [isPending, startTransition] = useTransition();
+  const targetId = quotationId || quoteId || "";
 
   const handleUpdate = (newStatus: string) => {
+    if (!targetId) return;
     startTransition(async () => {
-      const res = await updateQuotationStatus(quoteId, newStatus);
+      const res = await updateQuotationStatus(targetId, newStatus);
       if (res?.success) {
         toast.success(`Quotation status updated to ${newStatus}`);
       } else {
@@ -27,12 +32,12 @@ export default function QuotationStatusButtons({
   };
 
   return (
-    <div className="mt-2 flex items-center flex-wrap gap-2">
+    <div className="mt-1 flex items-center flex-wrap gap-2">
       <Link
         href="/dashboard/exporter/directory"
-        className="text-[10px] uppercase font-bold text-primary hover:text-primary-hover bg-primary/10 hover:bg-primary/20 px-2 py-1 rounded transition-colors inline-flex items-center gap-1"
+        className="text-[10px] uppercase font-bold text-[#7A560A] bg-[#FBF1D6] hover:bg-[#F5E6BF] px-3 py-1.5 rounded-full transition-all inline-flex items-center gap-1 shadow-sm"
       >
-        <Send className="w-3 h-3" />
+        <Send className="w-3 h-3 text-[#C4912A]" />
         Send Quote via Buyers
       </Link>
 
@@ -41,7 +46,7 @@ export default function QuotationStatusButtons({
           type="button"
           disabled={isPending}
           onClick={() => handleUpdate("RESPONDED")}
-          className="text-[10px] uppercase font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded transition-colors disabled:opacity-50 inline-flex items-center"
+          className="text-[10px] uppercase font-bold text-[#0B7A57] bg-[#E2F5EE] hover:bg-[#D4EFE4] px-3 py-1.5 rounded-full transition-all disabled:opacity-50 inline-flex items-center gap-1"
         >
           {isPending && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
           Mark Responded
@@ -53,7 +58,7 @@ export default function QuotationStatusButtons({
           type="button"
           disabled={isPending}
           onClick={() => handleUpdate("CLOSED")}
-          className="text-[10px] uppercase font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-1 rounded transition-colors disabled:opacity-50 inline-flex items-center"
+          className="text-[10px] uppercase font-bold text-[#6B6A66] bg-[#F7F5F0] hover:bg-[#ECE7DA] px-3 py-1.5 rounded-full transition-all disabled:opacity-50 inline-flex items-center gap-1"
         >
           {isPending && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
           Mark Closed

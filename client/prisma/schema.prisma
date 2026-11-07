@@ -580,3 +580,29 @@ model QuotationItem {
 
   @@map("quotation_items")
 }
+
+model LegalConsent {
+  id         String   @id @default(uuid())
+  userId     String?
+  document   String   // "PRIVACY_POLICY" | "TERMS"
+  version    String
+  acceptedAt DateTime @default(now())
+  ipHash     String?
+  userAgent  String?
+
+  @@index([userId, document])
+  @@map("legal_consents")
+}
+
+model PrivacyRequest {
+  id          String   @id @default(uuid())
+  userId      String
+  requestType String   // "DOWNLOAD_DATA" | "CORRECT_DATA" | "DELETE_ACCOUNT" | "WITHDRAW_CONSENT" | "CONTACT_GRIEVANCE"
+  status      String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, REJECTED
+  details     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@map("privacy_requests")
+}

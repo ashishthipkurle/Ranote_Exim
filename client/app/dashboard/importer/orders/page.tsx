@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ShoppingCart, Globe, Package } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
 import { getServerAuthContext } from "@/lib/auth-server";
@@ -51,29 +51,37 @@ export default async function ImporterOrdersPage({
   }
 
   return (
-    <div className="h-full overflow-hidden flex flex-col bg-background">
-      {/* Header */}
-      <header className="flex-shrink-0 px-8 py-8 border-b border-border bg-background/60 backdrop-blur-xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">My Orders</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {orders.length} {orders.length === 1 ? "order" : "orders"} · {formatCurrency(totalSpent)} total spent
-            </p>
+    <div className="space-y-6 w-full">
+      {/* ─── Header ─── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-[#F0ECE0]">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-[0.14em] bg-[#FBF1D6] text-[#7A560A]">
+              Procurement Log
+            </span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B6A66]">
+              All Orders
+            </span>
           </div>
-          <Link
-            href="/products"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold shadow-lg hover:opacity-90 transition-all"
-          >
-            <ShoppingCart className="w-4 h-4" /> Browse Products
-          </Link>
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#15130D]">
+            My Orders
+          </h1>
+          <p className="text-sm text-[#6B6A66] mt-0.5">
+            {orders.length} {orders.length === 1 ? "order" : "orders"} · {formatCurrency(totalSpent)} total spent
+          </p>
         </div>
-      </header>
 
-      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-        <div className="max-w-[1400px] mx-auto">
-          <OrdersList initialOrders={orders} />
-        </div>
+        <Link
+          href="/products"
+          className="btn-gold-primary"
+        >
+          <ShoppingCart className="w-4 h-4 stroke-[2]" />
+          Browse Products
+        </Link>
+      </div>
+
+      <div className="rounded-[24px] border border-[#F0ECE0] bg-gradient-to-b from-white to-[#FFFBF0] p-6 shadow-sm">
+        <OrdersList initialOrders={orders} />
       </div>
     </div>
   );

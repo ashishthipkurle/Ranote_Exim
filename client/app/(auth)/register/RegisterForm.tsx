@@ -98,6 +98,8 @@ function RegisterFormContent() {
   const [showOtpStep, setShowOtpStep] = useState(false);
   const [registerData, setRegisterData] = useState<RegisterInput | null>(null);
   const [mfaCode, setMfaCode] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
 
   const onSubmit = async (data: RegisterInput) => {
     // Check if phone number is valid before showing OTP
@@ -155,6 +157,18 @@ function RegisterFormContent() {
       });
 
       if (response.data?.user) {
+        // Log legal consent acceptance (Terms + Privacy Policy v1.2.0)
+        void axios.post("/api/legal/consent", {
+          userId: response.data.user.id,
+          document: "TERMS",
+          version: "1.2.0",
+        }).catch(() => {});
+        void axios.post("/api/legal/consent", {
+          userId: response.data.user.id,
+          document: "PRIVACY_POLICY",
+          version: "1.2.0",
+        }).catch(() => {});
+
         await refreshUser();
         toast.success("Registration successful! Welcome aboard!");
         const role = response.data.user.role;
@@ -483,27 +497,58 @@ function RegisterFormContent() {
                   />
                 </div>
 
+                {/* Required Legal Consent Checkbox */}
                 <div className="flex items-start gap-3 py-2">
                   <input
                     type="checkbox"
-                    required
-                    className="mt-1 w-4 h-4 rounded border-border bg-muted/50 text-primary focus:ring-primary/30"
-                    id="terms"
+                    id="legal-terms-privacy"
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    className="mt-1 size-4 rounded border-border bg-muted/50 text-primary focus:ring-primary/30 cursor-pointer"
                   />
-                  <label htmlFor="terms" className="text-xs text-muted-foreground leading-relaxed">
+                  <label htmlFor="legal-terms-privacy" className="text-xs text-muted-foreground leading-relaxed cursor-pointer select-none">
                     I agree to the{" "}
-                    <Link href="/terms" className="text-primary font-bold hover:underline">
-                      Terms of Service
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary font-bold hover:underline"
+                    >
+                      Terms &amp; Conditions
                     </Link>{" "}
-                    and{" "}
-                    <Link href="/privacy" className="text-primary font-bold hover:underline">
+                    and have read the{" "}
+                    <Link
+                      href="/privacy-policy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary font-bold hover:underline"
+                    >
                       Privacy Policy
                     </Link>
-                    .
+                    . <span className="text-destructive font-bold">*</span>
                   </label>
                 </div>
 
-                <Button type="submit" disabled={isLoading || !form.formState.isValid} size="lg" className="h-14 w-full rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs uppercase tracking-[0.2em] shadow-xl transition-all active:scale-95 group">
+                {/* Optional Marketing Checkbox */}
+                <div className="flex items-start gap-3 pb-2">
+                  <input
+                    type="checkbox"
+                    id="marketing-optin"
+                    checked={marketingOptIn}
+                    onChange={(e) => setMarketingOptIn(e.target.checked)}
+                    className="mt-0.5 size-4 rounded border-border bg-muted/50 text-primary focus:ring-primary/30 cursor-pointer"
+                  />
+                  <label htmlFor="marketing-optin" className="text-xs text-muted-foreground leading-relaxed cursor-pointer select-none">
+                    Keep me updated with global trade intelligence, market alerts, and platform announcements (optional).
+                  </label>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isLoading || !form.formState.isValid || !agreedToTerms}
+                  size="lg"
+                  className="h-14 w-full rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs uppercase tracking-[0.2em] shadow-xl transition-all active:scale-95 group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   {isLoading ? (
                     <Loader2 className="animate-spin size-5" />
                   ) : (

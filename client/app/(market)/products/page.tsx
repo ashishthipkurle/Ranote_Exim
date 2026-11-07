@@ -1,17 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
-import { extractTaxonomyFromProducts, getPrismaMarketFilters, extractProductMeta } from "@/lib/categories";
+import { extractTaxonomyFromProducts, extractProductMeta } from "@/lib/categories";
 import EmptyState from "@/components/ui/EmptyState";
-import ImporterSidebar from "@/components/importer/ImporterSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { DashboardScaler } from "@/components/dashboard/DashboardScaler";
+import { SidebarProvider, Sidebar, SidebarContent } from "@/components/ui/sidebar";
 import PageTransition from "@/components/ui/PageTransition";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { isB2CActive } from "@/lib/trade-mode";
 import AddToCartButton from "@/components/marketplace/AddToCartButton";
+import WishlistButton from "@/components/marketplace/WishlistButton";
+import MarketplaceSortSelect from "@/components/marketplace/MarketplaceSortSelect";
+import MarketplaceFilterToggle from "@/components/marketplace/MarketplaceFilterToggle";
+import { getMarketplaceProducts, ProductWithExporter } from "@/lib/products-server";
+import { cn } from "@/lib/utils";
+import { Globe } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -49,101 +51,19 @@ export default async function ProductsPage({
   const role = auth?.role || "USER";
   const b2cActive = isB2CActive();
 
-  // Build Prisma where clause with Category, SubCategory & Company
-  const where: Prisma.ProductWhereInput = { available: true };
-
-  const marketFilter = getPrismaMarketFilters({
+  const { products, total, allProductCategories } = await getMarketplaceProducts({
     categoryParam,
     subCategoryParam,
     companyParam,
+    searchQuery,
+    originParam,
+    minPriceParam,
+    maxPriceParam,
+    sortParam,
+    page,
+    limit,
+    role,
   });
-  if (marketFilter && Object.keys(marketFilter).length > 0) {
-    Object.assign(where, marketFilter);
-  }
-
-  if (searchQuery && searchQuery.trim().length > 0) {
-    where.OR = [
-      { name: { contains: searchQuery.trim(), mode: "insensitive" } },
-      { description: { contains: searchQuery.trim(), mode: "insensitive" } },
-    ];
-  }
-
-  if (originParam && originParam.trim().length > 0) {
-    where.originCountry = { contains: originParam.trim(), mode: "insensitive" };
-  }
-
-  if (minPriceParam && !isNaN(minPriceParam)) {
-    where.price = { ...(where.price as Record<string, number> || {}), gte: minPriceParam };
-  }
-  if (maxPriceParam && !isNaN(maxPriceParam)) {
-    where.price = { ...(where.price as Record<string, number> || {}), lte: maxPriceParam };
-  }
-
-  // Sort
-  let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: "desc" };
-  if (sortParam === "price_asc") orderBy = { price: "asc" };
-  else if (sortParam === "price_desc") orderBy = { price: "desc" };
-  else if (sortParam === "name") orderBy = { name: "asc" };
-
-  type ProductWithExporter = {
-    id: string;
-    name: string;
-    price: number;
-    regularPrice: number;
-    originCountry: string;
-    category: string;
-    certifications?: string[];
-    images: string[];
-    stockQty: number;
-    unit: string;
-    exporter: { name: string | null; businessName: string | null; country: string | null };
-    reviews: { rating: number }[];
-  };
-  let products: ProductWithExporter[] = [];
-  let total = 0;
-  let allProductCategories: Array<{ id?: string; name?: string | null; category?: string | null; certifications?: string[] | null }> = [];
-
-  try {
-    const [fetchedProducts, fetchedTotal, fetchedCategories] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy,
-        select: {
-          id: true,
-          name: true,
-          price: true,
-          regularPrice: true,
-          originCountry: true,
-          category: true,
-          certifications: true,
-          images: true,
-          stockQty: true,
-          unit: true,
-          exporter: { select: { name: true, businessName: true, country: true } },
-        } as any,
-      }) as unknown as Promise<ProductWithExporter[]>,
-      prisma.product.count({ where }),
-      prisma.product.findMany({
-        where: { available: true },
-        select: { id: true, name: true, category: true, certifications: true },
-      })
-    ]);
-
-    products = fetchedProducts;
-    total = fetchedTotal;
-    allProductCategories = fetchedCategories || [];
-
-    products = products.map((p) => ({
-      ...p,
-      price: role === "IMPORTER" ? p.price : (p.regularPrice || p.price),
-      reviews: []
-    }));
-  } catch (error) {
-    console.error("Failed to fetch products from Prisma:", error);
-    products = [];
-  }
 
   const end = Date.now();
   console.log(`[Products Page] Rendered ${products.length} products in ${end - start}ms`);
@@ -182,349 +102,447 @@ export default async function ProductsPage({
   const relevantCompanies = taxonomy.companies;
   const hasActiveFilters = Boolean(categoryParam || subCategoryParam || companyParam || searchQuery || originParam);
 
+  // Active Category Name
+  const activeCategoryItem = visibleCategories.find((c) => c.key === categoryParam);
+  const categoryDisplayName = activeCategoryItem
+    ? activeCategoryItem.label
+    : categoryParam
+    ? String(categoryParam).replace("CUSTOM_CAT:", "")
+    : "All Products";
+
+  const activeFilterCount =
+    Number(Boolean(categoryParam)) +
+    Number(Boolean(subCategoryParam)) +
+    Number(Boolean(companyParam)) +
+    Number(Boolean(searchQuery)) +
+    Number(Boolean(originParam));
+
   return (
-    <SidebarProvider className="fixed inset-0 z-40 bg-board">
-      <DashboardScaler targetWidth={1440}>
-        <div className="flex flex-col h-full w-full bg-board transition-colors duration-300 overflow-hidden shadow-2xl relative">
-          <div className="flex-shrink-0 z-50 w-full bg-board border-b border-border/50 dark:border-white/10 shadow-sm relative">
-            <DashboardHeader />
-          </div>
+    <SidebarProvider>
+      <div className="app h-screen flex flex-col bg-[#F4F4F7] overflow-hidden" style={{ height: "100vh" }}>
+        <DashboardHeader />
 
-          <div className="flex flex-1 overflow-hidden relative">
-            <ImporterSidebar basePath="/dashboard/importer">
+        <div className="body flex-1 min-h-0 flex relative">
+          <Sidebar className="bg-transparent border-none">
+            <SidebarContent className="bg-transparent px-3 pt-3 no-scrollbar overflow-y-auto">
               <div className="flex flex-col py-2 space-y-6">
-                
-                {/* Active Filters Clear Bar */}
-                {hasActiveFilters && (
-                  <div className="p-2.5 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Active Filters</span>
-                      <Link
-                        href="/products"
-                        className="text-[10px] font-semibold text-primary hover:underline"
-                      >
-                        Clear All
-                      </Link>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {categoryParam && (
-                        <Link
-                          href={buildUrl({ category: undefined, subCategory: undefined, page: undefined })}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border text-[10px] font-medium text-slate-700 dark:text-slate-300 hover:bg-red-50 hover:text-red-600 transition-colors"
-                        >
-                          {categoryParam.replace("CUSTOM_CAT:", "")} <span className="text-slate-400">×</span>
-                        </Link>
-                      )}
-                      {subCategoryParam && (
-                        <Link
-                          href={buildUrl({ subCategory: undefined, page: undefined })}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border text-[10px] font-medium text-blue-700 dark:text-blue-300 hover:bg-red-50 hover:text-red-600 transition-colors"
-                        >
-                          {subCategoryParam} <span className="text-slate-400">×</span>
-                        </Link>
-                      )}
-                      {companyParam && (
-                        <Link
-                          href={buildUrl({ company: undefined, page: undefined })}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border text-[10px] font-medium text-emerald-700 dark:text-emerald-300 hover:bg-red-50 hover:text-red-600 transition-colors"
-                        >
-                          {companyParam} <span className="text-slate-400">×</span>
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Categories Section */}
-                <div>
-                  <div className="mb-2 flex items-center justify-between py-1 rounded-lg">
-                    <h3 className="font-headline font-semibold text-[10px] uppercase tracking-wider text-muted-foreground">Categories</h3>
-                  </div>
-                  
-                  <div className="flex flex-col space-y-1">
+              {/* Active Filters Clear Bar */}
+              {hasActiveFilters && (
+                <div className="p-2.5 rounded-[14px] bg-[#FFFBF2] border border-[#ECE7DA] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-[800] uppercase tracking-wider text-[#7A560A]">
+                      Active Filters
+                    </span>
                     <Link
-                      href={buildUrl({ category: undefined, subCategory: undefined, page: undefined })}
-                      className={`flex items-center justify-between px-2 py-2 rounded-lg transition-all group ${!categoryParam ? "bg-primary/5 text-primary font-bold shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-primary"}`}
+                      href="/products"
+                      className="text-[10px] font-[700] text-[#7A560A] hover:underline"
                     >
-                      <div className="flex items-center min-w-0">
-                        <span className="material-symbols-outlined mr-3 text-[20px]">auto_awesome</span>
-                        <span className="font-headline font-semibold text-sm uppercase tracking-tight truncate">All Products</span>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground font-mono">{allProductCategories.length}</span>
+                      Clear All
                     </Link>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {categoryParam && (
+                      <Link
+                        href={buildUrl({ category: undefined, subCategory: undefined, page: undefined })}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-[#ECE7DA] text-[10px] font-[700] text-[#15130D] hover:bg-[#FEE4E2] hover:text-[#B42318] transition-colors"
+                      >
+                        {String(categoryParam).replace("CUSTOM_CAT:", "")} <span className="text-[#6B6A66]">×</span>
+                      </Link>
+                    )}
+                    {subCategoryParam && (
+                      <Link
+                        href={buildUrl({ subCategory: undefined, page: undefined })}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-[#ECE7DA] text-[10px] font-[700] text-[#7A560A] hover:bg-[#FEE4E2] hover:text-[#B42318] transition-colors"
+                      >
+                        {subCategoryParam} <span className="text-[#6B6A66]">×</span>
+                      </Link>
+                    )}
+                    {companyParam && (
+                      <Link
+                        href={buildUrl({ company: undefined, page: undefined })}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-[#ECE7DA] text-[10px] font-[700] text-[#0B7A57] hover:bg-[#FEE4E2] hover:text-[#B42318] transition-colors"
+                      >
+                        {companyParam} <span className="text-[#6B6A66]">×</span>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              )}
 
-                    {visibleCategories.map((cat) => {
-                      const isActive = categoryParam === cat.key;
+              {/* Categories Section */}
+              <div>
+                <div className="mb-2 px-1">
+                  <h3 className="text-[11px] font-[700] uppercase tracking-[0.14em] text-[#6B6A66]">
+                    CATEGORIES
+                  </h3>
+                </div>
+
+                <div className="flex flex-col space-y-[2px]">
+                  {/* All Products row */}
+                  <Link
+                    href={buildUrl({ category: undefined, subCategory: undefined, page: undefined })}
+                    className={cn(
+                      "h-[44px] px-[14px] py-[10px] rounded-[14px] text-[15px] font-[600] flex items-center justify-between transition-colors",
+                      !categoryParam
+                        ? "bg-[#FBF1D6] text-[#7A560A] font-[700]"
+                        : "text-[#4A483F] hover:bg-[rgba(251,241,214,0.55)] hover:text-[#15130D]"
+                    )}
+                  >
+                    <div className="flex items-center min-w-0 gap-2.5">
+                      <span className={cn("material-symbols-outlined text-[18px]", !categoryParam ? "text-[#C4912A]" : "text-[#6B6A66]")}>
+                        auto_awesome
+                      </span>
+                      <span className="truncate">All Products</span>
+                    </div>
+                    <span
+                      className={cn(
+                        "text-[11px] font-[700] px-2 py-0.5 rounded-full transition-colors",
+                        !categoryParam
+                          ? "bg-white text-[#7A560A] shadow-sm"
+                          : "bg-[#E9E8EE] text-[#4A483F]"
+                      )}
+                    >
+                      {allProductCategories.length}
+                    </span>
+                  </Link>
+
+                  {/* Individual Categories */}
+                  {visibleCategories.map((cat) => {
+                    const isActive = categoryParam === cat.key;
+                    return (
+                      <Link
+                        key={cat.key}
+                        href={buildUrl({ category: isActive ? undefined : cat.key, subCategory: undefined, page: undefined })}
+                        className={cn(
+                          "h-[44px] px-[14px] py-[10px] rounded-[14px] text-[15px] font-[600] flex items-center justify-between transition-colors",
+                          isActive
+                            ? "bg-[#FBF1D6] text-[#7A560A] font-[700]"
+                            : "text-[#4A483F] hover:bg-[rgba(251,241,214,0.55)] hover:text-[#15130D]"
+                        )}
+                      >
+                        <div className="flex items-center min-w-0 gap-2.5">
+                          <span className={cn("material-symbols-outlined text-[18px]", isActive ? "text-[#C4912A]" : "text-[#6B6A66]")}>
+                            {cat.icon}
+                          </span>
+                          <span className="truncate">{cat.label}</span>
+                        </div>
+                        <span
+                          className={cn(
+                            "text-[11px] font-[700] px-2 py-0.5 rounded-full transition-colors",
+                            isActive
+                              ? "bg-white text-[#7A560A] shadow-sm"
+                              : "bg-[#E9E8EE] text-[#4A483F]"
+                          )}
+                        >
+                          {cat.count}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Sub-Categories (if any) */}
+              {relevantSubCategories.length > 0 && (
+                <div className="pt-2 border-t border-[#ECE7DA]">
+                  <div className="mb-2 px-1 flex items-center justify-between">
+                    <h3 className="text-[11px] font-[700] uppercase tracking-[0.14em] text-[#6B6A66] flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[14px]">layers</span> SUB-CATEGORIES
+                    </h3>
+                    {subCategoryParam && (
+                      <Link href={buildUrl({ subCategory: undefined, page: undefined })} className="text-[10px] font-[700] text-[#7A560A] hover:underline">
+                        Clear
+                      </Link>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col space-y-[2px] max-h-48 overflow-y-auto no-scrollbar pr-1">
+                    {relevantSubCategories.map((sub) => {
+                      const isActive = subCategoryParam === sub.name;
                       return (
                         <Link
-                          key={cat.key}
-                          href={buildUrl({ category: isActive ? undefined : cat.key, subCategory: undefined, page: undefined })}
-                          className={`flex items-center justify-between px-2 py-2 rounded-lg transition-all group ${isActive ? "bg-primary/5 text-primary font-bold shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}
+                          key={sub.name}
+                          href={buildUrl({ subCategory: isActive ? undefined : sub.name, page: undefined })}
+                          className={cn(
+                            "h-[38px] px-3 rounded-[12px] text-xs font-[600] flex items-center justify-between transition-colors",
+                            isActive
+                              ? "bg-[#FBF1D6] text-[#7A560A] font-[700]"
+                              : "text-[#4A483F] hover:bg-[rgba(251,241,214,0.55)] hover:text-[#15130D]"
+                          )}
                         >
-                          <div className="flex items-center min-w-0">
-                            <span className="material-symbols-outlined mr-3 text-[20px]">{cat.icon}</span>
-                            <span className="font-headline font-semibold text-sm uppercase tracking-tight truncate">{cat.label}</span>
-                          </div>
-                          <span className="text-[10px] text-muted-foreground font-mono ml-2">{cat.count}</span>
+                          <span className="truncate">{sub.name}</span>
+                          <span className="text-[10px] opacity-70 ml-1.5 font-mono">{sub.count}</span>
                         </Link>
                       );
                     })}
                   </div>
                 </div>
+              )}
 
-                {/* Sub-Categories Section (if any exist) */}
-                {relevantSubCategories.length > 0 && (
-                  <div className="pt-2 border-t border-border/40">
-                    <div className="mb-2 flex items-center justify-between py-1 rounded-lg">
-                      <h3 className="font-headline font-semibold text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[14px]">layers</span> Sub-Categories
-                      </h3>
-                      {subCategoryParam && (
-                        <Link href={buildUrl({ subCategory: undefined, page: undefined })} className="text-[9px] text-primary hover:underline">
-                          Clear
-                        </Link>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col space-y-1 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                      {relevantSubCategories.map((sub) => {
-                        const isActive = subCategoryParam === sub.name;
-                        return (
-                          <Link
-                            key={sub.name}
-                            href={buildUrl({ subCategory: isActive ? undefined : sub.name, page: undefined })}
-                            className={`flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition-all ${
-                              isActive 
-                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold" 
-                                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900"
-                            }`}
-                          >
-                            <span className="truncate">{sub.name}</span>
-                            <span className="text-[10px] opacity-70 ml-1.5 font-mono">{sub.count}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
+              {/* Brands / Companies (if any) */}
+              {relevantCompanies.length > 0 && (
+                <div className="pt-2 border-t border-[#ECE7DA]">
+                  <div className="mb-2 px-1 flex items-center justify-between">
+                    <h3 className="text-[11px] font-[700] uppercase tracking-[0.14em] text-[#6B6A66] flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[14px]">apartment</span> BRANDS
+                    </h3>
+                    {companyParam && (
+                      <Link href={buildUrl({ company: undefined, page: undefined })} className="text-[10px] font-[700] text-[#7A560A] hover:underline">
+                        Clear
+                      </Link>
+                    )}
                   </div>
-                )}
 
-                {/* Companies / Brands Section (if any exist) */}
-                {relevantCompanies.length > 0 && (
-                  <div className="pt-2 border-t border-border/40">
-                    <div className="mb-2 flex items-center justify-between py-1 rounded-lg">
-                      <h3 className="font-headline font-semibold text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[14px]">apartment</span> Brands / Companies
-                      </h3>
-                      {companyParam && (
-                        <Link href={buildUrl({ company: undefined, page: undefined })} className="text-[9px] text-primary hover:underline">
-                          Clear
+                  <div className="flex flex-col space-y-[2px] max-h-48 overflow-y-auto no-scrollbar pr-1">
+                    {relevantCompanies.map((comp) => {
+                      const isActive = companyParam === comp.name;
+                      return (
+                        <Link
+                          key={comp.name}
+                          href={buildUrl({ company: isActive ? undefined : comp.name, page: undefined })}
+                          className={cn(
+                            "h-[38px] px-3 rounded-[12px] text-xs font-[600] flex items-center justify-between transition-colors",
+                            isActive
+                              ? "bg-[#FBF1D6] text-[#7A560A] font-[700]"
+                              : "text-[#4A483F] hover:bg-[rgba(251,241,214,0.55)] hover:text-[#15130D]"
+                          )}
+                        >
+                          <span className="truncate">{comp.name}</span>
+                          <span className="text-[10px] opacity-70 ml-1.5 font-mono">{comp.count}</span>
                         </Link>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col space-y-1 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                      {relevantCompanies.map((comp) => {
-                        const isActive = companyParam === comp.name;
-                        return (
-                          <Link
-                            key={comp.name}
-                            href={buildUrl({ company: isActive ? undefined : comp.name, page: undefined })}
-                            className={`flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition-all ${
-                              isActive 
-                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold" 
-                                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900"
-                            }`}
-                          >
-                            <span className="truncate">{comp.name}</span>
-                            <span className="text-[10px] opacity-70 ml-1.5 font-mono">{comp.count}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
+              )}
+            </div>
+            </SidebarContent>
+          </Sidebar>
 
-              </div>
-            </ImporterSidebar>
-            
-            <SidebarInset className="overflow-hidden">
-              <div className="w-full h-full overflow-y-auto custom-scrollbar bg-surface">
-                <PageTransition>
-                  <div className="w-full px-0 py-2 sm:py-4 md:py-6 lg:px-4">
-                  
-                    {/* ─── Product Grid ─── */}
-                    <div className="w-full">
-                      {products.length === 0 ? (
-                        <div className="py-20 text-center">
-                          <EmptyState
-                            iconName="searchX"
-                            title="No Listings Found"
-                            description="We couldn't find any products matching your current category, sub-category, or company filters. Try broadening your selection."
-                            actionLabel="Clear all filters"
-                            href="/products"
-                          />
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 border-t border-l border-border/50">
-                          {products.map((product) => {
-                            const image = product.images?.[0] ?? null;
-                            const meta = extractProductMeta(product);
-                            const reviewsCount = product.reviews?.length || 0;
-                            const averageRating = reviewsCount > 0 
-                              ? product.reviews.reduce((acc, r) => acc + r.rating, 0) / reviewsCount 
-                              : 0;
-                            const ratingDisplay = averageRating > 0 ? averageRating.toFixed(1) : "0.0";
-                            const fullStars = Math.floor(averageRating);
-                            const hasHalfStar = averageRating - fullStars >= 0.5;
+          {/* ── Main Content: Floating White Card ── */}
+          <main className="main flex-1 min-w-0 min-h-0 overflow-y-auto p-3 md:pt-4 md:pr-5 md:pb-5 md:pl-0 custom-scrollbar">
+            <div className="page-card flex flex-col gap-6">
+              <PageTransition>
+                {/* 1. Breadcrumb: Home / Marketplace */}
+                <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-[13px] font-[600] text-[#6B6A66]">
+                  <Link href="/" className="hover:text-[#15130D] transition-colors">
+                    Home
+                  </Link>
+                  <span className="text-[#C4912A]">/</span>
+                  <span className="text-[#7A560A] font-[700]">Marketplace</span>
+                </nav>
 
-                            return (
-                              <div key={product.id} className="group relative bg-white dark:bg-card p-2 md:p-3 hover:shadow-md transition-shadow duration-300 border-r border-b border-border/50 flex flex-col justify-between">
-                                <div>
-                                  {/* Wishlist Heart */}
-                                  <div className="absolute top-2 right-2 z-10 cursor-pointer p-1 rounded-full bg-white/50 dark:bg-black/50 backdrop-blur-sm hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">
-                                    <span className="material-symbols-outlined text-gray-400 hover:text-red-500 transition-colors text-[20px] md:text-[22px]">favorite_border</span>
-                                  </div>
+                {/* 2. Title Row */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#F0ECE0]">
+                  <div>
+                    <h1 className="text-[32px] md:text-[38px] font-[800] tracking-[-0.02em] text-[#15130D] leading-tight">
+                      Marketplace
+                    </h1>
+                    <p className="text-[11px] font-[700] uppercase tracking-[0.14em] text-[#6B6A66] mt-1">
+                      {total} PRODUCTS · {categoryDisplayName.toUpperCase()}
+                    </p>
+                  </div>
 
-                                  <Link href={`/products/${product.id}`} className="block">
-                                    {/* Card Image */}
-                                    <div className="relative mb-2 overflow-hidden bg-transparent aspect-square flex items-center justify-center">
-                                      {image ? (
-                                        <Image
-                                          src={image}
-                                          alt={product.name}
-                                          fill
-                                          sizes="(max-width:640px) 100vw,(max-width:1280px) 50vw,33vw"
-                                          className="object-contain transition-transform duration-700 group-hover:scale-105"
-                                        />
-                                      ) : (
-                                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/30">
-                                          <span className="material-symbols-outlined text-6xl">inventory_2</span>
-                                        </div>
-                                      )}
-                                    </div>
+                  <div className="flex items-center gap-2.5">
+                    <MarketplaceFilterToggle activeFilterCount={activeFilterCount} />
+                    <MarketplaceSortSelect currentSort={sortParam} />
+                  </div>
+                </div>
 
-                                    {/* Brand & Subcategory Badges */}
-                                    <div className="flex flex-wrap items-center gap-1 mb-1">
-                                      {meta.company ? (
-                                        <span className="inline-block bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 text-[9px] md:text-[10px] rounded font-bold border border-emerald-200 dark:border-emerald-800">
-                                          {meta.company}
-                                        </span>
-                                      ) : (
-                                        <span className="text-[10px] md:text-[11px] text-[#2874f0] dark:text-blue-400 font-semibold">#BestSeller</span>
-                                      )}
+                {/* 3. Product Grid */}
+                <div className="w-full mt-2">
+                  {products.length === 0 ? (
+                    <div className="py-20 text-center">
+                      <EmptyState
+                        iconName="searchX"
+                        title="No Listings Found"
+                        description="We couldn't find any products matching your current category, sub-category, or company filters. Try broadening your selection."
+                        actionLabel="Clear all filters"
+                        href="/products"
+                      />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5">
+                      {products.map((product) => {
+                        const image = product.images?.[0] ?? null;
+                        const meta = extractProductMeta(product);
+                        const reviewsCount = product.reviews?.length || 0;
+                        const averageRating =
+                          reviewsCount > 0
+                            ? product.reviews.reduce((acc, r) => acc + r.rating, 0) / reviewsCount
+                            : 0;
+                        const ratingDisplay = averageRating > 0 ? averageRating.toFixed(1) : "0.0";
+                        const fullStars = Math.floor(averageRating);
+                        const hasHalfStar = averageRating - fullStars >= 0.5;
 
-                                      {meta.subCategory && (
-                                        <span className="inline-block bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 text-[9px] md:text-[10px] rounded font-medium border border-blue-200 dark:border-blue-800 truncate max-w-[120px]">
-                                          {meta.subCategory}
-                                        </span>
-                                      )}
-                                    </div>
+                        return (
+                          <div
+                            key={product.id}
+                            style={{ background: "linear-gradient(160deg, #FFFFFF, #FFFBF0)" }}
+                            className="border border-[#F0ECE0] rounded-[24px] p-3.5 shadow-[0_18px_40px_-26px_rgba(80,60,10,0.40)] hover:-translate-y-1 hover:shadow-[0_22px_48px_-24px_rgba(80,60,10,0.48)] transition-all duration-200 flex flex-col justify-between group relative"
+                          >
+                            <div>
+                              {/* Thumbnail Container */}
+                              <div className="relative w-full aspect-square rounded-[18px] bg-white border border-[#F0ECE0] overflow-hidden flex items-center justify-center p-3">
+                                {/* Wishlist Heart */}
+                                <WishlistButton
+                                  productId={product.id}
+                                  iconOnly
+                                  className="absolute top-2.5 right-2.5 size-9 rounded-full bg-white/90 backdrop-blur-sm border border-[#ECE7DA] p-0 flex items-center justify-center shadow-sm z-10"
+                                />
 
-                                    {/* Card Body */}
-                                    <div>
-                                      <h2 className="text-[11px] sm:text-xs md:text-sm font-medium text-foreground/90 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                                        {product.name}
-                                      </h2>
-                                      
-                                      {/* Ratings */}
-                                      <div className="flex items-center gap-1 mt-1.5">
-                                        <div className="flex items-center text-[#388e3c]">
-                                          {[...Array(5)].map((_, i) => {
-                                            if (i < fullStars) return <span key={i} className="material-symbols-outlined text-[12px] md:text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>;
-                                            if (i === fullStars && hasHalfStar) return <span key={i} className="material-symbols-outlined text-[12px] md:text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star_half</span>;
-                                            return <span key={i} className="material-symbols-outlined text-[12px] md:text-[14px]">star</span>;
-                                          })}
-                                        </div>
-                                        <span className="text-[10px] text-muted-foreground ml-0.5">({ratingDisplay})</span>
-                                        {averageRating >= 4.5 && (
-                                          <span className="ml-1 bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm uppercase tracking-wider">Top</span>
-                                        )}
-                                      </div>
-
-                                      {/* Price or B2B Wholesale Indicator */}
-                                      {b2cActive ? (
-                                        <>
-                                          <div className="flex items-center flex-wrap gap-1.5 mt-1.5">
-                                            {product.regularPrice > product.price ? (
-                                              <>
-                                                <span className="text-[#388e3c] font-bold text-xs md:text-sm">
-                                                  ↓{Math.round(((product.regularPrice - product.price) / product.regularPrice) * 100)}%
-                                                </span>
-                                                <span className="text-muted-foreground line-through text-xs md:text-sm">
-                                                  {formatMoney(product.regularPrice)}
-                                                </span>
-                                              </>
-                                            ) : null}
-                                            <span className="font-bold text-sm md:text-base text-foreground">
-                                              {formatMoney(product.price)}
-                                            </span>
-                                          </div>
-
-                                          <div className="mt-1.5">
-                                            <span className="inline-block bg-[#e8f5e9] text-[#2e7d32] dark:bg-green-900/30 dark:text-green-400 px-1.5 py-0.5 text-[9px] md:text-[10px] rounded font-semibold border border-green-200 dark:border-green-800">
-                                              Hot Deal
-                                            </span>
-                                          </div>
-                                        </>
-                                      ) : (
-                                        <div className="mt-2 pt-1.5 border-t border-border/40">
-                                          <div className="flex items-center justify-between">
-                                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
-                                              <span className="material-symbols-outlined text-[13px]">request_quote</span>
-                                              Wholesale Quote
-                                            </span>
-                                            {product.price > 0 ? (
-                                              <span className="text-[11px] text-foreground font-bold font-mono">
-                                                Ref ${product.price}
-                                              </span>
-                                            ) : (
-                                              <span className="text-[10px] text-muted-foreground font-mono">On Demand</span>
-                                            )}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </Link>
-                                </div>
-
-                                {!b2cActive && (
-                                  <div className="mt-3 pt-1">
-                                    <AddToCartButton
-                                      productId={product.id}
-                                      quantity={1}
-                                      label="Add to Quote"
-                                      className="w-full h-8 text-[11px] font-bold rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground border border-primary/20 transition-all shadow-none"
+                                <Link href={`/products/${product.id}`} className="absolute inset-0 flex items-center justify-center p-3">
+                                  {image ? (
+                                    <Image
+                                      src={image}
+                                      alt={product.name}
+                                      fill
+                                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                                      className="object-contain transition-transform duration-500 group-hover:scale-105"
                                     />
-                                  </div>
+                                  ) : (
+                                    <div className="flex items-center justify-center text-[#6B6A66]/30">
+                                      <span className="material-symbols-outlined text-6xl">inventory_2</span>
+                                    </div>
+                                  )}
+                                </Link>
+
+                                {/* Badge */}
+                                {meta.company ? (
+                                  <span className="absolute bottom-2.5 left-2.5 bg-[#E2F5EE] text-[#0B7A57] text-[10px] font-[800] uppercase tracking-wider px-2 py-0.5 rounded-full border border-[#0B7A57]/20 shadow-sm z-10">
+                                    {meta.company}
+                                  </span>
+                                ) : (
+                                  <span className="absolute bottom-2.5 left-2.5 bg-[#FBF1D6] text-[#7A560A] text-[10px] font-[800] uppercase tracking-wider px-2 py-0.5 rounded-full border border-[#C4912A]/20 shadow-sm z-10">
+                                    Best Seller
+                                  </span>
                                 )}
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
 
-                      {/* Pagination */}
-                      {totalPages > 1 && (
-                        <div className="flex justify-center gap-2 mt-20">
-                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                            <Link
-                              key={p}
-                              href={buildUrl({ page: p.toString() })}
-                              className={`w-12 h-12 rounded-full flex items-center justify-center font-headline font-bold transition-all ${p === page ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "hover:bg-accent text-muted-foreground"}`}
-                            >
-                              {p}
-                            </Link>
-                          ))}
-                        </div>
-                      )}
+                              {/* Details Link */}
+                              <Link href={`/products/${product.id}`} className="block mt-3">
+                                {meta.subCategory && (
+                                  <p className="text-[10px] font-[700] uppercase tracking-wider text-[#7A560A] truncate mb-0.5">
+                                    {meta.subCategory}
+                                  </p>
+                                )}
+
+                                <h2 className="text-[15px] font-[700] text-[#15130D] line-clamp-2 leading-snug group-hover:text-[#C4912A] transition-colors">
+                                  {product.name}
+                                </h2>
+
+                                {/* Star Ratings & Country Origin */}
+                                <div className="flex items-center justify-between text-xs mt-2">
+                                  <div className="flex items-center gap-1">
+                                    <div className="flex items-center text-[#C4912A]">
+                                      {[...Array(5)].map((_, i) => {
+                                        if (i < fullStars) {
+                                          return (
+                                            <span key={i} className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                              star
+                                            </span>
+                                          );
+                                        }
+                                        if (i === fullStars && hasHalfStar) {
+                                          return (
+                                            <span key={i} className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                              star_half
+                                            </span>
+                                          );
+                                        }
+                                        return (
+                                          <span key={i} className="material-symbols-outlined text-[13px]">
+                                            star
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                    <span className="text-[11px] font-[600] text-[#6B6A66]">
+                                      ({ratingDisplay})
+                                    </span>
+                                  </div>
+
+                                  <span className="text-[11px] font-[600] text-[#6B6A66] flex items-center gap-1">
+                                    <Globe className="w-3.5 h-3.5 text-[#C4912A]" />
+                                    {product.originCountry || "India"}
+                                  </span>
+                                </div>
+
+                                {/* Price & Wholesale Info */}
+                                <div className="mt-3 pt-2.5 border-t border-[#F0ECE0] flex items-baseline justify-between">
+                                  {b2cActive ? (
+                                    <div className="flex items-baseline gap-1.5">
+                                      {product.regularPrice > product.price ? (
+                                        <span className="text-[#6B6A66] line-through text-xs font-[600]">
+                                          {formatMoney(product.regularPrice)}
+                                        </span>
+                                      ) : null}
+                                      <span className="text-[18px] font-[800] text-[#15130D] leading-none">
+                                        {formatMoney(product.price)}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="w-full flex items-baseline justify-between">
+                                      <span className="text-[10px] font-[800] uppercase tracking-[0.14em] text-[#7A560A]">
+                                        Wholesale Quote
+                                      </span>
+                                      {product.price > 0 ? (
+                                        <span className="text-[16px] font-[800] text-[#15130D] leading-none">
+                                          Ref ${product.price}
+                                        </span>
+                                      ) : (
+                                        <span className="text-[11px] font-[700] text-[#6B6A66]">
+                                          On Demand
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </Link>
+                            </div>
+
+                            {/* Button Action */}
+                            {!b2cActive && (
+                              <div className="mt-3 pt-1">
+                                <AddToCartButton
+                                  productId={product.id}
+                                  quantity={1}
+                                  label="Add to Quote"
+                                  className="btn-gold-primary w-full h-[40px] rounded-[14px] text-xs font-[700] flex items-center justify-center shadow-sm"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  </div>
-                </PageTransition>
-              </div>
-            </SidebarInset>
-          </div>
+                  )}
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-2 mt-12">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                        <Link
+                          key={p}
+                          href={buildUrl({ page: p.toString() })}
+                          className={cn(
+                            "size-10 rounded-[12px] flex items-center justify-center text-xs font-[700] transition-colors",
+                            p === page
+                              ? "bg-[#FBF1D6] text-[#7A560A] border border-[#C4912A]/30 shadow-sm"
+                              : "bg-white text-[#4A483F] border border-[#ECE7DA] hover:bg-[#F7F5F0]"
+                          )}
+                        >
+                          {p}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </PageTransition>
+            </div>
+          </main>
         </div>
-      </DashboardScaler>
+      </div>
     </SidebarProvider>
   );
 }

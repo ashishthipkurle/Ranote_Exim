@@ -20,7 +20,7 @@ import {
   Layers,
 } from "lucide-react";
 
-import { prisma } from "@/lib/prisma";
+import { getProductDetail } from "@/lib/products-server";
 import AddToCartButton from "@/components/marketplace/AddToCartButton";
 import BuyNowButton from "@/components/marketplace/BuyNowButton";
 import WishlistButton from "@/components/marketplace/WishlistButton";
@@ -56,19 +56,7 @@ export default async function ProductDetailPage({
 }) {
   const { id } = await params;
 
-  const product = await prisma.product.findUnique({
-    where: { id },
-    include: {
-      exporter: {
-        select: {
-          id: true,
-          name: true,
-          businessName: true,
-          country: true,
-        },
-      },
-    },
-  });
+  const { product, relatedProducts } = await getProductDetail(id);
 
   if (!product) notFound();
 
@@ -77,16 +65,6 @@ export default async function ProductDetailPage({
   const b2cActive = isB2CActive();
 
   const meta = extractProductMeta(product);
-
-  // Fetch related products
-  const relatedProducts = await prisma.product.findMany({
-    where: {
-      category: product.category,
-      id: { not: product.id },
-      available: true,
-    },
-    take: 4,
-  });
 
   // Dynamic price calculation matching the marketplace list page
   const currentPrice = role === "IMPORTER" ? (product.b2bPrice || product.price) : (product.regularPrice || product.price);

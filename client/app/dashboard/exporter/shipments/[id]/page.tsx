@@ -112,7 +112,7 @@ export default function ShipmentDetailPage({ params }: { params: Promise<{ id: s
             {shipment.carrier || 'Global Carrier'}
           </div>
           <div className="px-6 py-3 rounded-lg bg-black/5 dark:bg-white/10 border border-border dark:border-white/10 text-muted-foreground text-[10px] font-black uppercase tracking-[0.2em] ">
-            {(shipment.currentStatus || shipment.status || 'INITIALIZING').replace('_', ' ')}
+            {String(shipment.currentStatus || shipment.status || 'INITIALIZING').replace('_', ' ')}
           </div>
         </div>
       </div>

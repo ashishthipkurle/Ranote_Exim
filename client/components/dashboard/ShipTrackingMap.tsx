@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { authFetch } from "@/lib/api-utils";
 import { Globe, RefreshCw, Ship, Plane, Anchor } from "lucide-react";
 import { useTheme } from "next-themes";
+import "leaflet/dist/leaflet.css";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface LiveRoute {
@@ -51,19 +52,101 @@ const PORT_COORDS: Record<string, { lat: number; lng: number; name: string }> = 
  BANGKOK: { lat: 13.75, lng: 100.52, name: "Bangkok" },
 };
 
+// ── Fallback Trade Network SVG Component ─────────────────────────────────────
+export function MapFallback({ footerText = "Air 1 / Ocean 2 / Ports 6 / All shipments" }: { footerText?: string }) {
+  return (
+    <div className="relative w-full h-full min-h-[360px] bg-[#FFFCF4] flex flex-col justify-between overflow-hidden select-none">
+      {/* Dotted Grid Background */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="dot-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1.25" fill="#ECE7DA" />
+          </pattern>
+          <linearGradient id="route-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#C4912A" />
+            <stop offset="100%" stopColor="#EBC964" />
+          </linearGradient>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#dot-grid)" />
+
+
+
+
+      </svg>
+
+      <div />
+
+      {/* Bottom controls & Legend */}
+      <div className="relative z-10 p-5 flex flex-col gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-[700] uppercase tracking-wider bg-[#15130D] text-white shadow-sm">
+            <span className="size-2 rounded-full bg-[#C4912A]" />
+            India Hubs
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-[700] uppercase tracking-wider bg-[#15130D] text-white shadow-sm">
+            <span className="size-2 rounded-full bg-[#EBC964]" />
+            Air Freight
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-[700] uppercase tracking-wider bg-[#15130D] text-white shadow-sm">
+            <span className="size-2 rounded-full bg-[#0B7A57]" />
+            Ocean Cargo
+          </span>
+        </div>
+
+        <div className="pt-2 border-t border-[#F0ECE0] flex items-center justify-between text-[11px] font-[700] uppercase tracking-[0.14em] text-[#6B6A66]">
+          <span>{footerText}</span>
+          <span className="text-[#0B7A57] flex items-center gap-1.5">
+            <span className="size-1.5 rounded-full bg-[#0B7A57] animate-pulse" />
+            TELEMETRY ACTIVE
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── The actual Leaflet map (loaded dynamically to avoid SSR) ────────────────
-function LeafletMapInner({ routes, theme }: { routes: LiveRoute[], theme?: string }) {
+function LeafletMapInner({ routes, theme, onError }: { routes: LiveRoute[], theme?: string; onError?: () => void }) {
  const mapRef = useRef<any>(null);
  const [L, setL] = useState<any>(null);
  const [mapReady, setMapReady] = useState(false);
  const containerRef = useRef<HTMLDivElement>(null);
 
  useEffect(() => {
- // Dynamically import Leaflet on client
- import("leaflet").then((leaflet) => {
- setL(leaflet.default || leaflet);
- });
- }, []);
+   let active = true;
+   // Dynamically import Leaflet on client
+   import("leaflet")
+     .then((leaflet) => {
+       const leafletObj = leaflet.default || leaflet;
+       
+       // Critical Leaflet DOM unmount patch:
+       // When navigating between pages (e.g. to /inventory), Leaflet transitions may fire on unmounted DOM panes.
+       // Safely return Point(0, 0) instead of throwing: Cannot read properties of undefined (reading '_leaflet_pos')
+       if (leafletObj?.DomUtil?.getPosition) {
+         const originalGetPosition = leafletObj.DomUtil.getPosition;
+         leafletObj.DomUtil.getPosition = function (el: any) {
+           if (!el) {
+             return leafletObj.point ? leafletObj.point(0, 0) : { x: 0, y: 0 };
+           }
+           try {
+             return originalGetPosition.call(leafletObj.DomUtil, el) || (leafletObj.point ? leafletObj.point(0, 0) : { x: 0, y: 0 });
+           } catch {
+             return leafletObj.point ? leafletObj.point(0, 0) : { x: 0, y: 0 };
+           }
+         };
+       }
+
+       if (active) setL(leafletObj);
+     })
+     .catch((err) => {
+       console.warn("Leaflet dynamic import failed, activating visual trade fallback:", err);
+       onError?.();
+     });
+
+   return () => {
+     active = false;
+   };
+ }, [onError]);
 
  useEffect(() => {
  if (!L || !containerRef.current || mapReady) return;
@@ -77,40 +160,95 @@ function LeafletMapInner({ routes, theme }: { routes: LiveRoute[], theme?: strin
  });
 
  // Create map centered on Indian Ocean
- const map = L.map(containerRef.current, {
- center: [20, 60],
- zoom: 3,
- minZoom: 2,
- maxZoom: 8,
- zoomControl: false,
- attributionControl: false,
- scrollWheelZoom: true,
- worldCopyJump: false,
- maxBounds: [[-85, -180], [85, 180]],
- maxBoundsViscosity: 1.0,
- });
+    const container = containerRef.current;
+    const map = L.map(container, {
+      center: [20.59, 78.96],
+      zoom: 3,
+      minZoom: 2,
+      maxZoom: 8,
+      zoomControl: false,
+      attributionControl: false,
+      scrollWheelZoom: true,
+      worldCopyJump: false,
+      maxBounds: [[-85, -180], [85, 180]],
+      maxBoundsViscosity: 1.0,
+      zoomAnimation: false,
+      fadeAnimation: false,
+      markerZoomAnimation: false,
+    });
 
- // Theme responsive tiles from CartoDB
- const isDark = theme === "dark";
- L.tileLayer(
- isDark 
- ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
- : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
- { subdomains: "abcd", maxZoom: 19 }
- ).addTo(map);
+    // Clean minimal tiles: Esri Gray Canvas (100% free, no API key, zero watermark)
+    const isDark = theme === "dark";
+    const cartoApiKey = process.env.NEXT_PUBLIC_CARTO_API_KEY;
 
- // Add zoom control to top-right
- L.control.zoom({ position: "topright" }).addTo(map);
+    // Use Carto ONLY if an explicit API key was provided; otherwise use Esri Gray Canvas
+    const primaryTileUrl = cartoApiKey
+      ? (isDark
+        ? `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png?api_key=${cartoApiKey}`
+        : `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png?api_key=${cartoApiKey}`)
+      : (isDark
+        ? "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+        : "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}");
 
- mapRef.current = map;
- setMapReady(true);
+    const fallbackTileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
- return () => {
- map.remove();
- mapRef.current = null;
- setMapReady(false);
- };
- }, [L, theme]); // theme added to trigger tile update
+    const tileOptions = {
+      maxZoom: 16,
+      attribution: '&copy; Esri &copy; OpenStreetMap contributors',
+    };
+
+    const tileLayer = L.tileLayer(primaryTileUrl, tileOptions);
+    let fallbackTriggered = false;
+    tileLayer.on("tileerror", () => {
+      if (!fallbackTriggered) {
+        fallbackTriggered = true;
+        try {
+          console.warn("[ShipTrackingMap] Primary tile failed, switching to OpenStreetMap fallback");
+          tileLayer.setUrl(fallbackTileUrl);
+        } catch {}
+      }
+    });
+    tileLayer.addTo(map);
+
+    // Add zoom control to top-right
+    L.control.zoom({ position: "topright" }).addTo(map);
+
+    mapRef.current = map;
+    setMapReady(true);
+
+    // Multiple layout passes to guarantee all tiles are fetched and rendered
+    map.invalidateSize();
+    const t1 = setTimeout(() => {
+      try { map.invalidateSize(); } catch {}
+    }, 150);
+    const t2 = setTimeout(() => {
+      try { map.invalidateSize(); } catch {}
+    }, 500);
+
+    // Continuous observation of parent resizing
+    let resizeObserver = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        try { map.invalidateSize(); } catch {}
+      });
+      resizeObserver.observe(container);
+    }
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      if (resizeObserver) resizeObserver.disconnect();
+      try {
+        map.stop();
+        map.off();
+        map.remove();
+      } catch {
+        // Graceful unmount
+      }
+      mapRef.current = null;
+      setMapReady(false);
+    };
+  }, [L, theme]); // theme added to trigger tile update
 
  // Draw routes when data changes
  useEffect(() => {
@@ -123,7 +261,10 @@ function LeafletMapInner({ routes, theme }: { routes: LiveRoute[], theme?: strin
  map.removeLayer(layer);
  });
 
- if (routes.length === 0) return;
+ if (routes.length === 0) {
+    try { map.setView([20.59, 78.96], 3); } catch {}
+    return;
+  }
 
  const allLatLngs: [number, number][] = [];
 
@@ -142,22 +283,9 @@ function LeafletMapInner({ routes, theme }: { routes: LiveRoute[], theme?: strin
  allLatLngs.push(fromLatLng, toLatLng);
 
  // Route color - Use a bold contrast (Primary for light, White for dark)
- const color = theme === "dark" ? "#ffffff" : "#D4AF37";
-
- // Draw the shipping route line
- L.polyline([fromLatLng, toLatLng], {
- color,
- weight: 2.5,
- opacity: theme === "dark" ? 0.7 : 0.8,
- dashArray: route.type === "ocean" ? "8 6" : undefined,
- }).addTo(map);
-
- // Glow effect (wider faint line behind)
- L.polyline([fromLatLng, toLatLng], {
- color,
- weight: 8,
- opacity: theme === "dark" ? 0.15 : 0.1,
- }).addTo(map);
+ const originColor = theme === "dark" ? "#F59E0B" : "#C4912A";
+  const destColor = theme === "dark" ? "#10B981" : "#0B7A57";
+  const color = originColor;
 
  // Origin port marker (Primary for India)
  const originIcon = L.divIcon({
@@ -175,7 +303,7 @@ function LeafletMapInner({ routes, theme }: { routes: LiveRoute[], theme?: strin
  .addTo(map)
  .bindPopup(`
  <div style="font-family:'Sora', sans-serif; font-size:11px; padding: 4px;">
- <b style="color:${color}; display: block; margin-bottom: 4px; text-transform: uppercase;">📦 Origin</b>
+ <b style="color:${originColor}; display: block; margin-bottom: 4px; text-transform: uppercase;">📦 India Export Hub</b>
  <b style="font-size: 13px;">${from?.name || route.fromPort}</b><br/>
  Cargo: ${route.cargo || "N/A"}<br/>
  Vessel: ${route.vessel || "N/A"}
@@ -198,7 +326,7 @@ function LeafletMapInner({ routes, theme }: { routes: LiveRoute[], theme?: strin
  .addTo(map)
  .bindPopup(`
  <div style="font-family:'Sora', sans-serif; font-size:11px; padding: 4px;">
- <b style="color:${color}; display: block; margin-bottom: 4px; text-transform: uppercase;">🏁 Destination</b>
+ <b style="color:${destColor}; display: block; margin-bottom: 4px; text-transform: uppercase;">🏁 Destination Port</b>
  <b style="font-size: 13px;">${to?.name || route.toPort}</b><br/>
  Buyer: ${route.importer || "N/A"}
  </div>
@@ -244,10 +372,10 @@ function LeafletMapInner({ routes, theme }: { routes: LiveRoute[], theme?: strin
  }
  });
 
- // Fit map bounds to show all points
+ // Fit map bounds to show all points without animated transitions that can leak on unmount
  if (allLatLngs.length > 1) {
  const bounds = L.latLngBounds(allLatLngs);
- map.fitBounds(bounds, { padding: [40, 40], maxZoom: 5 });
+ map.fitBounds(bounds, { padding: [40, 40], maxZoom: 5, animate: false });
  }
  }, [L, routes, mapReady, theme]);
 
@@ -302,6 +430,13 @@ function LeafletMapInner({ routes, theme }: { routes: LiveRoute[], theme?: strin
  .dark .leaflet-control-zoom a:hover {
  background: #222 !important;
  }
+
+ .leaflet-container {
+ width: 100% !important;
+ height: 100% !important;
+ background: transparent !important;
+ z-index: 1 !important;
+ }
  `}</style>
  <div
  ref={containerRef}
@@ -324,6 +459,7 @@ export default function ShipTrackingMap({
  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
  const [refreshKey, setRefreshKey] = useState(0);
  const { resolvedTheme } = useTheme();
+ const [mapError, setMapError] = useState(false);
 
  useEffect(() => {
  if (externalRoutes) {
@@ -402,11 +538,6 @@ export default function ShipTrackingMap({
 
  {/* Map */}
  <div className="flex-1 relative min-h-0">
- {/* Import Leaflet CSS */}
- <link
- rel="stylesheet"
- href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
- />
 
  {internalRoutes.length === 0 && !loading ? (
  <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -427,7 +558,11 @@ export default function ShipTrackingMap({
  </div>
  ) : null}
 
- <LeafletMapInner key={resolvedTheme} routes={displayRoutes} theme={resolvedTheme} />
+ {mapError ? (
+ <MapFallback />
+ ) : (
+ <LeafletMapInner key={resolvedTheme} routes={displayRoutes} theme={resolvedTheme} onError={() => setMapError(true)} />
+ )}
  </div>
 
  {/* Footer stats */}

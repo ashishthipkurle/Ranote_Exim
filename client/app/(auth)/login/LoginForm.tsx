@@ -28,6 +28,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { FcGoogle } from "react-icons/fc";
 import { FaLinkedin } from "react-icons/fa";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -72,6 +73,17 @@ export default function LoginForm() {
       setIsLoading(true);
       try {
         const response = await axios.post("/api/auth/login", data);
+        if (response.data.session) {
+          try {
+            const supabase = createClient();
+            await supabase.auth.setSession({
+              access_token: response.data.session.access_token,
+              refresh_token: response.data.session.refresh_token,
+            });
+          } catch (syncErr) {
+            console.warn("[Login] Client session sync warning:", syncErr);
+          }
+        }
         await refreshUser();
         toast.success("Login successful!");
         const role = response.data.user?.role || "IMPORTER";
@@ -139,6 +151,18 @@ export default function LoginForm() {
         setShowOtpStep(false);
         toast.info("Multi-Factor Authentication required");
         return;
+      }
+
+      if (response.data.session) {
+        try {
+          const supabase = createClient();
+          await supabase.auth.setSession({
+            access_token: response.data.session.access_token,
+            refresh_token: response.data.session.refresh_token,
+          });
+        } catch (syncErr) {
+          console.warn("[Login] Client session sync warning:", syncErr);
+        }
       }
 
       await refreshUser();
@@ -436,6 +460,18 @@ export default function LoginForm() {
                           </>
                         )}
                       </Button>
+
+                      <p className="text-center text-[11px] text-muted-foreground pt-2">
+                        By continuing you agree to our{" "}
+                        <Link href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary font-bold hover:underline">
+                          Terms
+                        </Link>{" "}
+                        and{" "}
+                        <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary font-bold hover:underline">
+                          Privacy Policy
+                        </Link>
+                        .
+                      </p>
                     </form>
                   </>
                 ) : (

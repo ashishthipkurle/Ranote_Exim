@@ -2,11 +2,10 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { 
-  Search, ChevronRight, LayoutGrid, Globe, Package, Tag, ShieldCheck, 
+  Search, ChevronRight, Package, ShieldCheck, 
   ShoppingCart, Zap, Apple, Shirt, FlaskConical, Settings, Laptop, 
   Truck, Construction, HeartPulse, Hammer, Sparkles, ArrowLeft,
-  Edit2, Trash2, Filter, MoreHorizontal, Eye, Box, AlertCircle,
-  CheckCircle2, PauseCircle, Loader2, ArrowRight, Car, Layers
+  Trash2, Loader2, ArrowRight, Car, Layers, CheckCircle2
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ProductForm from "@/components/dashboard/ProductForm";
@@ -27,19 +26,19 @@ function getCategoryIcon(name: string) {
 }
 
 const MAJOR_CATEGORIES = [
-  { id: "AUTOMOTIVE", name: "Automotive & Spare Parts", icon: Car, color: "bg-blue-600/10 text-blue-600" },
-  { id: "PACKAGING", name: "Packaging & Disposables", icon: Package, color: "bg-emerald-600/10 text-emerald-600" },
-  { id: "AGRICULTURE", name: "Agriculture", icon: Apple, color: "bg-emerald-500/10 text-emerald-600" },
-  { id: "FOOD", name: "Food & Beverage", icon: ShoppingCart, color: "bg-orange-500/10 text-orange-600" },
-  { id: "TEXTILES", name: "Textiles", icon: Shirt, color: "bg-cyan-500/10 text-cyan-600" },
-  { id: "CHEMICALS", name: "Chemicals", icon: FlaskConical, color: "bg-purple-500/10 text-purple-600" },
-  { id: "MACHINES", name: "Machinery", icon: Settings, color: "bg-slate-500/10 text-slate-600" },
-  { id: "ELECTRONICS", name: "Electronics", icon: Laptop, color: "bg-indigo-500/10 text-indigo-600" },
-  { id: "MEDICAL", name: "Medical", icon: HeartPulse, color: "bg-rose-500/10 text-rose-600" },
-  { id: "CONSTRUCTION", name: "Construction", icon: Construction, color: "bg-amber-500/10 text-amber-600" },
-  { id: "HANDICRAFTS", name: "Handicrafts", icon: Hammer, color: "bg-amber-800/10 text-amber-800" },
-  { id: "LOGISTICS", name: "Logistics", icon: Truck, color: "bg-sky-500/10 text-sky-600" },
-  { id: "COSMETICS", name: "Cosmetics", icon: Sparkles, color: "bg-pink-500/10 text-pink-600" },
+  { id: "AUTOMOTIVE", name: "Automotive & Spare Parts", icon: Car },
+  { id: "PACKAGING", name: "Packaging & Disposables", icon: Package },
+  { id: "AGRICULTURE", name: "Agriculture", icon: Apple },
+  { id: "FOOD", name: "Food & Beverage", icon: ShoppingCart },
+  { id: "TEXTILES", name: "Textiles", icon: Shirt },
+  { id: "CHEMICALS", name: "Chemicals", icon: FlaskConical },
+  { id: "MACHINES", name: "Machinery", icon: Settings },
+  { id: "ELECTRONICS", name: "Electronics", icon: Laptop },
+  { id: "MEDICAL", name: "Medical", icon: HeartPulse },
+  { id: "CONSTRUCTION", name: "Construction", icon: Construction },
+  { id: "HANDICRAFTS", name: "Handicrafts", icon: Hammer },
+  { id: "LOGISTICS", name: "Logistics", icon: Truck },
+  { id: "COSMETICS", name: "Cosmetics", icon: Sparkles },
 ];
 
 const SUB_INDUSTRIES = [
@@ -48,77 +47,33 @@ const SUB_INDUSTRIES = [
   "Batteries", "Bearings", "Beauty Supplements", "Bicycles", "Biofuels", "Biomass Energy", "Building Materials", "Cables",
   "Cameras", "Camping Gear", "Ceramics", "Circuit Boards", "Cleaning Supplies", "Clocks", "Coffee", "Compressors",
   "Computer Hardware", "Confectionery", "Control Systems", "Cooking Oil", "Cosmetic Tools", "Cotton Fabrics", "Cranes",
-  "Dairy Products", "Data Storage", "Dental Equipment", "Detergents", "Diagnostic Tools", "Digital Cameras", "Disinfectants",
-  "Doors", "Drilling Equipment", "Dyes", "Earthmoving Machinery", "Electric Motors", "Electronic Components", "Engines",
-  "Essential Oils", "Excavators", "Fabricated Metals", "Fasteners", "Feed Additives", "Fertilizers", "Filtering Equipment",
-  "Fire Extinguishers", "Fish Products", "Floor Covers", "Flour", "Flowers", "Footwear", "Forestry Equipment", "Frames",
-  "Fruit", "Fungicides", "Furnaces", "Garden Tools", "Gaskets", "Gears", "Generators", "Glass Products", "Glassware",
-  "Gloves", "Grain", "Greenhouse Equipment", "Grinding Tools", "Hair Care", "Hand Tools", "Handling Equipment", "Hats",
-  "Hay", "Heaters", "Herbicides", "Herbal Products", "Honey", "Hospital Furniture", "Household Appliances", "Hydraulic Equipment",
-  "Industrial Boilers", "Industrial Chemicals", "Ink", "Insecticides", "Instrumentation", "Insulation", "Iron Products",
-  "Irrigation Systems", "Jewelry", "Juice", "Kitchenware", "Knitted Fabrics", "Laboratory Equipment", "Lamps", "Leather Goods",
-  "Lenses", "Light Fixtures", "Linens", "Lubricants", "Luggage", "Lumber", "Machine Tools", "Maintenance Supplies", "Mapping Equipment",
-  "Marine Engines", "Material Handling", "Measuring Tools", "Medical Disposables", "Metals", "Milk Products", "Milling Machines",
-  "Mining Equipment", "Mixers", "Mobile Phones", "Musical Instruments", "Network Hardware", "Office Furniture", "Office Supplies",
-  "Oil Seeds", "Optical Fibers", "Organic Chemicals", "Packaging Machinery", "Paints", "Paper Products", "Perfume",
-  "Personal Computers", "Pesticides", "Pet Food", "Pharmaceutical Ingredients", "Pigments", "Pipes", "Plastic Products",
-  "Power Tools", "Precision Instruments", "Prepared Foods", "Printers", "Printing Inks", "Protective Clothing", "Pumps",
-  "Raw Materials", "Refrigeration", "Renewable Energy", "Robotics", "Safety Equipment", "Sand", "Scales", "School Supplies",
-  "Scientific Instruments", "Seeds", "Semiconductors", "Sensors", "Shipbuilding", "Signals", "Signs", "Silk Fabrics",
-  "Software", "Solar Energy", "Spices", "Sporting Goods", "Stainless Steel", "Stationery", "Steel Products", "Surgical Instruments",
-  "Synthetic Fibers", "Tableware", "Tea", "Technical Fabrics", "Telecommunications", "Testing Equipment", "Tiles", "Tools",
-  "Tractors", "Transformers", "Trucks", "Turbines", "Valves", "Vegetables", "Vehicle Parts", "Vessels", "Video Equipment",
-  "Warehouse Equipment", "Washing Equipment", "Waste Management", "Watch Components", "Water Filtration", "Wearables",
-  "Weather Systems", "Welding Equipment", "Windows", "Wood Products", "Workwear", "Woven Fabrics", "Yarn", "Zinc Products"
 ];
 
 export default function CategoryDirectory({ customCategories = [] }: { customCategories?: string[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
-  const [isAddingCustom, setIsAddingCustom] = useState(false);
   const [customInput, setCustomInput] = useState("");
+  const [isAddingCustom, setIsAddingCustom] = useState(false);
   const [isSavingCustom, setIsSavingCustom] = useState(false);
 
-  // Dynamic local state of custom categories (persisted across additions)
   const [customCats, setCustomCats] = useState<string[]>(() => {
-    const list = [...customCategories];
-    if (!list.some(c => c.toLowerCase() === "areca leaf")) {
-      list.push("Areca Leaf");
+    let localStored: string[] = [];
+    if (typeof window !== "undefined") {
+      try {
+        localStored = JSON.parse(localStorage.getItem("renote_custom_categories") || "[]");
+      } catch {}
     }
-    return list;
+    const combined = Array.from(new Set([...customCategories, ...localStored]));
+    return combined;
   });
 
-  // Sync with local storage and fetch latest from API
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("renote_custom_categories");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setCustomCats(prev => {
-            const combined = new Set([...prev, ...parsed]);
-            return Array.from(combined);
-          });
-        }
-      }
-    } catch {}
+    if (customCategories && customCategories.length > 0) {
+      setCustomCats(prev => Array.from(new Set([...prev, ...customCategories])));
+    }
+  }, [customCategories]);
 
-    // Fetch latest from API
-    fetch("/api/categories/custom")
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data?.categories)) {
-          setCustomCats(prev => {
-            const combined = new Set([...prev, ...data.categories]);
-            return Array.from(combined);
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  // Immediate local state for selection: instant switch in 0ms without server lag!
   const [localSelection, setLocalSelection] = useState<{ category: string; customCategory?: string } | null>(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -138,7 +93,6 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
     return null;
   });
 
-  // Keep synced with browser forward/back buttons
   useEffect(() => {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
@@ -168,7 +122,6 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
     }
   };
 
-  // Search through custom categories as well as standard industries
   const searchResults = useMemo(() => {
     if (!search.trim()) return [];
     const q = search.toLowerCase().trim();
@@ -190,16 +143,17 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
   }, [search, customCats]);
 
   const handleSelect = (categoryId: string, customCategoryName?: string) => {
-    // 1. Instantaneous 0ms switch
     setLocalSelection({ category: categoryId, customCategory: customCategoryName });
-    // 2. Update browser URL history without blocking server re-render
     const url = `/dashboard/exporter/inventory/add?action=new&category=${categoryId}${customCategoryName ? `&customCategory=${encodeURIComponent(customCategoryName)}` : ""}`;
     window.history.pushState(null, "", url);
   };
 
   const handleBackToDirectory = () => {
     setLocalSelection(null);
-    window.history.pushState(null, "", "/dashboard/exporter/inventory/add");
+    if (typeof window !== "undefined") {
+      window.history.pushState(null, "", "/dashboard/exporter/inventory/add");
+    }
+    router.replace("/dashboard/exporter/inventory/add");
   };
 
   const handleCreateCustomCategory = async (proceedToForm: boolean = false) => {
@@ -207,14 +161,11 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
     if (!name) return;
 
     setIsSavingCustom(true);
-
-    // 1. Immediately update local state so the card appears in the UI
     setCustomCats(prev => {
       if (prev.some(c => c.toLowerCase() === name.toLowerCase())) return prev;
       return [...prev, name];
     });
 
-    // 2. Persist to localStorage
     try {
       const stored = JSON.parse(localStorage.getItem("renote_custom_categories") || "[]");
       if (!stored.some((s: string) => s.toLowerCase() === name.toLowerCase())) {
@@ -222,7 +173,6 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
       }
     } catch {}
 
-    // 3. Persist to server
     try {
       await fetch("/api/categories/custom", {
         method: "POST",
@@ -239,24 +189,20 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
 
     toast.success(`Category "${name}" added to Product Sectors!`);
 
-    // 4. Optionally proceed to listing creation for this new category
     if (proceedToForm) {
       handleSelect("OTHER", name);
     }
   };
 
   const handleDeleteCustomCategory = async (name: string) => {
-    // 1. Immediately update local state
     setCustomCats(prev => prev.filter(c => c.toLowerCase() !== name.toLowerCase()));
 
-    // 2. Remove from localStorage
     try {
       const stored = JSON.parse(localStorage.getItem("renote_custom_categories") || "[]");
       const filtered = stored.filter((s: string) => s.toLowerCase() !== name.toLowerCase());
       localStorage.setItem("renote_custom_categories", JSON.stringify(filtered));
     } catch {}
 
-    // 3. Remove from server
     try {
       await fetch(`/api/categories/custom?name=${encodeURIComponent(name)}`, {
         method: "DELETE",
@@ -268,65 +214,81 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-      <header className="flex-shrink-0 p-8 lg:px-12 border-b border-slate-200 dark:border-white/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="flex items-center gap-6 max-w-7xl mx-auto w-full">
+    <div className="space-y-6 w-full">
+      {/* ─── Header ─── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-[#F0ECE0]">
+        <div className="flex items-center gap-4">
           <button
             type="button"
             onClick={handleBack}
-            className="p-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-all text-slate-500 hover:text-primary group shadow-sm cursor-pointer"
+            className="w-10 h-10 rounded-full border border-[#F0ECE0] bg-white hover:bg-[#FBF1D6] text-[#15130D] flex items-center justify-center transition-colors shrink-0 shadow-sm"
             title={isSelected ? "Back to category selection" : "Back to inventory"}
           >
-            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+            <ArrowLeft className="w-5 h-5 stroke-[2]" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Publish New Product</h1>
-            <p className="text-slate-500 text-sm mt-0.5">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-[0.14em] bg-[#FBF1D6] text-[#7A560A]">
+                Listing Creator
+              </span>
+              <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B6A66]">
+                Global Inventory
+              </span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#15130D]">
+              Publish New Product
+            </h1>
+            <p className="text-sm text-[#6B6A66] mt-0.5">
               {isSelected
-                ? `Enter details to list in ${selectedCustom || selectedCategory}`
-                : "Follow the steps to list your asset on the global marketplace"}
+                ? `Enter listing specifications for ${selectedCustom || selectedCategory}`
+                : "Select an export sector or define a custom category to list your asset"}
             </p>
           </div>
         </div>
-      </header>
 
-      <div className="flex-1 overflow-y-auto p-8 lg:p-12">
-        <div className="max-w-7xl mx-auto">
-          <div className="min-h-[600px] w-full">
-            <AnimatePresence mode="wait">
-              {!isSelected ? (
+        {isSelected && (
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-[0.14em] bg-[#E2F5EE] text-[#0B7A57]">
+            <CheckCircle2 className="w-3.5 h-3.5 stroke-[2]" />
+            Listing in: {selectedCustom || selectedCategory}
+          </span>
+        )}
+      </div>
+
+      {/* ─── Content ─── */}
+      <AnimatePresence mode="wait">
+        {!isSelected ? (
           <motion.div
             key="selector"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="space-y-10"
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-6"
           >
-            {/* Search Header */}
-            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-2xl p-8 shadow-sm">
-              <div className="max-w-2xl mx-auto text-center space-y-4 mb-8">
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Choose a Product Sector</h2>
-                <p className="text-slate-500 text-sm">Select the most relevant category to begin your listing</p>
+            {/* Sector Search Card */}
+            <div className="rounded-[24px] border border-[#F0ECE0] bg-gradient-to-b from-white to-[#FFFBF0] p-6 md:p-8 shadow-sm">
+              <div className="max-w-xl mx-auto text-center space-y-2 mb-6">
+                <h2 className="text-lg font-extrabold text-[#15130D]">Choose an Export Sector</h2>
+                <p className="text-xs text-[#6B6A66]">Select the most relevant vertical to start your catalog listing</p>
               </div>
               
-              <div className="max-w-xl mx-auto relative group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-primary transition-colors" />
+              <div className="max-w-lg mx-auto relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B6A66] stroke-[1.8]" />
                 <input
                   type="text"
-                  placeholder="Search for specific industries (e.g. Automobile, Spare Parts, Areca, Spices...)"
+                  placeholder="Search industries (e.g. Automobile, Areca Leaf, Chemicals, Spices...)"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-12 pr-6 py-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
+                  className="w-full h-11 bg-white border border-[#F0ECE0] rounded-full pl-11 pr-4 text-sm text-[#15130D] placeholder:text-[#6B6A66] focus:outline-none focus:border-[#C4912A] transition-colors"
                 />
                 
                 {/* Search Dropdown */}
                 <AnimatePresence>
                   {search.trim() && (
                     <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
+                      exit={{ opacity: 0, y: 5 }}
+                      className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#F0ECE0] rounded-[18px] shadow-xl z-50 overflow-hidden"
                     >
                       {searchResults.length > 0 ? (
                         searchResults.map((item, idx) => (
@@ -339,31 +301,31 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
                                 handleSelect("OTHER", item.name);
                               }
                             }}
-                            className="w-full px-6 py-3.5 text-left text-sm hover:bg-slate-50 dark:hover:bg-white/5 border-b border-slate-100 dark:border-white/5 last:border-0 flex items-center justify-between group"
+                            className="w-full px-5 py-3 text-left text-sm hover:bg-[#FFFBF0] border-b border-[#F0ECE0] last:border-0 flex items-center justify-between transition-colors"
                           >
                             <div className="flex items-center gap-2">
-                              <span className="text-slate-800 dark:text-slate-200 font-medium">{item.name}</span>
+                              <span className="font-bold text-[#15130D]">{item.name}</span>
                               {"isCustom" in item && (
-                                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#FBF1D6] text-[#7A560A]">
                                   Custom Sector
                                 </span>
                               )}
                             </div>
-                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                            <ChevronRight className="w-4 h-4 text-[#6B6A66]" />
                           </button>
                         ))
                       ) : (
-                        <div className="p-4 text-sm text-slate-500 text-center">
-                          <p>No exact matches for &quot;{search}&quot;.</p>
+                        <div className="p-4 text-xs text-[#6B6A66] text-center">
+                          <p>No matches for &quot;{search}&quot;.</p>
                           <button
                             onClick={() => {
                               setCustomInput(search.trim());
                               setIsAddingCustom(true);
                               setSearch("");
                             }}
-                            className="mt-2 text-xs font-bold text-primary hover:underline inline-flex items-center gap-1"
+                            className="mt-2 text-xs font-bold text-[#7A560A] hover:underline"
                           >
-                            + Create &quot;{search}&quot; as a new Custom Category
+                            + Add &quot;{search}&quot; as a new Custom Category
                           </button>
                         </div>
                       )}
@@ -374,199 +336,118 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
             </div>
 
             {/* Categories Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
-              {/* Major Industry Categories */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {MAJOR_CATEGORIES.map((cat, i) => (
-                <motion.button
+                <button
                   key={cat.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
                   onClick={() => handleSelect(cat.id)}
-                  className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-2xl hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all group active:scale-95"
+                  className="rounded-[20px] border border-[#F0ECE0] bg-gradient-to-b from-white to-[#FFFBF0] p-5 shadow-sm hover:shadow-md hover:border-[#C4912A] transition-all flex flex-col items-center justify-center text-center group active:scale-95"
                 >
-                  <div className={`w-14 h-14 ${cat.color} rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                    <cat.icon className="w-7 h-7" />
+                  <div className="w-12 h-12 rounded-[16px] bg-[#FBF1D6] text-[#C4912A] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                    <cat.icon className="w-6 h-6 stroke-[1.8]" />
                   </div>
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200 text-center leading-tight">
+                  <span className="text-xs font-bold text-[#15130D] leading-tight">
                     {cat.name}
                   </span>
-                </motion.button>
+                </button>
               ))}
 
-              {/* Dynamically Created Custom Categories */}
               {customCats.map((customName, i) => {
                 const IconComp = getCategoryIcon(customName);
                 return (
-                  <motion.div
-                    key={`custom_${customName}_${i}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.05 }}
-                    className="relative group"
-                  >
+                  <div key={`custom_${customName}_${i}`} className="relative group">
                     <button
                       onClick={() => handleSelect("OTHER", customName)}
-                      className="w-full h-full flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-950 border border-primary/20 dark:border-primary/30 rounded-2xl hover:border-primary hover:shadow-lg hover:shadow-primary/10 transition-all group-active:scale-95 text-center relative overflow-hidden"
+                      className="w-full h-full rounded-[20px] border border-[#F0ECE0] bg-gradient-to-b from-white to-[#FFFBF0] p-5 shadow-sm hover:shadow-md hover:border-[#C4912A] transition-all flex flex-col items-center justify-center text-center active:scale-95"
                     >
-                      <div className="absolute top-2 left-2">
-                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                          Custom
-                        </span>
+                      <div className="w-12 h-12 rounded-[16px] bg-[#FBF1D6] text-[#C4912A] flex items-center justify-center mb-3">
+                        <IconComp className="w-6 h-6 stroke-[1.8]" />
                       </div>
-                      <div className="w-14 h-14 bg-gradient-to-tr from-primary/15 to-amber-500/10 text-primary rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                        <IconComp className="w-7 h-7" />
-                      </div>
-                      <span className="text-sm font-bold text-slate-800 dark:text-slate-100 text-center leading-tight truncate max-w-full">
+                      <span className="text-xs font-bold text-[#15130D] leading-tight truncate max-w-full">
                         {customName}
                       </span>
                     </button>
                     <button
                       type="button"
-                      title={`Remove "${customName}" from sector list`}
+                      title={`Remove "${customName}"`}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteCustomCategory(customName);
                       }}
-                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 opacity-0 group-hover:opacity-100 transition-all z-10"
+                      className="absolute top-2 right-2 p-1 rounded-full bg-white border border-[#F0ECE0] text-[#6B6A66] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
-                  </motion.div>
+                  </div>
                 );
               })}
 
               {/* Add Custom Category Card */}
-              <motion.button
-                key="add_custom"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
+              <button
                 onClick={() => setIsAddingCustom(true)}
-                className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-950 border border-dashed border-slate-300 dark:border-white/20 rounded-2xl hover:border-primary hover:bg-primary/5 transition-all group active:scale-95"
+                className="rounded-[20px] border border-dashed border-[#F0ECE0] bg-[#FFFBF2] p-5 shadow-sm hover:border-[#C4912A] transition-all flex flex-col items-center justify-center text-center group active:scale-95"
               >
-                <div className="w-14 h-14 bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-500 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 group-hover:text-primary transition-all">
-                  <span className="material-symbols-outlined text-3xl">add</span>
+                <div className="w-12 h-12 rounded-[16px] bg-[#FBF1D6] text-[#7A560A] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                  <span className="text-2xl font-bold leading-none">+</span>
                 </div>
-                <span className="text-sm font-bold text-slate-600 dark:text-slate-400 text-center group-hover:text-primary transition-colors leading-tight">
+                <span className="text-xs font-bold text-[#7A560A] leading-tight">
                   Add Custom Category
                 </span>
-              </motion.button>
+              </button>
             </div>
 
-            {/* Custom Category Creation Modal */}
+            {/* Custom Category Modal */}
             <AnimatePresence>
               {isAddingCustom && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                   <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={() => setIsAddingCustom(false)}
-                    className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-                  />
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-slate-200 dark:border-white/10"
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    className="relative w-full max-w-md bg-white border border-[#F0ECE0] rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-6 md:p-8"
                   >
-                    <div className="p-8">
-                      <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
-                        <Layers className="w-6 h-6" />
-                      </div>
-                      <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Create Custom Category</h3>
-                      <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 leading-relaxed">
-                        Enter a unique product category name (e.g. <em>Automobile spare parts</em>, <em>Eco Packaging</em>, <em>Spices</em>). It will be permanently added to the product sector directory.
-                      </p>
-                      
-                      <div className="space-y-4">
-                        <div>
-                          <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 block">
-                            Category Name *
-                          </label>
-                          <input
-                            type="text"
-                            autoFocus
-                            placeholder="e.g. Automobile spare parts"
-                            value={customInput}
-                            onChange={(e) => setCustomInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && customInput.trim()) {
-                                e.preventDefault();
-                                handleCreateCustomCategory(false);
-                              }
-                            }}
-                            className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 dark:text-white placeholder:text-slate-400 transition-all font-medium text-sm"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="p-6 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-white/5 flex flex-wrap gap-3 justify-end items-center">
+                    <h3 className="text-xl font-extrabold text-[#15130D] mb-1">Create Custom Category</h3>
+                    <p className="text-xs text-[#6B6A66] mb-5">
+                      Enter a custom industry sector (e.g. <em>Areca Palm Plates</em>, <em>Spices</em>).
+                    </p>
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder="e.g. Automobile Spare Parts"
+                      value={customInput}
+                      onChange={(e) => setCustomInput(e.target.value)}
+                      className="w-full h-11 bg-[#F4F4F7] border border-[#F0ECE0] rounded-xl px-4 text-sm text-[#15130D] focus:outline-none focus:border-[#C4912A] mb-5"
+                    />
+                    <div className="flex justify-end gap-3">
                       <button
                         type="button"
                         onClick={() => setIsAddingCustom(false)}
-                        className="px-5 py-2.5 font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/5 rounded-xl transition-all text-sm"
+                        className="btn-cream-secondary"
                       >
                         Cancel
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleCreateCustomCategory(false)}
-                        disabled={!customInput.trim() || isSavingCustom}
-                        className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-800 dark:text-slate-100 font-bold rounded-xl transition-all flex items-center gap-1.5 text-sm disabled:opacity-50"
-                      >
-                        + Add to Sector List
-                      </button>
-                      <button
-                        type="button"
                         onClick={() => handleCreateCustomCategory(true)}
                         disabled={!customInput.trim() || isSavingCustom}
-                        className="px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center gap-2 text-sm"
+                        className="btn-gold-primary"
                       >
-                        {isSavingCustom ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" /> Saving...
-                          </>
-                        ) : (
-                          <>
-                            Continue to Listing <ArrowRight className="w-5 h-5" />
-                          </>
-                        )}
+                        {isSavingCustom ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4 stroke-[2]" />}
+                        Continue to Listing
                       </button>
                     </div>
                   </motion.div>
                 </div>
               )}
             </AnimatePresence>
-
-            {/* Quick Trust Badges */}
-            <div className="flex flex-col md:flex-row items-center justify-center gap-10 py-10 opacity-60">
-              <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                <ShieldCheck className="w-4 h-4" /> Trusted by 5000+ Exporters
-              </div>
-              <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                <Zap className="w-4 h-4" /> Fast Listing Protocol
-              </div>
-              <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                <Globe className="w-4 h-4" /> Global Market Distribution
-              </div>
-            </div>
           </motion.div>
         ) : (
           <motion.div
             key="form"
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 10 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            exit={{ opacity: 0, x: -10 }}
           >
-            <div className="mb-6 flex justify-end items-center">
-              <div className="px-4 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-bold uppercase tracking-wider">
-                Listing in: {selectedCustom || selectedCategory}
-              </div>
-            </div>
-            
             <ProductForm
               key={selectedCustom || selectedCategory || "default"}
               hideHeader={true}
@@ -577,9 +458,6 @@ export default function CategoryDirectory({ customCategories = [] }: { customCat
           </motion.div>
         )}
       </AnimatePresence>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

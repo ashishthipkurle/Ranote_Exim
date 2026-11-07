@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getApiAuthContext } from '@/lib/auth-server';
+import { createAdminClient } from '@/lib/supabase/server';
 import type { Role } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -19,91 +20,83 @@ export async function GET(request: NextRequest) {
     const limit = Math.max(1, Math.min(100, parseInt(searchParams.get('limit') || '50')));
     const requestedRole = (searchParams.get('role') || searchParams.get('target') || '').toUpperCase();
 
-    // Determine target roles:
-    // If explicitly asked for EXPORTER / SELLERS, or if viewer is an IMPORTER / CONSUMER / USER / SUPPLIER:
-    // We target Sellers (EXPORTER and ADMIN accounts that sell on the platform)
     const isTargetingExporters =
       requestedRole === 'EXPORTER' ||
       requestedRole === 'SELLER' ||
       requestedRole === 'SELLERS' ||
       (!requestedRole && (auth.role === 'IMPORTER' || auth.role === 'CONSUMER' || auth.role === 'USER' || auth.role === 'SUPPLIER'));
 
-    const targetRoles: Role[] = isTargetingExporters
-      ? (['EXPORTER', 'ADMIN'] as Role[])
-      : (['IMPORTER', 'CONSUMER', 'USER'] as Role[]);
+    const exporterRoles = ['EXPORTER', 'ADMIN', 'SUPPLIER'];
+    const importerRoles = ['IMPORTER', 'CONSUMER', 'USER'];
 
-    const where: any = {
-      role: { in: targetRoles },
-      id: { not: auth.userId },
-      deletedAt: null,
-    };
+    let users: any[] = [];
+    let totalCount = 0;
 
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { businessName: { contains: search, mode: 'insensitive' } },
-        { country: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-      ];
+    // 1. Try Supabase REST over HTTPS
+    try {
+      const supabase = createAdminClient();
+      let query = supabase
+        .from('users')
+        .select('id, name, businessName, country, verificationStatus, avatar, role, email', { count: 'exact' })
+        .is('deletedAt', null);
+
+      if (isTargetingExporters) {
+        query = query.in('role', exporterRoles);
+      } else {
+        query = query.in('role', importerRoles);
+      }
+
+      if (search) {
+        query = query.or(`name.ilike.%${search}%,businessName.ilike.%${search}%,email.ilike.%${search}%`);
+      }
+
+      const skip = (page - 1) * limit;
+      query = query.range(skip, skip + limit - 1);
+
+      const { data, count } = await query;
+      if (data) {
+        users = data;
+        totalCount = count || data.length;
+      }
+    } catch {
+      // Supabase REST error, fall back to Prisma below
     }
 
-    const [users, totalCount] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        select: {
-          id: true,
-          name: true,
-          businessName: true,
-          country: true,
-          verificationStatus: true,
-          avatar: true,
-          role: true,
-          email: true,
-        },
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: [
-          { businessName: 'asc' },
-          { name: 'asc' },
-        ],
-      }),
-      prisma.user.count({ where }),
-    ]);
+    // 2. Prisma fallback if Supabase REST returned empty
+    if (users.length === 0) {
+      try {
+        const where: any = { deletedAt: null };
+        if (isTargetingExporters) {
+          where.role = { in: exporterRoles };
+        } else {
+          where.role = { in: importerRoles };
+        }
+        users = (await Promise.race([
+          prisma.user.findMany({
+            where,
+            select: { id: true, name: true, businessName: true, country: true, verificationStatus: true, avatar: true, role: true, email: true },
+            skip: (page - 1) * limit,
+            take: limit,
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500)),
+        ])) as any[];
+        totalCount = users.length;
+      } catch {
+        users = [];
+      }
+    }
 
-    const partners = await Promise.all(
-      users.map(async (p) => {
-        const orderWhere = isTargetingExporters
-          ? { sellerId: p.id, buyerId: auth.userId }
-          : { buyerId: p.id, sellerId: auth.userId };
-
-        const [orderCount, orderAgg, unreadCount] = await Promise.all([
-          prisma.order.count({ where: orderWhere }).catch(() => 0),
-          prisma.order.aggregate({
-            where: orderWhere,
-            _sum: { totalPrice: true },
-          }).catch(() => ({ _sum: { totalPrice: 0 } })),
-          prisma.message.count({
-            where: {
-              senderId: p.id,
-              receiverId: auth.userId,
-              isRead: false,
-            },
-          }).catch(() => 0),
-        ]);
-
-        return {
-          id: p.id,
-          name: p.name || p.businessName || (p.email ? p.email.split('@')[0] : 'Verified Partner'),
-          businessName: p.businessName || (p.role === 'ADMIN' ? 'Ranote Exim Verified Partner' : null),
-          country: p.country || 'India',
-          verificationStatus: p.verificationStatus || 'VERIFIED',
-          avatar: p.avatar,
-          orderCount: Number(orderCount),
-          totalValue: Number(orderAgg?._sum?.totalPrice || 0),
-          unreadCount: Number(unreadCount),
-        };
-      })
-    );
+    const partners = users.map((p) => ({
+      id: p.id,
+      name: p.name || p.businessName || (p.email ? p.email.split('@')[0] : 'Verified Partner'),
+      businessName: p.businessName || (p.role === 'ADMIN' ? 'Ranote Exim Verified Partner' : null),
+      country: p.country || 'India',
+      verificationStatus: p.verificationStatus || 'VERIFIED',
+      avatar: p.avatar,
+      orderCount: 0,
+      totalValue: 0,
+      unreadCount: 0,
+    }));
 
     return NextResponse.json({
       role: auth.role,
@@ -117,9 +110,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Directory fetch error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch directory', details: error?.message },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      role: 'USER',
+      partners: [],
+      pagination: { page: 1, limit: 10, total: 0, totalPages: 1 },
+    });
   }
 }

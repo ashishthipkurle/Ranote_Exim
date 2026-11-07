@@ -81,11 +81,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && !user) {
-        fetchUserFromDB();
-      } else if (!session) {
+    // Check active session and refresh to guarantee up-to-date roles from database
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        await fetchUserFromDB();
+      } else {
+        // Fallback: Check server session via /api/auth/me before assuming logged out
+        try {
+          const res = await axios.get(`/api/auth/me?t=${Date.now()}`);
+          if (res.data?.user) {
+            setUser(res.data.user);
+            window.localStorage.setItem("user_profile", JSON.stringify(res.data.user));
+            setLoading(false);
+            return;
+          }
+        } catch {
+          // Genuinely logged out
+        }
         setUser(null);
         window.localStorage.removeItem("user_profile");
         setLoading(false);
@@ -113,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase.auth, fetchUserFromDB, user]);
+  }, [supabase.auth, fetchUserFromDB]);
 
   return (
     <AuthContext.Provider value={{ user, loading, refreshUser, logout }}>

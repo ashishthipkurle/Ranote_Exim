@@ -10,12 +10,10 @@ import {
   LayoutDashboard,
   LineChart,
   MessageSquare,
-  PhoneCall,
   Settings,
   Users,
   Handshake,
   FileText,
-  Globe,
   ShieldCheck,
   Ship,
   Monitor,
@@ -50,7 +48,7 @@ export default function ExporterSidebar({ basePath }: { basePath: string }) {
   const { user } = useAuth();
   const { counts } = useUnreadCategories();
   const isAdmin = user?.role === "ADMIN";
-  const { setOpenMobile } = useSidebar();
+  const { isRail, setOpenMobile } = useSidebar();
 
   const nav: NavItem[] = [
     { href: basePath, labelKey: "sidebar.dashboard", defaultLabel: "Dashboard", icon: LayoutDashboard },
@@ -74,57 +72,95 @@ export default function ExporterSidebar({ basePath }: { basePath: string }) {
     pathname === href || (href !== basePath && pathname.startsWith(href + "/"));
 
   return (
-    <Sidebar variant="inset" className="border-r-0">
-      <SidebarContent className="px-3 pt-4">
-        <SidebarMenu>
-          {nav.map((item) => (
-            <SidebarMenuItem key={item.href}>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive(item.href)}
-                tooltip={t(item.labelKey, item.defaultLabel)}
-                className={cn(
-                  "rounded-xl transition-all duration-300 relative",
-                  isActive(item.href)
-                    ? "bg-black/10 dark:bg-white/10 text-[#D4AF37] dark:text-[#D4AF37] hover:bg-black/15 dark:hover:bg-white/15"
-                    : "text-slate-500 dark:text-muted-foreground hover:bg-slate-100 dark:hover:bg-white/5 hover:text-[#D4AF37] dark:hover:text-[#D4AF37]"
-                )}
-              >
-                <Link href={item.href} className="flex items-center gap-3 w-full" onClick={() => setOpenMobile(false)}>
-                  <item.icon className="size-5 transition-colors" />
-                  <span className="font-semibold text-sm flex-1">{t(item.labelKey, item.defaultLabel)}</span>
-                  {item.badgeCount && item.badgeCount > 0 ? (
-                    <span className="bg-[#D4AF37] text-black text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                      {item.badgeCount > 9 ? "9+" : item.badgeCount}
-                    </span>
-                  ) : null}
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+    <Sidebar className="bg-transparent border-none">
+      <SidebarContent className="bg-transparent px-3 pt-3 no-scrollbar overflow-y-auto">
+        <SidebarMenu className="space-y-[2px]">
+          {nav.map((item) => {
+            const active = isActive(item.href);
+            const label = t(item.labelKey, item.defaultLabel);
+            return (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={active}
+                  tooltip={label}
+                  className={cn(
+                    "h-[44px] rounded-[14px] text-[15px] font-[600] transition-colors duration-150 shadow-none",
+                    isRail ? "w-[44px] justify-center px-0 mx-auto" : "w-full px-[14px] py-[10px]",
+                    active
+                      ? "bg-[#FBF1D6] text-[#7A560A] font-[700]"
+                      : "text-[#4A483F] hover:bg-[rgba(251,241,214,0.55)] hover:text-[#15130D]"
+                  )}
+                >
+                  <Link
+                    href={item.href}
+                    className={cn("flex items-center", isRail ? "justify-center" : "gap-3 w-full")}
+                    onClick={() => setOpenMobile(false)}
+                  >
+                    <item.icon
+                      className={cn(
+                        "size-[18px] stroke-[1.8] shrink-0 transition-colors",
+                        active ? "text-[#C4912A]" : "text-[#4A483F]"
+                      )}
+                    />
+                    {!isRail && (
+                      <span className="font-[600] text-[15px] leading-tight flex-1 whitespace-nowrap overflow-hidden text-ellipsis">
+                        {label}
+                      </span>
+                    )}
+                    {!isRail && item.badgeCount && item.badgeCount > 0 ? (
+                      <span className="bg-[#E2F5EE] text-[#0B7A57] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0B7A57]/20 shrink-0">
+                        {item.badgeCount > 9 ? "9+" : item.badgeCount}
+                      </span>
+                    ) : null}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
         </SidebarMenu>
       </SidebarContent>
 
-      <SidebarFooter className="px-6 pt-4 pb-2 space-y-4">
-        <SidebarSeparator />
+      <SidebarFooter className="bg-transparent px-3 pt-2 pb-3">
+        <div className="h-px bg-[#E4E2EA] mx-2 mb-2" />
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={isActive(`${basePath}/settings`)}
-              tooltip={t("sidebar.settings", "Settings")}
-              className={cn(
-                "rounded-xl transition-all duration-300",
-                isActive(`${basePath}/settings`)
-                  ? "bg-black/10 dark:bg-white/10 text-[#D4AF37] dark:text-[#D4AF37] hover:bg-black/15 dark:hover:bg-white/15"
-                  : "text-slate-500 dark:text-muted-foreground hover:bg-slate-100 dark:hover:bg-white/5 hover:text-[#D4AF37] dark:hover:text-[#D4AF37]"
-              )}
-            >
-              <Link href={`${basePath}/settings`} className="flex items-center gap-3 w-full" onClick={() => setOpenMobile(false)}>
-                <Settings className="size-5 transition-colors" />
-                <span className="font-semibold text-sm">{t("sidebar.settings", "Settings")}</span>
-              </Link>
-            </SidebarMenuButton>
+            {(() => {
+              const active = isActive(`${basePath}/settings`);
+              const label = t("sidebar.settings", "Settings");
+              return (
+                <SidebarMenuButton
+                  asChild
+                  isActive={active}
+                  tooltip={label}
+                  className={cn(
+                    "h-[44px] rounded-[14px] text-[15px] font-[600] transition-colors duration-150 shadow-none",
+                    isRail ? "w-[44px] justify-center px-0 mx-auto" : "w-full px-[14px] py-[10px]",
+                    active
+                      ? "bg-[#FBF1D6] text-[#7A560A] font-[700]"
+                      : "text-[#4A483F] hover:bg-[rgba(251,241,214,0.55)] hover:text-[#15130D]"
+                  )}
+                >
+                  <Link
+                    href={`${basePath}/settings`}
+                    className={cn("flex items-center", isRail ? "justify-center" : "gap-3 w-full")}
+                    onClick={() => setOpenMobile(false)}
+                  >
+                    <Settings
+                      className={cn(
+                        "size-[18px] stroke-[1.8] shrink-0 transition-colors",
+                        active ? "text-[#C4912A]" : "text-[#4A483F]"
+                      )}
+                    />
+                    {!isRail && (
+                      <span className="font-[600] text-[15px] leading-tight flex-1 whitespace-nowrap">
+                        {label}
+                      </span>
+                    )}
+                  </Link>
+                </SidebarMenuButton>
+              );
+            })()}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

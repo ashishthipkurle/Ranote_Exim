@@ -62,11 +62,13 @@ export async function middleware(request: NextRequest) {
   // attaching the new cookies to the response automatically.
   let response;
   let supabase;
+  let sessionUser = null;
   
   try {
     const sessionUpdate = await updateSession(request);
     response = sessionUpdate.supabaseResponse;
     supabase = sessionUpdate.supabase;
+    sessionUser = sessionUpdate.user;
   } catch (err) {
     console.error("[Middleware] Supabase updateSession error:", err);
     response = NextResponse.next();
@@ -79,12 +81,11 @@ export async function middleware(request: NextRequest) {
 
   // Route protection for dashboard
   if (path.startsWith('/dashboard')) {
-    if (supabase) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.log("[Middleware] Unauthenticated access to /dashboard, redirecting to /login");
-        return NextResponse.redirect(new URL('/login', request.url));
-      }
+    if (!sessionUser) {
+      console.log("[Middleware] Unauthenticated access to /dashboard, redirecting to /login");
+      const redirectResponse = NextResponse.redirect(new URL('/login', request.url));
+      response.cookies.getAll().forEach(c => redirectResponse.cookies.set(c.name, c.value));
+      return redirectResponse;
     }
   }
 

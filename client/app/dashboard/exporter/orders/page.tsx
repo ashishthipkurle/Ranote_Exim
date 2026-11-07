@@ -106,70 +106,76 @@ export default async function ExporterOrdersPage({
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <div className="h-full overflow-hidden flex flex-col bg-background">
-      {/* Header */}
-      <header className="flex-shrink-0 px-8 py-6 border-b border-border bg-background/60 backdrop-blur-xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-[1400px] mx-auto">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Orders</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {statusCounts.all} total orders · {statusCounts.pending} pending · {statusCounts.processing} in progress
-            </p>
+    <div className="space-y-6 w-full">
+      {/* ─── Header ─── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-[#F0ECE0]">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-[0.14em] bg-[#FBF1D6] text-[#7A560A]">
+              Trade Fulfilment
+            </span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B6A66]">
+              Order Lifecycle
+            </span>
           </div>
-          <HeaderActions />
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#15130D]">
+            Orders
+          </h1>
+          <p className="text-sm text-[#6B6A66] mt-0.5">
+            {statusCounts.all} total orders · {statusCounts.pending} pending · {statusCounts.processing} in progress
+          </p>
         </div>
-      </header>
+        <HeaderActions />
+      </div>
 
-      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-        <div className="max-w-[1400px] mx-auto space-y-8">
-          <OrdersTable orders={orders} counts={statusCounts} transportMethods={transportMethods} />
+      <div className="space-y-6">
+        <OrdersTable orders={orders} counts={statusCounts} transportMethods={transportMethods} />
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-3 py-6">
-              <Link
-                href={`?${new URLSearchParams({ ...resolvedSearchParams, page: (page - 1).toString() })}`}
-                className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
-                  page <= 1 ? "opacity-30 pointer-events-none" : "bg-card border-border text-foreground hover:bg-muted"
-                }`}
-              >
-                <ArrowLeft className="w-4 h-4 inline-block mr-1" /> Previous
-              </Link>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }).map((_, i) => {
-                  const p = i + 1;
-                  if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
-                    return (
-                      <Link
-                        key={p}
-                        href={`?${new URLSearchParams({ ...resolvedSearchParams, page: p.toString() })}`}
-                        className={`w-10 h-10 flex items-center justify-center rounded-lg border text-sm font-medium transition-all ${
-                          page === p
-                            ? "bg-primary border-primary text-primary-foreground"
-                            : "bg-card border-border text-foreground hover:bg-muted"
-                        }`}
-                      >
-                        {p}
-                      </Link>
-                    );
-                  }
-                  if (p === page - 2 || p === page + 2) {
-                    return <span key={p} className="text-muted-foreground px-1">...</span>;
-                  }
-                  return null;
-                })}
-              </div>
-              <Link
-                href={`?${new URLSearchParams({ ...resolvedSearchParams, page: (page + 1).toString() })}`}
-                className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
-                  page >= totalPages ? "opacity-30 pointer-events-none" : "bg-card border-border text-foreground hover:bg-muted"
-                }`}
-              >
-                Next <ArrowRight className="w-4 h-4 inline-block ml-1" />
-              </Link>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-3 py-6">
+            <Link
+              href={`?${new URLSearchParams({ ...resolvedSearchParams, page: (page - 1).toString() })}`}
+              className={`btn-cream-secondary !h-10 !px-4 text-xs ${
+                page <= 1 ? "opacity-30 pointer-events-none" : ""
+              }`}
+            >
+              <ArrowLeft className="w-4 h-4 stroke-[2]" /> Previous
+            </Link>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }).map((_, i) => {
+                const p = i + 1;
+                if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
+                  return (
+                    <Link
+                      key={p}
+                      href={`?${new URLSearchParams({ ...resolvedSearchParams, page: p.toString() })}`}
+                      className={`w-9 h-9 flex items-center justify-center rounded-full text-xs font-bold transition-all ${
+                        page === p
+                          ? "bg-gradient-to-r from-[#C4912A] to-[#EBC964] text-[#15130D] shadow-sm"
+                          : "bg-[#F4F4F7] text-[#15130D] hover:bg-[#FBF1D6]"
+                      }`}
+                    >
+                      {p}
+                    </Link>
+                  );
+                }
+                if (p === page - 2 || p === page + 2) {
+                  return <span key={p} className="text-[#6B6A66] px-1 text-xs">...</span>;
+                }
+                return null;
+              })}
             </div>
-          )}
-        </div>
+            <Link
+              href={`?${new URLSearchParams({ ...resolvedSearchParams, page: (page + 1).toString() })}`}
+              className={`btn-cream-secondary !h-10 !px-4 text-xs ${
+                page >= totalPages ? "opacity-30 pointer-events-none" : ""
+              }`}
+            >
+              Next <ArrowRight className="w-4 h-4 stroke-[2]" />
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

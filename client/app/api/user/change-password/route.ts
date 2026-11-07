@@ -1,11 +1,11 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
-import { getApiAuthContext, AUTH_COOKIE_NAME } from "@/lib/auth-server";
-import { cookies } from "next/headers";
+import { getApiAuthContext } from "@/lib/auth-server";
+import { createAdminClient } from "@/lib/supabase/server";
 
 /**
  * POST /api/user/change-password
- * Changes the password for the currently authenticated user via Nhost API.
+ * Changes the password for the currently authenticated user via Supabase.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -23,40 +23,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const subdomain = process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN;
-    const region = process.env.NEXT_PUBLIC_NHOST_REGION;
-
-    if (!subdomain || !region) {
-      return NextResponse.json({ error: "Nhost configuration missing" }, { status: 500 });
-    }
-
-    // Get the current access token
-    const cookieStore = cookies();
-    const accessToken = cookieStore.get(AUTH_COOKIE_NAME)?.value;
-
-    if (!accessToken) {
-      return NextResponse.json({ error: "No active session" }, { status: 401 });
-    }
-
-    // Use Nhost REST API to change password
-    const changeRes = await fetch(
-      `https://${subdomain}.auth.${region}.nhost.run/v1/user/password`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ newPassword }),
-      }
+    const admin = createAdminClient();
+    const { error: updateError } = await admin.auth.admin.updateUserById(
+      auth.userId,
+      { password: newPassword }
     );
 
-    if (!changeRes.ok) {
-      const errorData = await changeRes.json().catch(() => ({}));
-      console.error("[ChangePassword] Nhost error:", changeRes.status, errorData);
+    if (updateError) {
+      console.error("[ChangePassword] Supabase update error:", updateError);
       return NextResponse.json(
-        { error: errorData.message || "Failed to change password" },
-        { status: changeRes.status }
+        { error: updateError.message || "Failed to change password" },
+        { status: 400 }
       );
     }
 

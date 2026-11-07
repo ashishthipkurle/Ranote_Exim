@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@100..800&display=swap');
+@import "leaflet/dist/leaflet.css";
 
 @tailwind base;
 @tailwind components;
@@ -221,4 +222,201 @@ button:active:not(:disabled),
 .button:active:not(:disabled) {
   transform: scale(0.98);
   transition: transform 80ms ease;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Ranote Exim Master Design System Tokens & Components
+   ───────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Depth Tokens — Layered Floating Card Look */
+  --shell: #F4F4F7;
+  --card: #FFFFFF;
+  --card-grad: linear-gradient(160deg, #FFFFFF, #FFFBF0);
+  --line: #F0ECE0;
+  --line-strong: #ECE7DA;
+  --shadow-main: 0 20px 50px -28px rgba(80, 60, 10, 0.35), 0 0 0 1px rgba(236, 231, 218, 0.7);
+  --shadow-card: 0 18px 40px -26px rgba(80, 60, 10, 0.40);
+  --shadow-pop: 0 24px 60px -20px rgba(20, 18, 11, 0.35);
+  --r-main: 28px;
+  --r-card: 24px;
+
+  --ranote-gold: #C4912A;
+  --ranote-gold-highlight: #EBC964;
+  --ranote-gold-logo: #B8861A;
+  --ranote-gold-dark-text: #7A560A;
+  --ranote-cream: #FBF1D6;
+  --ranote-cream-tint: #FFFBF2;
+  --ranote-mint-bg: #E2F5EE;
+  --ranote-mint-text: #0B7A57;
+  --ranote-ink: #15130D;
+  --ranote-muted: #6B6A66;
+  --ranote-muted-dark: #4A483F;
+  --ranote-shell: #F4F4F7;
+  --ranote-card-border: #F0ECE0;
+  --ranote-border-soft: #ECE7DA;
+  --ranote-alert-bg: #FEE4E2;
+  --ranote-alert-text: #B42318;
+}
+
+@layer utilities {
+  .bg-ranote-shell { background-color: #F4F4F7; }
+  .bg-ranote-cream { background-color: #FBF1D6; }
+  .bg-ranote-cream-tint { background-color: #FFFBF2; }
+  .bg-ranote-mint { background-color: #E2F5EE; }
+  .bg-ranote-card { background: linear-gradient(180deg, #FFFFFF 0%, #FFFBF0 100%); }
+  
+  .text-ranote-ink { color: #15130D; }
+  .text-ranote-gold-dark { color: #7A560A; }
+  .text-ranote-gold { color: #C4912A; }
+  .text-ranote-mint { color: #0B7A57; }
+  .text-ranote-muted { color: #6B6A66; }
+
+  .border-ranote { border-color: #F0ECE0; }
+  .border-ranote-soft { border-color: #ECE7DA; }
+
+  /* Master Design Buttons */
+  .btn-gold-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 42px;
+    padding: 0 18px;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, #C4912A 0%, #EBC964 100%);
+    color: #15130D;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(196, 145, 42, 0.25);
+    transition: all 180ms ease;
+  }
+  .btn-gold-primary:hover {
+    box-shadow: 0 6px 20px rgba(196, 145, 42, 0.35);
+    transform: translateY(-2px);
+  }
+
+  .btn-cream-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 42px;
+    padding: 0 18px;
+    border-radius: 9999px;
+    background-color: #FBF1D6;
+    color: #7A560A;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid #ECE7DA;
+    cursor: pointer;
+    transition: all 180ms ease;
+  }
+  .btn-cream-secondary:hover {
+    background-color: #F5E6BF;
+    transform: translateY(-2px);
+  }
+
+  .btn-mint-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 42px;
+    padding: 0 18px;
+    border-radius: 9999px;
+    background-color: #E2F5EE;
+    color: #0B7A57;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid rgba(11, 122, 87, 0.15);
+    cursor: pointer;
+    transition: all 180ms ease;
+  }
+  .btn-mint-secondary:hover {
+    background-color: #D4EFE4;
+    transform: translateY(-2px);
+  }
+
+  /* Micro-labels (10–11px / 700, uppercase, letter-spacing .14em, muted) */
+  .micro-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #6B6A66;
+  }
+
+  /* Card Titles (UPPERCASE 800) */
+  .card-title-ranote {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #15130D;
+  }
+
+  /* Numbers 44px / 800 */
+  .stat-number-ranote {
+    font-size: 44px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: #15130D;
+  }
+
+  /* Dot pattern background */
+  .bg-gold-dots {
+    background-color: #FFFBF2;
+    background-image: radial-gradient(#C4912A 0.75px, transparent 0.75px);
+    background-size: 20px 20px;
+  }
+
+  /* Typography inheritance */
+  button, input, select, textarea, table, th, td {
+    font-family: inherit;
+  }
+
+  /* No scrollbar utility */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Main Floating Card */
+  .page-card {
+    background: var(--card);
+    border-radius: var(--r-main);
+    box-shadow: var(--shadow-main);
+    padding: 28px 40px 40px;
+    min-height: 100%;
+  }
+
+  @media (max-width: 767px) {
+    .page-card {
+      border-radius: 20px;
+      padding: 20px 16px;
+    }
+  }
+
+  /* Content Cards */
+  .content-card {
+    background: var(--card-grad);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    box-shadow: var(--shadow-card);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+  }
+
+  .content-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 22px 48px -24px rgba(80, 60, 10, 0.48);
+  }
 }

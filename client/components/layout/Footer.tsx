@@ -81,13 +81,18 @@ export default function Footer() {
         </div>
 
         <div className="pt-8 border-t border-slate-900 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-slate-500 text-[12px]">
-            &copy; {new Date().getFullYear()} Ranote Exim Platform. All rights reserved.
-          </p>
-          <div className="flex items-center gap-6">
-            <Link href="/privacy" className="text-slate-500 hover:text-white text-[12px] transition-colors">Privacy Policy</Link>
-            <Link href="/terms" className="text-slate-500 hover:text-white text-[12px] transition-colors">Terms of Service</Link>
-            <Link href="/cookies" className="text-slate-500 hover:text-white text-[12px] transition-colors">Cookie Settings</Link>
+          <div className="space-y-1 text-center md:text-left">
+            <p className="text-slate-500 text-[12px]">
+              &copy; {new Date().getFullYear()} Ranote Exim Platform. All rights reserved.
+            </p>
+            <p className="text-slate-500 text-[11px]">
+              Grievance Officer: <strong className="text-slate-400">Siddharth Ranote</strong> · <a href="mailto:grievance@ranote-exim.com" className="text-amber-500/90 hover:underline">grievance@ranote-exim.com</a>
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-6">
+            <Link href="/privacy-policy" className="text-slate-400 hover:text-white text-[12px] transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="text-slate-400 hover:text-white text-[12px] transition-colors">Terms &amp; Conditions</Link>
+            <Link href="/privacy-policy#cookies" className="text-slate-400 hover:text-white text-[12px] transition-colors">Cookie Settings</Link>
           </div>
         </div>
       </div>

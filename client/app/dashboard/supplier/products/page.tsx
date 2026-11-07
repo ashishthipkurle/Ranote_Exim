@@ -2,130 +2,128 @@
 
 import React, { useState } from "react";
 import { 
- Boxes, 
- Plus, 
- Search, 
- Filter, 
- MoreVertical, 
- Package, 
- ArrowRight,
- TrendingUp,
- ShieldCheck
+  Boxes, 
+  Plus, 
+  Search, 
+  Package, 
+  ArrowRight,
+  Handshake
 } from "lucide-react";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 interface SupplyProduct {
- id: string;
- name: string;
- category: string;
- quantity: number;
- unit: string;
- status: "ACTIVE" | "PENDING" | "FULFILLED";
- lastSupplyDate: string;
- exporterName: string;
+  id: string;
+  name: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  status: "ACTIVE" | "PENDING" | "FULFILLED";
+  lastSupplyDate: string;
+  exporterName: string;
 }
 
 export default function SupplierProductsPage() {
- const [search, setSearch] = useState("");
- 
- // Mock data
- const [products] = useState<SupplyProduct[]>([
- { id: "1", name: "Premium Raw Silicon", category: "RawMaterials", quantity: 5000, unit: "kg", status: "ACTIVE", lastSupplyDate: "2024-03-15", exporterName: "Tech-Ex General" },
- { id: "2", name: "Industrial Grade Copper", category: "RawMaterials", quantity: 12000, unit: "kg", status: "FULFILLED", lastSupplyDate: "2024-02-10", exporterName: "Global Trade Corp" },
- { id: "3", name: "Grade-A Textile Fiber", category: "Textiles", quantity: 8000, unit: "meters", status: "PENDING", lastSupplyDate: "2024-03-20", exporterName: "SilkWay Exporters" },
- ]);
+  const [search, setSearch] = useState("");
+  
+  const [products] = useState<SupplyProduct[]>([
+    { id: "1", name: "Premium Raw Silicon", category: "Raw Materials", quantity: 5000, unit: "kg", status: "ACTIVE", lastSupplyDate: "2024-03-15", exporterName: "Tech-Ex General" },
+    { id: "2", name: "Industrial Grade Copper", category: "Raw Materials", quantity: 12000, unit: "kg", status: "FULFILLED", lastSupplyDate: "2024-02-10", exporterName: "Global Trade Corp" },
+    { id: "3", name: "Grade-A Textile Fiber", category: "Textiles", quantity: 8000, unit: "meters", status: "PENDING", lastSupplyDate: "2024-03-20", exporterName: "SilkWay Exporters" },
+  ]);
 
- const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase()));
 
- return (
- <div className="space-y-10 pb-20">
- {/* Header */}
- <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
- <div className="space-y-2">
- <h1 className="text-4xl font-black uppercase tracking-tighter flex items-center gap-3">
- <Boxes className="w-8 h-8 text-[#D4AF37]" />
- Supply Items
- </h1>
- <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-2 opacity-50">Distribution Node Inventory</p>
- </div>
+  return (
+    <div className="space-y-6 w-full">
+      {/* ─── Header ─── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-[#F0ECE0]">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-[0.14em] bg-[#FBF1D6] text-[#7A560A]">
+              Distribution Catalog
+            </span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B6A66]">
+              Supply Inventory
+            </span>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#15130D]">
+            Supply Items
+          </h1>
+          <p className="text-sm text-[#6B6A66] mt-0.5">
+            Manage your raw material stock, inventory batches, and committed supply quotas
+          </p>
+        </div>
 
- <div className="flex items-center gap-3">
- <Button className="rounded-xl bg-[#D4AF37] hover:bg-[#B8962E] text-black font-bold uppercase text-[10px] tracking-widest h-12 px-6 shadow-lg shadow-[#D4AF37]/20">
- <Plus className="w-4 h-4 mr-2" />
- Register Supply
- </Button>
- </div>
- </div>
+        <button className="btn-gold-primary">
+          <Plus className="w-4 h-4 stroke-[2]" />
+          Register Supply Item
+        </button>
+      </div>
 
- {/* Filters */}
- <div className="flex flex-col md:flex-row gap-4">
- <div className="relative flex-1 group/search">
- <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within/search:text-[#D4AF37] transition-colors" />
- <input
- type="text"
- placeholder="Search supply items..."
- className="w-full bg-card/30 border border-white/5 rounded-lg pl-14 pr-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/20 transition-all font-bold placeholder:uppercase placeholder:text-[10px] placeholder:tracking-widest"
- value={search}
- onChange={(e) => setSearch(e.target.value)}
- />
- </div>
- <Button variant="outline" className="h-14 px-6 rounded-lg border-white/5 bg-card/30 font-bold uppercase text-[10px] tracking-widest gap-3">
- <Filter className="w-4 h-4" />
- Category
- </Button>
- </div>
+      {/* ─── Search ─── */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B6A66] stroke-[1.8]" />
+        <input
+          type="text"
+          placeholder="Search supply items by name, category..."
+          className="w-full h-11 bg-[#F4F4F7] border border-[#F0ECE0] rounded-full pl-11 pr-4 text-sm text-[#15130D] placeholder:text-[#6B6A66] focus:outline-none focus:border-[#C4912A] transition-colors"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
- {/* Grid */}
- <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
- {filtered.map((product) => (
- <motion.div
- key={product.id}
- whileHover={{ y: -5 }}
- className="group"
- >
- <Card className="bg-card/20 border-white/5 rounded-lg overflow-hidden shadow-2xl transition-all duration-500 group-hover:border-[#D4AF37]/30">
- <CardContent className="p-0">
- <div className="p-8 space-y-6">
- <div className="flex justify-between items-start">
- <div className="size-16 rounded-lg bg-muted/20 border border-white/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
- <Package className="w-8 h-8 text-primary/40 group-hover:text-primary transition-colors" />
- </div>
- <Badge className={`rounded-lg uppercase text-[8px] font-black tracking-widest px-3 py-1 ${
- product.status === "ACTIVE" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
- product.status === "FULFILLED" ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
- "bg-amber-500/10 text-amber-500 border-amber-500/20"
- }`}>
- {product.status}
- </Badge>
- </div>
+      {/* ─── Grid ─── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {filtered.map((product) => (
+          <div
+            key={product.id}
+            className="rounded-[24px] border border-[#F0ECE0] bg-gradient-to-b from-white to-[#FFFBF0] p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-12 h-12 rounded-[16px] bg-[#FBF1D6] text-[#C4912A] flex items-center justify-center">
+                  <Package className="w-6 h-6 stroke-[1.8]" />
+                </div>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-[0.14em] ${
+                  product.status === "ACTIVE" ? "bg-[#E2F5EE] text-[#0B7A57]" :
+                  product.status === "FULFILLED" ? "bg-[#FBF1D6] text-[#7A560A]" :
+                  "bg-[#F7F5F0] text-[#6B6A66]"
+                }`}>
+                  {product.status}
+                </span>
+              </div>
 
- <div>
- <h3 className="text-xl font-black uppercase tracking-tighter mb-2 group-hover:text-[#D4AF37] transition-colors">{product.name}</h3>
- <div className="flex items-center gap-2">
- <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40">{product.category}</span>
- <span className="w-1 h-1 rounded-full bg-border" />
- <span className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">{product.quantity} {product.unit} Available</span>
- </div>
- </div>
+              <h3 className="text-base font-extrabold text-[#15130D] mb-1">
+                {product.name}
+              </h3>
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B6A66] mb-3">
+                {product.category}
+              </p>
 
- <div className="pt-6 border-t border-white/5 flex items-center justify-between">
- <div className="space-y-1">
- <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-40">Recipient Node</p>
- <p className="text-[10px] font-black uppercase tracking-tighter">{product.exporterName}</p>
- </div>
- <Button variant="ghost" size="icon" className="rounded-full group-hover:bg-[#D4AF37] group-hover:text-black transition-all">
- <ArrowRight className="w-4 h-4" />
- </Button>
- </div>
- </div>
- </CardContent>
- </Card>
- </motion.div>
- ))}
- </div>
- </div>
- );
+              <div className="p-3 bg-white border border-[#F0ECE0] rounded-[16px] mb-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#6B6A66]">
+                  Available Stock
+                </p>
+                <p className="text-lg font-extrabold text-[#15130D] mt-0.5">
+                  {product.quantity.toLocaleString()} {product.unit}
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-[#F0ECE0] flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#6B6A66]">Contracted Exporter</p>
+                <p className="text-xs font-bold text-[#15130D] flex items-center gap-1 mt-0.5">
+                  <Handshake className="w-3.5 h-3.5 text-[#C4912A]" />
+                  {product.exporterName}
+                </p>
+              </div>
+              <button className="w-9 h-9 rounded-full border border-[#F0ECE0] bg-white hover:bg-[#FBF1D6] text-[#15130D] flex items-center justify-center transition-colors">
+                <ArrowRight className="w-4 h-4 stroke-[2]" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }

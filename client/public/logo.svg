@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 155" width="100%" height="100%" fill="none">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;800&amp;display=swap');
+      .brand-title {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-weight: 800;
+        font-size: 83px;
+        letter-spacing: 0.02em;
+        fill: #B8861A;
+      }
+      .brand-tagline {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-weight: 600;
+        font-size: 37.5px;
+        letter-spacing: -0.005em;
+        fill: #4A483F;
+      }
+      @media (prefers-color-scheme: dark) {
+        .brand-title-dark {
+          fill: #EBC964;
+        }
+        .brand-tagline-dark {
+          fill: #D8D5CC;
+        }
+      }
+    </style>
+  </defs>
+  <text x="0" y="78" class="brand-title">RANOTE EXIM</text>
+  <text x="2" y="144" class="brand-tagline">Exporting Excellence. Importing Trust</text>
+</svg>
+

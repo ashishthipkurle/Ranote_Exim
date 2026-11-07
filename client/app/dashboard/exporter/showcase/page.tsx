@@ -236,45 +236,41 @@ export default function AdminShowcasePage() {
   const activeCount = items.filter(i => i.isActive).length;
 
   return (
-    <div className="h-full overflow-hidden flex flex-col bg-slate-50 dark:bg-slate-950">
-      {/* Header */}
-      <header className="flex-shrink-0 px-8 py-6 border-b border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl">
-        <div className="w-full flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
-              <MonitorSmartphone className="w-8 h-8 text-primary" />
-              Homepage Showcase
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">
-              Curate the featured products displayed on the landing page of your platform.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-xl text-sm font-bold">
-              <Hash className="w-4 h-4" />
-              {activeCount} Live
-            </div>
-            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-4 py-2 rounded-xl text-sm font-bold">
-              {items.length} Total
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* ── Page Header: Title + Subtitle ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#15130D] uppercase flex items-center gap-2.5">
+            <MonitorSmartphone className="w-7 h-7 text-[#C4912A]" />
+            Homepage Showcase
+          </h1>
+          <p className="text-sm text-[#6B6A66] mt-1">
+            Curate the featured products displayed on the landing page of your platform.
+          </p>
         </div>
-      </header>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#E2F5EE] text-[#0B7A57] border border-[#0B7A57]/20">
+            <span className="size-1.5 rounded-full bg-[#0B7A57]" />
+            {activeCount} Live
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#F7F5F0] text-[#6B6A66] border border-[#ECE7DA]">
+            {items.length} Total
+          </span>
+        </div>
+      </div>
 
-      <div className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar">
-        <div className="w-full space-y-12">
-          
-          {/* Add Product Section */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl shadow-slate-200/20 dark:shadow-none">
-            <div className="p-6 border-b border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-slate-800/30 flex items-center gap-3 rounded-t-2xl">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                <Star className="w-5 h-5 fill-current" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-slate-800 dark:text-white">Highlight a Product</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Select a product from the catalog to instantly feature it.</p>
-              </div>
+      <div className="space-y-6">
+        {/* Add Product Section */}
+        <div className="bg-gradient-to-b from-white to-[#FFFBF0] border border-[#F0ECE0] rounded-[24px] shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-[#F0ECE0] flex items-center gap-3">
+            <div className="size-10 rounded-[14px] bg-[#FBF1D6] text-[#C4912A] flex items-center justify-center">
+              <Star className="w-5 h-5 fill-current" />
             </div>
+            <div>
+              <h2 className="text-sm font-extrabold text-[#15130D] uppercase tracking-wider">Highlight a Product</h2>
+              <p className="text-xs text-[#6B6A66]">Select a product from the catalog to instantly feature it.</p>
+            </div>
+          </div>
 
             <div className="p-6 md:p-8 flex flex-col md:flex-row gap-8">
               {/* Product Selector */}
@@ -635,7 +631,6 @@ export default function AdminShowcasePage() {
           </div>
 
         </div>
-      </div>
 
       {/* Delete Confirmation Modal - Portaled to document.body so header & sidebar sink in */}
       {mounted && deleteModalItem && createPortal(

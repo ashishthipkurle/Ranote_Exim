@@ -21,8 +21,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import Image from "next/image";
-import LogoImg from "@/assests/LOGO_TEXT.png";
+import RanoteLogo from "@/components/ui/RanoteLogo";
 import { useTranslation } from "@/lib/i18n/client";
 
 interface DashboardLayoutProps {
@@ -102,8 +101,8 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
               {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
 
-            <Link href="/" className="flex items-center gap-2">
-              <Image src={LogoImg} alt="Ranote Exim Logo" className="h-8 md:h-10 w-auto object-contain" unoptimized />
+            <Link href="/" className="flex items-center gap-2" aria-label="Ranote Exim Home">
+              <RanoteLogo className="h-8 md:h-10 w-auto" />
             </Link>
           </div>
 

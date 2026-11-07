@@ -10,7 +10,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-sora)", "sans-serif"],
+        sans: ["var(--font-plus-jakarta)", "var(--font-sora)", "sans-serif"],
       },
       fontSize: {
         'display-2xl': ['var(--display-2xl-size)', 'var(--display-2xl-line)'],

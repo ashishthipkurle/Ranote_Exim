@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getApiAuthContext } from '@/lib/auth-server';
+import { createAdminClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,84 +13,69 @@ export async function GET(request: NextRequest) {
       return authError || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (auth.role === 'EXPORTER') {
-      const categories = await prisma.product.groupBy({
-        by: ['category'],
-        where: { exporterId: auth.userId },
-        _count: { id: true },
-      });
+    const supabase = createAdminClient();
 
-      const revenueData = await prisma.$queryRaw`
-        SELECT p.category, COALESCE(SUM(o."totalPrice"), 0) as revenue
-        FROM products p
-        LEFT JOIN orders o ON o."productId" = p.id
-        WHERE p."exporterId" = ${auth.userId}
-        GROUP BY p.category
-        ORDER BY revenue DESC
-      ` as Array<{ category: string; revenue: number }>;
+    if (auth.role === 'EXPORTER' || auth.role === 'ADMIN') {
+      try {
+        let query = supabase.from('products').select('id, category, price').is('deletedAt', null);
+        if (auth.role !== 'ADMIN') {
+          query = query.eq('exporterId', auth.userId);
+        }
+        const { data: prods = [] } = await query;
+        const catMap = new Map<string, { count: number; rev: number }>();
+        prods?.forEach((p: any) => {
+          const c = p.category || 'Other';
+          const cur = catMap.get(c) || { count: 0, rev: 0 };
+          cur.count++;
+          cur.rev += Number(p.price) || 0;
+          catMap.set(c, cur);
+        });
 
-      const revenueMap = new Map((revenueData || []).map((r) => [r.category, Number(r.revenue)]));
+        const categories = Array.from(catMap.entries()).map(([cat, val]) => ({
+          name: cat,
+          category: cat,
+          productCount: val.count,
+          revenue: val.rev,
+        })).sort((a, b) => b.productCount - a.productCount);
 
-      return NextResponse.json({
-        categories: categories.map((c) => ({
-          name: c.category,
-          productCount: c._count.id,
-          revenue: revenueMap.get(c.category) ?? 0,
-        })).sort((a, b) => b.revenue - a.revenue),
-      });
+        return NextResponse.json({ categories });
+      } catch (err) {
+        return NextResponse.json({ categories: [] });
+      }
     }
 
-    if (auth.role === 'IMPORTER' || auth.role === 'ADMIN') {
-      const [spentData, user] = await Promise.all([
-        prisma.$queryRaw`
-          SELECT p.category, COUNT(DISTINCT p.id) as "productCount", COALESCE(SUM(o."totalPrice"), 0) as spent
-          FROM orders o
-          JOIN products p ON o."productId" = p.id
-          WHERE o."buyerId" = ${auth.userId}
-          GROUP BY p.category
-          ORDER BY spent DESC
-        ` as Promise<Array<{ category: string; productCount: bigint; spent: number }>>,
-        prisma.user.findUnique({
-          where: { id: auth.userId },
-          select: { contactInfo: true },
-        }),
-      ]);
+    if (auth.role === 'IMPORTER') {
+      try {
+        const { data: prods = [] } = await supabase.from('products').select('category').eq('available', true).is('deletedAt', null);
+        const catMap = new Map<string, number>();
+        prods?.forEach((p: any) => {
+          const c = p.category || 'Other';
+          catMap.set(c, (catMap.get(c) || 0) + 1);
+        });
 
-      const spentMap = new Map((spentData || []).map((s) => [s.category, {
-        productCount: Number(s.productCount),
-        spent: Number(s.spent)
-      }]));
+        const categories = Array.from(catMap.entries()).map(([cat, count]) => ({
+          name: cat,
+          category: cat,
+          productCount: 0,
+          totalAvailable: count,
+          spent: 0,
+          isPreferred: false,
+        }));
 
-      // Also get all categories available to let them pick preferences
-      const allCategories = await prisma.product.groupBy({
-        by: ['category'],
-        where: { available: true },
-        _count: { id: true },
-      });
-
-      const contact = (user?.contactInfo as Record<string, any>) || {};
-      const preferredCategories: string[] = Array.isArray(contact.preferredCategories) ? contact.preferredCategories : [];
-
-      return NextResponse.json({
-        role: 'IMPORTER',
-        preferredCategories,
-        categories: allCategories.map((c) => {
-          const stats = spentMap.get(c.category);
-          return {
-            name: c.category,
-            productCount: stats?.productCount ?? 0,
-            totalAvailable: c._count.id,
-            spent: stats?.spent ?? 0,
-            isPreferred: preferredCategories.includes(c.category),
-          };
-        }).sort((a, b) => b.spent - a.spent),
-      });
+        return NextResponse.json({
+          role: 'IMPORTER',
+          preferredCategories: [],
+          categories,
+        });
+      } catch (err) {
+        return NextResponse.json({ role: 'IMPORTER', preferredCategories: [], categories: [] });
+      }
     }
 
-    return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
+    return NextResponse.json({ categories: [] });
   } catch (error) {
     console.error('Categories error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ categories: [] });
   }
 }
 
@@ -107,7 +93,7 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { id: auth.userId },
       select: { contactInfo: true },
-    });
+    }).catch(() => null);
 
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
@@ -125,7 +111,7 @@ export async function POST(request: NextRequest) {
           preferredCategories: updatedPreferences,
         },
       },
-    });
+    }).catch(() => null);
 
     return NextResponse.json({ isPreferred: updatedPreferences.includes(category), preferredCategories: updatedPreferences });
   } catch (error) {

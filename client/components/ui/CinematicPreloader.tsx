@@ -63,15 +63,15 @@ export default function CinematicPreloader() {
       if (isHome) texts = ["ENTERING", "RANOTE EXIM", "YOUR TRADING PARTNER"];
       else if (isMarketplace) texts = ["ENTERING", "RANOTE EXIM", "MARKET PLACER"];
       else if (pathname?.startsWith("/dashboard/exporter")) {
-        const parts = pathname.split("/");
-        const subPage = parts.length > 3 ? parts[parts.length - 1] : "Dashboard";
-        const pageTitle = subPage.replace(/-/g, " ").toUpperCase();
+        const parts = (pathname || "").split("/").filter(Boolean);
+        const subPage = parts.length > 2 ? parts[parts.length - 1] : "Dashboard";
+        const pageTitle = String(subPage || "Dashboard").replace(/-/g, " ").toUpperCase();
         texts = ["ENTERING", "RANOTE EXIM", pageTitle];
       }
       else if (pathname?.startsWith("/dashboard/importer")) {
-        const parts = pathname.split("/");
-        const subPage = parts.length > 3 ? parts[parts.length - 1] : "Dashboard";
-        const pageTitle = subPage.replace(/-/g, " ").toUpperCase();
+        const parts = (pathname || "").split("/").filter(Boolean);
+        const subPage = parts.length > 2 ? parts[parts.length - 1] : "Dashboard";
+        const pageTitle = String(subPage || "Dashboard").replace(/-/g, " ").toUpperCase();
         texts = ["ENTERING", "RANOTE EXIM", pageTitle];
       }
       else if (isAuth) texts = ["ENTERING", "RANOTE EXIM", "AUTHENTICATION"];

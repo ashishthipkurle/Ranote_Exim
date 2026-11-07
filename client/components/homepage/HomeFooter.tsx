@@ -73,16 +73,28 @@ export default function HomeFooter() {
             <div className="mt-8 md:mt-0">
               <h4 className="text-lg font-semibold text-foreground mb-4">Legal</h4>
               <ul className="space-y-3 text-sm text-muted-foreground">
-                <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
-                <li><Link href="/terms" className="hover:text-primary transition-colors">Terms & Conditions</Link></li>
-                <li><Link href="/disclaimer" className="hover:text-primary transition-colors">Disclaimer</Link></li>
+                <li><Link href="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="hover:text-primary transition-colors">Terms &amp; Conditions</Link></li>
+                <li><Link href="/privacy-policy#cookies" className="hover:text-primary transition-colors">Cookie Settings</Link></li>
               </ul>
             </div>
           </div>
         </div>
 
         <div className="pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-          <p>© {new Date().getFullYear()} Ranote Exim Private Limited. All rights reserved.</p>
+          <div className="space-y-1 text-center md:text-left">
+            <p>© {new Date().getFullYear()} Ranote Exim Private Limited. All rights reserved.</p>
+            <p className="text-[11px] text-[#6B6A66]">
+              Grievance Officer: <strong className="text-[#15130D]">Siddharth Ranote</strong> · <a href="mailto:grievance@ranote-exim.com" className="text-[#7A560A] hover:underline font-semibold">grievance@ranote-exim.com</a>
+            </p>
+          </div>
+          <div className="flex items-center gap-4 text-xs">
+            <Link href="/privacy-policy" className="hover:text-primary transition-colors">Privacy</Link>
+            <span>·</span>
+            <Link href="/terms" className="hover:text-primary transition-colors">Terms</Link>
+            <span>·</span>
+            <Link href="/privacy-policy#cookies" className="hover:text-primary transition-colors">Cookies</Link>
+          </div>
         </div>
       </div>
     </footer>

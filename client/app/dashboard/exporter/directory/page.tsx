@@ -3,564 +3,622 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { authFetch, formatCurrency, getInitials } from "@/lib/api-utils";
 import {
- X, 
- Package, 
- History, 
- Search, 
- Globe, 
- ShieldCheck, 
- ArrowRight, 
- MessageCircle,
- Video,
- Waves,
- CalendarClock,
- ChevronLeft,
- Send,
- Loader2,
- Mic,
- MicOff,
- VideoOff,
- Phone,
- PhoneOff,
- Users2
+  X,
+  History,
+  Search,
+  ShieldCheck,
+  Video,
+  Waves,
+  CalendarClock,
+  ChevronLeft,
+  Send,
+  Loader2,
+  Users2,
+  FileText,
+  TrendingUp,
+  Paperclip,
+  Smile,
 } from "lucide-react";
-import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCallController } from "@/components/session/GlobalCallProvider";
 import { useChat } from "@/hooks/useChat";
-import { useAuth } from "@/components/auth/AuthProvider";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
-// Session components
-import { VideoPlayer } from "@/components/session/VideoPlayer";
 import ScheduleCallModal from "@/components/calls/ScheduleCallModal";
 import SendQuotationModal from "@/components/dashboard/SendQuotationModal";
 import QuotationOfferCard, { parseQuotationOffer } from "@/components/messaging/QuotationOfferCard";
-import { FileText } from "lucide-react";
 
 interface Partner {
- id: string;
- name: string;
- businessName: string | null;
- country: string | null;
- orderCount: number;
- totalValue: number;
- avatar?: string | null;
- unreadCount: number;
+  id: string;
+  name: string;
+  businessName: string | null;
+  country: string | null;
+  orderCount: number;
+  totalValue: number;
+  avatar?: string | null;
+  unreadCount: number;
 }
 
 interface DirectoryResponse {
- role: string;
- partners: Partner[];
- pagination: { page: number; limit: number; total: number; totalPages: number };
+  role: string;
+  partners: Partner[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
 }
 
 interface TradeHistoryOrder {
- id: string;
- orderNumber: string;
- quantity: number;
- totalPrice: number;
- currency: string;
- status: string;
- paymentStatus: string;
- createdAt: string;
- product: {
- name: string;
- category: string;
- unit: string;
- images: string[];
- };
+  id: string;
+  orderNumber: string;
+  quantity: number;
+  totalPrice: number;
+  currency: string;
+  status: string;
+  paymentStatus: string;
+  createdAt: string;
+  product: {
+    name: string;
+    unit: string;
+    images: string[];
+  };
 }
 
 export default function ExporterBuyersPage() {
- // 1. Data Hooks
- const callController = useCallController();
- const { user: currentUser } = useAuth();
- 
- // 2. Local State
- const [data, setData] = useState<DirectoryResponse | null>(null);
- const [loading, setLoading] = useState(true);
- const [search, setSearch] = useState("");
- const [page, setPage] = useState(1);
- 
- // Selection state
- const [selectedId, setSelectedId] = useState<string | null>(null);
- const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [data, setData] = useState<DirectoryResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [filterChip, setFilterChip] = useState<"All" | "Verified" | "Recent">("All");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
- useEffect(() => {
-   if (typeof window !== "undefined") {
-     const params = new URLSearchParams(window.location.search);
-     const partnerId = params.get("partnerId");
-     if (partnerId) setSelectedId(partnerId);
-   }
- }, []);
- const [isHistoryOpen, setIsHistoryOpen] = useState(false);
- const [historyLoading, setHistoryLoading] = useState(false);
- const [tradeHistory, setTradeHistory] = useState<TradeHistoryOrder[]>([]);
+  // Manifest (Trade History) State
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [tradeHistory, setTradeHistory] = useState<TradeHistoryOrder[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
- // Comms state
- const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
- const [isSendQuoteModalOpen, setIsSendQuoteModalOpen] = useState(false);
- const { messages, sendMessage, loading: messagesLoading } = useChat(selectedId);
- const [msgInput, setMsgInput] = useState("");
- const scrollRef = useRef<HTMLDivElement>(null);
+  // Session / Calls
+  const callController = useCallController();
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [isSendQuoteModalOpen, setIsSendQuoteModalOpen] = useState(false);
 
- // 3. Data Fetching
- const fetchPartners = useCallback(() => {
- setLoading(true);
- const params = new URLSearchParams({ page: String(page), limit: "50", role: "IMPORTER" });
- if (search) params.set("search", search);
- authFetch<DirectoryResponse>(`/api/dashboard/directory?${params}`)
- .then(setData)
- .catch(() => { })
- .finally(() => setLoading(false));
- }, [page, search]);
+  // 1. Messaging Hook
+  const { messages, loading: messagesLoading, sendMessage } = useChat(selectedId);
+  const [msgInput, setMsgInput] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
 
- useEffect(() => {
- const t = setTimeout(fetchPartners, 300);
- return () => clearTimeout(t);
- }, [fetchPartners]);
+  // 2. Active Partner Resolution
+  const selectedUser = React.useMemo(() => {
+    if (!selectedId || !data?.partners) return null;
+    return data.partners.find((p) => p.id === selectedId) || null;
+  }, [selectedId, data]);
 
- // Fetch history when partner selected
- const fetchHistory = async (partnerId: string) => {
- setHistoryLoading(true);
- try {
- const res = await authFetch<{ orders: TradeHistoryOrder[] }>(
- `/api/dashboard/directory/${partnerId}`
- );
- setTradeHistory(res.orders);
- } catch (e) {
- setTradeHistory([]);
- } finally {
- setHistoryLoading(false);
- }
- };
+  // Filtered Partners
+  const filteredPartners = React.useMemo(() => {
+    let list = data?.partners || [];
+    if (filterChip === "Recent") {
+      list = list.filter((p) => p.orderCount > 0 || p.unreadCount > 0);
+    }
+    return list;
+  }, [data?.partners, filterChip]);
 
- // 4. Selection Management
- useEffect(() => {
-  if (!selectedId) {
-  setSelectedUser(null);
-  return;
-  }
+  // 3. Data Fetching
+  const fetchPartners = useCallback(() => {
+    setLoading(true);
+    const params = new URLSearchParams({ page: String(page), limit: "50", role: "IMPORTER" });
+    if (search) params.set("search", search);
+    authFetch<DirectoryResponse>(`/api/dashboard/directory?${params}`)
+      .then(setData)
+      .catch((err) => {
+        console.error("Directory fetch error:", err);
+        toast.error("Failed to load buyers directory.");
+      })
+      .finally(() => setLoading(false));
+  }, [page, search]);
 
-  const partner = data?.partners.find(p => p.id === selectedId);
-  if (partner) {
-  setSelectedUser({
-  id: partner.id,
-  name: partner.name,
-  avatar: partner.avatar,
-  role: "Verified Importer",
-  address: partner.country || "Global"
-  });
-  
-  // CRITICAL: Only clear unread count if it's > 0 to avoid infinite loops
-  if (partner.unreadCount > 0) {
-  setData(prev => {
-    if (!prev) return null;
-    return {
-      ...prev,
-      partners: prev.partners.map(p => p.id === selectedId ? { ...p, unreadCount: 0 } : p)
-    };
-  });
-  }
-  }
- }, [selectedId, data?.partners]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchPartners();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [fetchPartners]);
 
- // 5. History Fetching (Separate effect to break loop)
- useEffect(() => {
-  if (selectedId) {
-  void fetchHistory(selectedId);
-  } else {
-  setTradeHistory([]);
-  }
- }, [selectedId]);
+  // Fetch Trade History
+  const fetchHistory = async (partnerId: string) => {
+    setHistoryLoading(true);
+    try {
+      const res = await authFetch<{ tradeHistory: TradeHistoryOrder[] }>(
+        `/api/dashboard/directory/${partnerId}`
+      );
+      setTradeHistory(res.tradeHistory || []);
+    } catch (err) {
+      console.error("Trade history error:", err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
- // Auto-scroll chat
- useEffect(() => {
- if (scrollRef.current) {
- scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
- }
- }, [messages]);
+  useEffect(() => {
+    if (selectedId) {
+      void fetchHistory(selectedId);
+    } else {
+      setTradeHistory([]);
+    }
+  }, [selectedId]);
 
- // 4. Handlers
- const handleSendMsg = async (e?: React.FormEvent) => {
- e?.preventDefault();
- if (!msgInput.trim()) return;
- try {
- await sendMessage(msgInput);
- setMsgInput("");
- } catch (err) {
- toast.error("Comms_Failure: Signal not transmitted.");
- }
- };
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
 
- const initiateCall = (type: "AUDIO" | "VIDEO") => {
- if (!selectedId || !selectedUser) return;
- void callController.startCall({
- target: { id: selectedId, name: selectedUser.name },
- callType: type
- });
- };
+  const handleSendMsg = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!msgInput.trim() || !selectedId) return;
+    try {
+      await sendMessage(msgInput);
+      setMsgInput("");
+    } catch (err) {
+      toast.error("Failed to transmit intelligence signal.");
+    }
+  };
 
+  const initiateCall = (type: "AUDIO" | "VIDEO") => {
+    if (!selectedId || !selectedUser) return;
+    void callController.startCall({
+      target: { id: selectedId, name: selectedUser.name },
+      callType: type,
+    });
+  };
 
+  return (
+    <div className="flex-1 flex overflow-hidden rounded-[24px] border border-[#F0ECE0] bg-white min-h-[720px] shadow-sm">
+      {/* ── LEFT PANEL: Buyers Directory ── */}
+      <div className={`flex flex-col border-r border-[#F0ECE0] shrink-0 transition-all duration-300 ${selectedId ? "w-0 md:w-80 lg:w-[380px]" : "w-full md:w-80 lg:w-[380px]"}`}>
+        <div className="p-6 pb-3 space-y-3">
+          <div>
+            <h2 className="text-xl font-[800] uppercase tracking-tight text-[#15130D]">
+              Buyers Hub
+            </h2>
+            <p className="text-[11px] font-[700] uppercase tracking-[0.14em] text-[#6B6A66] mt-0.5">
+              GLOBAL IMPORTER DIRECTORY
+            </p>
+          </div>
 
- return (
- <div className="h-full flex overflow-hidden bg-background">
- {/* LEFT PANEL: Importer Hub */}
- <div className={`flex flex-col border-r border-border shrink-0 transition-all duration-500 ${selectedId ? "w-0 md:w-80 lg:w-[400px]" : "w-full md:w-80 lg:w-[400px]"}`}>
- <div className="p-10 space-y-8">
- <div className="flex items-center justify-between">
- <div>
- <h1 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-3">
- <Users2 className="w-8 h-8 text-primary" />
- Buyers hub
- </h1>
- <p className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-2 opacity-50">Global Importer Directory</p>
- </div>
- </div>
+          {/* Search Pill */}
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B6A66]" />
+            <input
+              type="text"
+              placeholder="SEARCH BUYERS..."
+              className="w-full bg-[#F7F5F0] border border-[#ECE7DA] focus:border-[#C4912A] rounded-full pl-10 pr-4 py-2 text-xs font-semibold text-[#15130D] placeholder:text-[#6B6A66] outline-none transition-all uppercase tracking-wider"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
 
- {/* Search */}
- <div className="relative group/search">
- <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within/search:text-primary transition-colors" />
- <input
- type="text"
- placeholder="Identify Importer node..."
- className="w-full bg-muted/20 border border-border rounded-lg pl-14 pr-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold shadow-inner uppercase tracking-wider"
- value={search}
- onChange={(e) => { setSearch(e.target.value); setPage(1); }}
- />
- </div>
- </div>
+          {/* Filter Chips: All / Verified / Recent */}
+          <div className="flex items-center gap-1.5 pt-0.5">
+            {(["All", "Verified", "Recent"] as const).map((chip) => {
+              const isActive = filterChip === chip;
+              return (
+                <button
+                  key={chip}
+                  onClick={() => setFilterChip(chip)}
+                  className={cn(
+                    "px-3.5 py-1 rounded-full text-[13px] font-[600] transition-all",
+                    isActive
+                      ? "bg-[#15130D] text-white shadow-sm"
+                      : "bg-[#F7F5F0] text-[#6B6A66] hover:text-[#15130D] border border-[#ECE7DA]"
+                  )}
+                >
+                  {chip}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
- <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-2">
- {loading ? (
- <div className="p-20 text-center flex flex-col items-center gap-6 opacity-30">
- <Loader2 className="w-8 h-8 animate-spin" />
- <span className="text-[10px] font-black uppercase tracking-[0.4em]">Syncing Partner Registry...</span>
- </div>
- ) : !data?.partners?.length ? (
- <div className="p-20 text-center opacity-30 flex flex-col items-center gap-5">
- <Users2 className="w-12 h-12 grayscale" />
- <span className="text-xs font-black uppercase tracking-widest text-center ">No Importers Found in Registry</span>
- <p className="text-[10px] font-black uppercase tracking-[0.2em] max-w-[200px]">The global trade network is currently searching for compatible importer nodes.</p>
- </div>
- ) : (
- <div className="space-y-3 pb-20">
- {data.partners.map((p) => {
- const isSelected = selectedId === p.id;
- return (
- <button
- key={p.id}
- onClick={() => setSelectedId(p.id)}
- className={`w-full group relative bg-card/30 border transition-all duration-500 rounded-lg p-6 text-left ${isSelected ? "border-primary ring-1 ring-primary/20 shadow-2xl shadow-primary/10" : "border-border hover:border-primary/40 hover:bg-muted/30"}`}
- >
- <div className="flex items-center gap-5">
- <div className="relative">
- <div className="size-16 rounded-lg bg-gradient-to-br from-primary to-blue-600/10 flex shrink-0 items-center justify-center text-white font-black text-2xl shadow-lg shadow-primary/10 group-hover:scale-105 transition-transform">
- {getInitials(p.name)}
- </div>
- {p.unreadCount > 0 && (
- <span className="absolute -top-2 -right-2 size-6 rounded-full bg-primary text-white text-[10px] font-black flex items-center justify-center shadow-lg animate-bounce-subtle border-2 border-background">
- {p.unreadCount > 9 ? "9+" : p.unreadCount}
- </span>
- )}
- </div>
- <div className="flex-1 min-w-0">
- <div className="flex justify-between items-start mb-1">
- <h3 className="font-black text-sm uppercase tracking-tight truncate group-hover:text-primary transition-colors">{p.name}</h3>
- <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest opacity-40 shrink-0 ml-2 ">{p.country || "Global"}</span>
- </div>
- <div className="flex items-center gap-2">
- <div className="px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500 text-[8px] font-black uppercase tracking-widest border border-emerald-500/10 ">
- Importer node
- </div>
- <span className="w-1 h-1 rounded-full bg-border" />
- <span className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-40">{p.orderCount} Sigs</span>
- </div>
- </div>
- </div>
- </button>
- );
- })}
- </div>
- )}
- </div>
+        {/* Buyers List */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 pt-1 space-y-1.5">
+          {loading && !data?.partners?.length ? (
+            <div className="p-12 text-center flex flex-col items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-[#C4912A]" />
+              <p className="text-xs font-bold uppercase tracking-wider text-[#6B6A66] mt-3">
+                Syncing Partner Registry...
+              </p>
+            </div>
+          ) : !filteredPartners.length ? (
+            <div className="p-12 text-center flex flex-col items-center justify-center gap-4">
+              <div className="size-16 rounded-[20px] bg-[#FBF1D6] text-[#C4912A] flex items-center justify-center">
+                <Users2 className="w-8 h-8" />
+              </div>
+              <div>
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#15130D]">
+                  No Importers Found
+                </h4>
+                <p className="text-[11px] text-[#6B6A66] mt-1 max-w-[220px]">
+                  Registered importer accounts will appear here automatically.
+                </p>
+              </div>
+            </div>
+          ) : (
+            filteredPartners.map((p) => {
+              const isSelected = selectedId === p.id;
+              const displayName = (p.businessName || p.name).toUpperCase();
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setSelectedId(p.id)}
+                  className={cn(
+                    "w-full rounded-[18px] p-3.5 text-left transition-all duration-150 flex items-center gap-3.5 group",
+                    isSelected
+                      ? "bg-[#FFF8E6] border border-[#F1DFAE]"
+                      : "border border-transparent bg-transparent hover:bg-[#F7F5F0]/70"
+                  )}
+                >
+                  <div className="relative shrink-0">
+                    <div className="size-12 rounded-[16px] bg-gradient-to-br from-[#EBC964] to-[#C4912A] text-[#7A560A] font-extrabold flex items-center justify-center text-sm shadow-sm overflow-hidden">
+                      {p.avatar ? (
+                        <img src={p.avatar} alt={p.name} className="w-full h-full object-cover" />
+                      ) : (
+                        getInitials(p.businessName || p.name)
+                      )}
+                    </div>
+                    {p.unreadCount > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-[#0B7A57] text-white text-[9px] font-bold flex items-center justify-center shadow-md">
+                        {p.unreadCount}
+                      </span>
+                    )}
+                  </div>
 
- {/* Pagination minimal */}
- {data && data.pagination.totalPages > 1 && (
- <div className="p-6 border-t border-border bg-card/20 flex justify-center gap-3">
- {Array.from({ length: Math.min(5, data.pagination.totalPages) }).map((_, i) => (
- <button 
- key={i}
- onClick={() => setPage(i + 1)}
- className={`size-8 rounded-xl text-[9px] font-black transition-all ${page === i + 1 ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}
- >
- {i + 1}
- </button>
- ))}
- </div>
- )}
- </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <p className="font-[800] text-[15px] uppercase text-[#15130D] truncate group-hover:text-[#7A560A] transition-colors">
+                        {displayName}
+                      </p>
+                    </div>
 
- {/* RIGHT PANEL: Workspace hub */}
- <div className={`flex-1 flex flex-col relative overflow-hidden bg-muted/5 ${!selectedId ? "hidden md:flex flex-col items-center justify-center" : "flex"}`}>
- {selectedId && selectedUser ? (
- <>
- {/* Hub Header */}
- <header className="p-8 border-b border-border bg-card/60 backdrop-blur-3xl flex items-center justify-between z-20 sticky top-0">
- <div className="flex items-center gap-6">
- <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSelectedId(null)}>
- <ChevronLeft className="w-6 h-6" />
- </Button>
- <div className="flex items-center gap-5">
- <div className="size-14 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center font-black text-primary text-xl shadow-lg">
- {getInitials(selectedUser.name)}
- </div>
- <div>
- <h3 className="font-black text-xl uppercase tracking-tighter text-foreground">{selectedUser.name}</h3>
- <div className="flex items-center gap-2 mt-1">
- <span className="size-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
- <span className="text-[11px] font-black text-primary uppercase tracking-widest">Trade Partner Active</span>
- </div>
- </div>
- </div>
- </div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-[700] uppercase tracking-wider bg-[#E2F5EE] text-[#0B7A57] border border-[#0B7A57]/20">
+                        <ShieldCheck className="size-2.5" />
+                        VERIFIED
+                      </span>
+                      {p.country && (
+                        <span className="text-[11px] text-[#6B6A66] font-medium truncate">
+                          · {p.country}
+                        </span>
+                      )}
+                    </div>
 
- <div className="flex items-center gap-4">
- <Button 
- className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground gap-2.5 h-14 px-6 shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 active:scale-95"
- onClick={() => setIsSendQuoteModalOpen(true)}
- >
- <FileText className="w-5 h-5" />
- <span className="hidden lg:inline text-[11px] font-black uppercase tracking-[0.2em]">Send Quotation</span>
- </Button>
- <Button 
- className="rounded-lg border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 gap-3 h-14 px-8"
- onClick={() => initiateCall("AUDIO")}
- >
- <Waves className="w-5 h-5" />
- <span className="hidden lg:inline text-[11px] font-black uppercase tracking-[0.2em]">Voice Link</span>
- </Button>
- <Button 
- className="rounded-lg border-primary/20 bg-primary/10 hover:bg-primary/20 text-primary gap-3 h-14 px-8"
- onClick={() => initiateCall("VIDEO")}
- >
- <Video className="w-5 h-5" />
- <span className="hidden lg:inline text-[11px] font-black uppercase tracking-[0.2em]">Video Signal</span>
- </Button>
- <Button 
- variant="ghost" 
- size="icon" 
- className={`rounded-lg size-14 border border-border transition-all ${isHistoryOpen ? "bg-primary text-white border-primary" : ""}`}
- onClick={() => setIsHistoryOpen(!isHistoryOpen)}
- >
- <History className="w-6 h-6" />
- </Button>
- <Button variant="ghost" size="icon" className="rounded-lg size-14 border border-border" onClick={() => setIsScheduleModalOpen(true)}>
- <CalendarClock className="w-6 h-6" />
- </Button>
- </div>
- </header>
+                    {p.orderCount > 0 && (
+                      <span className="text-[10px] text-[#6B6A66] font-semibold mt-1 block">
+                        {p.orderCount} orders
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
 
- <div className="flex-1 flex overflow-hidden">
- {/* Main Chat Area */}
- <div className="flex-1 flex flex-col min-w-0 bg-[url('/grid.svg')] bg-fixed">
- <div ref={scrollRef} className="flex-1 overflow-y-auto p-12 space-y-10 flex flex-col custom-scrollbar">
- {messagesLoading && messages.length === 0 ? (
- <div className="flex-1 flex items-center justify-center opacity-30">
- <Loader2 className="w-8 h-8 animate-spin" />
- </div>
- ) : messages.length === 0 ? (
- <div className="flex-1 flex flex-col items-center justify-center text-center max-sm mx-auto opacity-30 space-y-8">
- <div className="p-8 rounded-lg bg-primary/10 border border-primary/10 rotate-6">
- <MessageCircle className="w-16 h-16 text-primary" />
- </div>
- <div className="space-y-3">
- <p className="text-sm font-black uppercase tracking-[0.3em]">Communication Tunnel Established</p>
- <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 text-center">Secure p2p signal active. Transmit trade intelligence.</p>
- </div>
- </div>
- ) : (
- messages.map((msg) => {
- const isMe = msg.senderId !== selectedId;
- const quoteOffer = parseQuotationOffer(msg.body);
+      {/* ── RIGHT PANEL: Conversation + Call View ── */}
+      <div className={`flex-1 flex flex-col relative overflow-hidden ${!selectedId ? "hidden md:flex items-center justify-center bg-[#FFFBF2]" : "flex bg-white"}`}>
+        {selectedId && selectedUser ? (
+          <>
+            {/* Conversation Header */}
+            <header className="p-4 md:px-6 border-b border-[#F0ECE0] bg-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setSelectedId(null)}
+                  className="md:hidden size-9 rounded-full bg-[#F7F5F0] hover:bg-[#FBF1D6] text-[#7A560A] flex items-center justify-center border border-[#ECE7DA]"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div className="size-11 rounded-[16px] bg-gradient-to-br from-[#EBC964] to-[#C4912A] text-[#7A560A] font-extrabold flex items-center justify-center text-sm shadow-sm overflow-hidden shrink-0">
+                  {selectedUser.avatar ? (
+                    <img src={selectedUser.avatar} className="w-full h-full object-cover" />
+                  ) : (
+                    getInitials(selectedUser.name)
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm md:text-base text-[#15130D] truncate">
+                    {selectedUser.businessName || selectedUser.name}
+                  </h3>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="size-1.5 rounded-full bg-[#0B7A57]" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#0B7A57]">
+                      Trade Partner Active
+                    </span>
+                  </div>
+                </div>
+              </div>
 
- if (quoteOffer) {
- return (
- <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
- <QuotationOfferCard offer={quoteOffer} isBuyer={false} />
- </div>
- );
- }
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsSendQuoteModalOpen(true)}
+                  className="h-[44px] px-4 rounded-[14px] bg-gradient-to-r from-[#C4912A] to-[#EBC964] text-[#15130D] font-[700] text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-[0_4px_14px_rgba(196,145,42,0.2)] hover:shadow-md active:scale-95"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="hidden sm:inline">Send Quote</span>
+                </button>
 
- return (
- <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
- <div className={`max-w-[85%] lg:max-w-[70%] px-8 py-6 rounded-lg shadow-2xl text-[13px] leading-relaxed transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 ${isMe ? "bg-primary text-white rounded-tr-none shadow-primary/20" : "bg-card border border-border text-foreground rounded-tl-none shadow-black/5"}`}>
- {msg.body}
- <div className={`mt-4 text-[10px] font-black uppercase opacity-20 flex items-center gap-3 ${isMe ? "justify-end text-white/60" : "justify-start"}`}>
- {format(new Date(msg.createdAt), "HH:mm")}
- {isMe && <ShieldCheck className="w-3 h-3" />}
- </div>
- </div>
- </div>
- );
- })
- )}
- </div>
+                <button
+                  onClick={() => initiateCall("AUDIO")}
+                  className="h-[44px] px-4 rounded-[14px] bg-[#E2F5EE] hover:bg-[#D4EFE4] text-[#0B7A57] font-[700] text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-sm"
+                >
+                  <Waves className="w-4 h-4" />
+                  <span className="hidden sm:inline">Voice Link</span>
+                </button>
 
- {/* Input Footer */}
- <footer className="p-10 border-t border-border bg-card/40 backdrop-blur-3xl">
- <form onSubmit={handleSendMsg} className="flex items-end gap-6 max-w-5xl mx-auto">
- <div className="flex-1 relative bg-background border border-border rounded-lg overflow-hidden shadow-inner group/input focus-within:ring-4 focus-within:ring-primary/10 transition-all">
- <textarea
- className="w-full bg-transparent px-8 py-6 pr-20 text-[13px] focus:outline-none resize-none min-h-[72px] max-h-48 custom-scrollbar font-medium"
- placeholder="Transmit buyer intelligence..."
- rows={1}
- value={msgInput}
- onChange={(e) => setMsgInput(e.target.value)}
- onKeyDown={(e) => {
- if (e.key === "Enter" && !e.shiftKey) {
- e.preventDefault();
- handleSendMsg();
- }
- }}
- />
- <div className="absolute right-8 bottom-6 text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.2em] hidden sm:block ">
- Signal Verified
- </div>
- </div>
- <Button 
- type="submit" 
- className="size-20 rounded-lg shadow-2xl shadow-primary/30 bg-primary hover:bg-primary-hover shrink-0 active:scale-90 transition-all flex items-center justify-center p-0"
- disabled={!msgInput.trim()}
- >
- <Send className="w-8 h-8 text-white group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
- </Button>
- </form>
- </footer>
- </div>
+                <button
+                  onClick={() => initiateCall("VIDEO")}
+                  className="h-[44px] px-4 rounded-[14px] bg-[#FBF1D6] hover:bg-[#F5E6BF] text-[#7A560A] font-[700] text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-sm"
+                >
+                  <Video className="w-4 h-4" />
+                  <span className="hidden sm:inline">Video Signal</span>
+                </button>
 
- {/* Right Panel: Mental Manifest (Trade History) */}
- <AnimatePresence>
- {isHistoryOpen && (
- <motion.div
- initial={{ width: 0, opacity: 0 }}
- animate={{ width: 400, opacity: 1 }}
- exit={{ width: 0, opacity: 0 }}
- className="border-l border-border bg-card/40 backdrop-blur-3xl flex flex-col shrink-0 overflow-hidden relative"
- >
- <div className="p-10 border-b border-border flex items-center justify-between">
- <div>
- <h3 className="text-xl font-black uppercase tracking-tighter">Trade Feed</h3>
- <p className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground mt-2 opacity-50 ">Neural Order Sequence</p>
- </div>
- <Button variant="ghost" size="icon" className="rounded-xl border border-border" onClick={() => setIsHistoryOpen(false)}>
- <X className="w-5 h-5" />
- </Button>
- </div>
+                <button
+                  onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+                  className={cn(
+                    "size-[44px] rounded-[14px] flex items-center justify-center border transition-all",
+                    isHistoryOpen
+                      ? "bg-[#C4912A] text-white border-[#C4912A]"
+                      : "bg-[#F7F5F0] hover:bg-[#FBF1D6] text-[#6B6A66] hover:text-[#7A560A] border-[#ECE7DA]"
+                  )}
+                  title="Trade History"
+                >
+                  <History className="w-4 h-4" />
+                </button>
 
- <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
- {historyLoading ? (
- <div className="flex flex-col items-center justify-center py-20 opacity-20 space-y-5">
- <Globe className="w-10 h-10 animate-spin-slow" />
- <span className="text-[9px] font-black uppercase tracking-[0.3em]">Streaming Telemetry...</span>
- </div>
- ) : tradeHistory.length === 0 ? (
- <div className="text-center py-20 opacity-20 space-y-5">
- <Package className="w-12 h-12 mx-auto" />
- <p className="text-[9px] font-black uppercase tracking-[0.3em]">Null_History_Record</p>
- </div>
- ) : (
- tradeHistory.map((order) => (
- <div key={order.id} className="group relative bg-muted/20 border border-border rounded-lg p-6 hover:bg-card/60 transition-all duration-500 overflow-hidden">
- <div className="absolute top-0 right-0 px-4 py-1.5 rounded-bl-3xl bg-primary/10 text-primary text-[8px] font-black uppercase tracking-widest group-hover:bg-primary group-hover:text-white transition-all">
- {order.status}
- </div>
- <div className="flex items-center gap-4 mb-5">
- <div className="size-14 rounded-lg bg-black/5 border border-border overflow-hidden p-1 group-hover:scale-105 transition-transform">
- {order.product?.images?.[0] ? (
- <img src={order.product.images[0]} alt="" className="w-full h-full object-cover grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" />
- ) : (
- <div className="w-full h-full flex items-center justify-center"><Package className="w-5 h-5 text-muted-foreground/20" /></div>
- )}
- </div>
- <div className="min-w-0">
- <h4 className="font-black text-xs uppercase tracking-tight truncate group-hover:text-primary transition-colors">{order.product?.name || "Null_Asset"}</h4>
- <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest opacity-40 mt-1 ">#{order.orderNumber}</p>
- </div>
- </div>
- <div className="grid grid-cols-2 gap-4">
- <div>
- <span className="text-[7px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 ">Quantity</span>
- <div className="text-[11px] font-black ">{order.quantity} {order.product?.unit || 'Units'}</div>
- </div>
- <div className="text-right">
- <span className="text-[7px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 ">Net_Yield</span>
- <div className="text-[11px] font-black text-primary">{formatCurrency(order.totalPrice)}</div>
- </div>
- </div>
- <Link 
- href={`/dashboard/exporter/orders/${order.id}`}
- className="mt-5 w-full py-3 bg-card border border-border rounded-xl text-[8px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-2 hover:bg-primary hover:text-white hover:border-transparent transition-all group/btn"
- >
- Inspect node
- <ArrowRight className="w-3 h-3 group-hover/btn:translate-x-1 transition-transform" />
- </Link>
- </div>
- ))
- )}
- </div>
- </motion.div>
- )}
- </AnimatePresence>
- </div>
- </>
- ) : (
- /* Initial Empty State */
- <div className="text-center max-w-md space-y-12 animate-in fade-in zoom-in duration-1000">
- <div className="relative mx-auto">
- <div className="size-48 mx-auto rounded-lg bg-gradient-to-br from-primary to-blue-600/[0.05] p-[1.5px] shadow-2xl shadow-primary/20 rotate-[-6deg] group">
- <div className="h-full w-full bg-background/90 backdrop-blur-3xl rounded-lg flex items-center justify-center group-hover:rotate-[6deg] transition-transform duration-700">
- <Users2 className="w-20 h-20 text-primary" />
- </div>
- </div>
- </div>
- <div className="space-y-4">
- <h2 className="text-4xl font-black uppercase tracking-tighter text-foreground flex items-center justify-center gap-4">
- Buyer terminal
- </h2>
- <p className="text-[11px] font-black uppercase tracking-[0.4em] text-muted-foreground leading-loose opacity-60">
- Select intelligence node to view manifest.<br/>
- Comms sequence and history feed enabled.
- </p>
- </div>
- <div className="flex gap-4 justify-center">
- <div className="px-6 py-3 bg-emerald-500/5 border border-emerald-500/10 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 ">Global Partner</div>
- <div className="px-6 py-3 bg-muted/30 border border-border rounded-lg text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ">Comms Link Secured</div>
- </div>
- </div>
- )}
+                <button
+                  onClick={() => setIsScheduleModalOpen(true)}
+                  className="size-[44px] rounded-[14px] bg-[#F7F5F0] hover:bg-[#FBF1D6] text-[#6B6A66] hover:text-[#7A560A] flex items-center justify-center border border-[#ECE7DA] transition-all"
+                  title="Schedule Session"
+                >
+                  <CalendarClock className="w-4 h-4" />
+                </button>
+              </div>
+            </header>
 
- {/* Live Session Overlay is now rendered globally by DashboardCallWrapper */}
- </div>
+            {/* Chat Body with faint gold dot pattern */}
+            <div className="flex-1 min-h-0 flex overflow-hidden">
+              <div className="flex-1 flex flex-col min-h-0 min-w-0 bg-gold-dots">
+                <div
+                  ref={scrollRef}
+                  className="flex-1 min-h-0 overflow-y-auto p-6 md:p-8 space-y-4 flex flex-col custom-scrollbar"
+                >
+                  {messagesLoading && messages.length === 0 ? (
+                    <div className="flex-1 flex items-center justify-center">
+                      <Loader2 className="w-8 h-8 animate-spin text-[#C4912A]" />
+                    </div>
+                  ) : messages.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center max-w-sm mx-auto space-y-4 opacity-70">
+                      <div className="size-14 rounded-[16px] bg-[#FBF1D6] text-[#C4912A] flex items-center justify-center">
+                        <Users2 className="w-7 h-7" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-extrabold uppercase tracking-wider text-[#15130D]">
+                          Communication Tunnel Ready
+                        </p>
+                        <p className="text-[11px] text-[#6B6A66] mt-1">
+                          Direct channel established with buyer. Transmit quotations or messages below.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    messages.map((msg) => {
+                      const isMe = msg.senderId !== selectedId;
+                      const quoteOffer = parseQuotationOffer(msg.body);
 
- {/* MODALS */}
- <ScheduleCallModal
- open={isScheduleModalOpen}
- onOpenChange={setIsScheduleModalOpen}
- receiver={selectedUser ? { id: selectedId!, name: selectedUser.name } : null}
- onScheduled={() => toast.success("Negotiation session requested.")}
- />
- <SendQuotationModal
- open={isSendQuoteModalOpen}
- onClose={() => setIsSendQuoteModalOpen(false)}
- buyer={selectedUser}
- onQuotationSent={() => {
-   if (selectedId) void fetchHistory(selectedId);
- }}
- />
- </div>
- );
+                      if (quoteOffer) {
+                        return (
+                          <div key={msg.id} className={cn("flex flex-col", isMe ? "items-end" : "items-start")}>
+                            <QuotationOfferCard offer={quoteOffer} isBuyer={false} />
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={msg.id}
+                          className={cn("flex flex-col", isMe ? "items-end" : "items-start")}
+                        >
+                          <div
+                            className={cn(
+                              "max-w-[85%] md:max-w-[70%] px-5 py-3.5 rounded-[20px] text-sm leading-relaxed shadow-sm transition-all",
+                              isMe
+                                ? "bg-gradient-to-r from-[#C4912A] to-[#EBC964] text-[#15130D] font-medium rounded-tr-sm"
+                                : "bg-white text-[#15130D] border border-[#F0ECE0] rounded-tl-sm"
+                            )}
+                          >
+                            <p className="whitespace-pre-wrap">{msg.body}</p>
+                            <div
+                              className={cn(
+                                "mt-1.5 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1",
+                                isMe ? "justify-end text-[#7A560A]" : "justify-start text-[#6B6A66]"
+                              )}
+                            >
+                              <span>{format(new Date(msg.createdAt), "HH:mm")}</span>
+                              {isMe && <ShieldCheck className="w-3 h-3 text-[#7A560A]" />}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Floating Rounded Composer - 60px tall, radius 30 */}
+                <footer className="flex-none p-4 bg-transparent">
+                  <form
+                    onSubmit={handleSendMsg}
+                    className="h-[60px] max-w-4xl mx-auto rounded-[30px] bg-white border border-[#F0ECE0] shadow-md px-3 md:px-4 flex items-center gap-2 md:gap-3"
+                  >
+                    <button
+                      type="button"
+                      className="size-9 rounded-full hover:bg-[#F7F5F0] text-[#6B6A66] hover:text-[#15130D] flex items-center justify-center shrink-0 transition-colors"
+                      title="Attach file"
+                    >
+                      <Paperclip className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      className="size-9 rounded-full hover:bg-[#F7F5F0] text-[#6B6A66] hover:text-[#15130D] flex items-center justify-center shrink-0 transition-colors"
+                      title="Insert emoji"
+                    >
+                      <Smile className="w-4 h-4" />
+                    </button>
+
+                    <input
+                      type="text"
+                      className="flex-1 bg-transparent text-sm text-[#15130D] placeholder:text-[#6B6A66] outline-none"
+                      placeholder="Type your message..."
+                      value={msgInput}
+                      onChange={(e) => setMsgInput(e.target.value)}
+                    />
+
+                    <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-[700] uppercase tracking-wider bg-[#E2F5EE] text-[#0B7A57] border border-[#0B7A57]/20 shrink-0">
+                      <span className="size-1.5 rounded-full bg-[#0B7A57]" />
+                      SIGNAL VERIFIED
+                    </span>
+
+                    <button
+                      type="submit"
+                      disabled={!msgInput.trim()}
+                      className="size-[48px] rounded-full bg-gradient-to-r from-[#C4912A] to-[#EBC964] text-[#15130D] flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all shrink-0 disabled:opacity-50"
+                    >
+                      <Send className="w-4 h-4 text-[#15130D]" />
+                    </button>
+                  </form>
+                </footer>
+              </div>
+
+              {/* Trade History Manifest Sidebar */}
+              <AnimatePresence>
+                {isHistoryOpen && (
+                  <motion.div
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 340, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    className="border-l border-[#F0ECE0] bg-white flex flex-col shrink-0 overflow-hidden"
+                  >
+                    <div className="p-5 border-b border-[#F0ECE0] flex items-center justify-between">
+                      <div>
+                        <h4 className="font-extrabold text-xs uppercase tracking-wider text-[#15130D]">
+                          Trade Manifest
+                        </h4>
+                        <p className="text-[10px] text-[#6B6A66] uppercase tracking-wider mt-0.5">
+                          Order History with this Buyer
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setIsHistoryOpen(false)}
+                        className="size-8 rounded-full bg-[#F7F5F0] hover:bg-[#FBF1D6] text-[#6B6A66] hover:text-[#7A560A] flex items-center justify-center border border-[#ECE7DA]"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                      {historyLoading ? (
+                        <div className="p-8 text-center text-xs text-[#6B6A66]">
+                          Loading order telemetry...
+                        </div>
+                      ) : tradeHistory.length === 0 ? (
+                        <div className="p-8 text-center text-xs text-[#6B6A66]">
+                          No orders recorded with this partner.
+                        </div>
+                      ) : (
+                        tradeHistory.map((order) => (
+                          <div
+                            key={order.id}
+                            className="border border-[#F0ECE0] rounded-[18px] p-4 shadow-sm space-y-2"
+                            style={{ background: "linear-gradient(160deg, #ffffff, #FFFBF0)" }}
+                          >
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="font-extrabold text-[#15130D]">
+                                #{order.orderNumber}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-[#E2F5EE] text-[#0B7A57] border border-[#0B7A57]/20">
+                                {order.status}
+                              </span>
+                            </div>
+                            <p className="text-xs font-semibold text-[#15130D]">
+                              {order.product?.name || "Product Asset"}
+                            </p>
+                            <div className="flex justify-between items-center text-xs pt-1 border-t border-[#F0ECE0]">
+                              <span className="text-[10px] text-[#6B6A66]">
+                                {order.quantity} {order.product?.unit || "units"}
+                              </span>
+                              <span className="font-bold text-[#7A560A]">
+                                {formatCurrency(order.totalPrice)}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </>
+        ) : (
+          /* ── Initial Empty State: Logo Coin + Start a Conversation ── */
+          <div className="text-center max-w-md p-8 space-y-4 animate-in fade-in zoom-in duration-300">
+            <div className="size-28 mx-auto rounded-full bg-gradient-to-br from-[#EBC964] via-[#C4912A] to-[#B8861A] shadow-[0_12px_30px_rgba(196,145,42,0.35)] flex items-center justify-center transform hover:scale-105 transition-transform">
+              <span className="text-3xl font-[900] text-[#15130D] tracking-tighter">RE</span>
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-[800] uppercase tracking-tight text-[#15130D]">
+                OPS TERMINAL
+              </h2>
+              <p className="text-base font-[800] text-[#7A560A] mt-1">
+                Start a conversation
+              </p>
+              <p className="text-[11px] font-[700] uppercase tracking-[0.14em] text-[#6B6A66] mt-2 leading-relaxed">
+                SELECT A BUYER TO START MESSAGING.
+                <br />
+                COMMS SEQUENCE AND HISTORY FEED ENABLED.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[10px] font-[700] uppercase tracking-wider bg-[#E2F5EE] text-[#0B7A57] border border-[#0B7A57]/20">
+                <span className="size-1.5 rounded-full bg-[#0B7A57]" />
+                VERIFIED NODE
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[10px] font-[700] uppercase tracking-wider bg-[#F7F5F0] text-[#6B6A66] border border-[#ECE7DA]">
+                SECURE LINK ACTIVE
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Modals */}
+      <ScheduleCallModal
+        open={isScheduleModalOpen}
+        onOpenChange={setIsScheduleModalOpen}
+        receiver={selectedUser ? { id: selectedId!, name: selectedUser.name } : null}
+        onScheduled={() => toast.success("Negotiation session scheduled.")}
+      />
+
+      <SendQuotationModal
+        open={isSendQuoteModalOpen}
+        onClose={() => setIsSendQuoteModalOpen(false)}
+        buyer={selectedUser ? { id: selectedId!, name: selectedUser.name, country: selectedUser.country } : null}
+        onQuotationSent={() => toast.success("Quotation sent to buyer.")}
+      />
+    </div>
+  );
 }

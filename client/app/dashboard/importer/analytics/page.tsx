@@ -29,11 +29,6 @@ interface AnalyticsData {
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const PALETTE = [
-  "bg-blue-500", "bg-emerald-500", "bg-purple-500", "bg-amber-500",
-  "bg-pink-500", "bg-cyan-500", "bg-orange-500", "bg-indigo-500"
-];
-
 export default function ImporterAnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,223 +41,228 @@ export default function ImporterAnalyticsPage() {
   }, []);
 
   const kpis = [
-    { k: "Total Spent", v: formatCurrency(data?.totalSpent ?? 0), tag: "All-time spending", border: "border-l-emerald-500", icon: TrendingUp, color: "text-emerald-500 bg-emerald-500/10" },
-    { k: "Shipments", v: formatNumber(data?.totalShipments ?? 0), tag: `${data?.activeShipments ?? 0} active`, border: "border-l-blue-500", icon: Package, color: "text-blue-500 bg-blue-500/10" },
-    { k: "Active Regions", v: formatNumber(data?.activeRegions ?? 0), tag: "Unique origins", border: "border-l-purple-500", icon: Globe, color: "text-purple-500 bg-purple-500/10" },
-    { k: "Customs Holds", v: formatNumber(data?.customsHolds ?? 0), tag: data?.customsHolds ? "Action needed" : "All clear", border: data?.customsHolds ? "border-l-red-500" : "border-l-amber-500", icon: AlertTriangle, color: data?.customsHolds ? "text-red-500 bg-red-500/10" : "text-amber-500 bg-amber-500/10" },
+    { k: "TOTAL SPENT", v: formatCurrency(data?.totalSpent ?? 0), tag: "All-time procurement", icon: TrendingUp },
+    { k: "TOTAL SHIPMENTS", v: formatNumber(data?.totalShipments ?? 0), tag: `${data?.activeShipments ?? 0} active in transit`, icon: Package },
+    { k: "ACTIVE REGIONS", v: formatNumber(data?.activeRegions ?? 0), tag: "Sourcing origins across India", icon: Globe },
+    { k: "CUSTOMS CLEARANCE", v: formatNumber(data?.customsHolds ?? 0), tag: data?.customsHolds ? "Action needed" : "All corridors clear", icon: AlertTriangle },
   ];
 
   const maxSpend = Math.max(...(data?.monthlySpend?.map((m) => m.spent) ?? [1]), 1);
 
   return (
-    <div className="h-dvh overflow-hidden flex flex-col bg-[#fafafa] dark:bg-background transition-colors duration-300">
-      <header className="flex-shrink-0 px-6 sm:px-10 py-8 border-b border-border bg-white/50 dark:bg-background/40 backdrop-blur-xl z-20">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Procurement Analytics</h1>
-            <p className="text-muted-foreground mt-1 text-sm font-medium">Track spending, shipments, and supplier performance</p>
+    <div className="space-y-6 w-full">
+      {/* ─── Header ─── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-[#F0ECE0]">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-[0.14em] bg-[#FBF1D6] text-[#7A560A]">
+              Analytics Hub
+            </span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B6A66]">
+              Procurement Telemetry
+            </span>
           </div>
-          <button type="button" className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm py-2.5 px-6 rounded-xl shadow-md transition-all active:scale-95">
-            <Download className="w-4 h-4" />
-            Export Data
-          </button>
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#15130D]">
+            Procurement Analytics
+          </h1>
+          <p className="text-sm text-[#6B6A66] mt-0.5">
+            Track spending velocity, shipment timelines, and supplier fulfillment rates
+          </p>
         </div>
-      </header>
-      <div className="flex-1 overflow-y-auto p-6 sm:p-10">
-        <div className="max-w-[1600px] mx-auto space-y-8">
-          
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {kpis.map((s) => (
-              <div key={s.k} className={`bg-card border-t border-r border-b border-l-4 border-border ${s.border} p-6 rounded-2xl group transition-all hover:shadow-md`}>
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`p-2.5 rounded-xl ${s.color}`}>
-                    <s.icon className="w-5 h-5" />
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-muted-foreground mb-1">{s.k}</div>
-                  <div className="text-3xl font-bold text-foreground tracking-tight">{loading ? "..." : s.v}</div>
-                  <div className="mt-2 text-xs font-medium text-muted-foreground">
-                    {loading ? "..." : s.tag}
-                  </div>
-                </div>
+
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="btn-gold-primary"
+        >
+          <Download className="w-4 h-4 stroke-[2]" />
+          Export Data
+        </button>
+      </div>
+
+      {/* ─── KPI Cards ─── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {kpis.map((s) => (
+          <div key={s.k} className="rounded-[24px] border border-[#F0ECE0] bg-gradient-to-b from-white to-[#FFFBF0] p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-11 h-11 rounded-[14px] bg-[#FBF1D6] text-[#C4912A] flex items-center justify-center">
+                <s.icon className="w-5 h-5 stroke-[1.8]" />
               </div>
-            ))}
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-[0.14em] bg-[#E2F5EE] text-[#0B7A57]">
+                LIVE
+              </span>
+            </div>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B6A66] mb-1">{s.k}</p>
+              <p className="text-[34px] md:text-[40px] font-extrabold leading-none text-[#15130D]">
+                {loading ? "..." : s.v}
+              </p>
+              <p className="text-xs text-[#6B6A66] mt-2.5">
+                {loading ? "..." : s.tag}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ─── Charts and Details Grid ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Main Charts Column */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Monthly Spend Chart */}
+          <div className="rounded-[24px] border border-[#F0ECE0] bg-gradient-to-b from-white to-[#FFFBF0] p-6 md:p-8 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-[14px] bg-[#FBF1D6] text-[#C4912A] flex items-center justify-center">
+                <BarChart3 className="w-5 h-5 stroke-[1.8]" />
+              </div>
+              <div>
+                <h2 className="text-xs md:text-sm font-extrabold tracking-wider uppercase text-[#15130D]">
+                  MONTHLY SPENDING
+                </h2>
+                <p className="text-xs text-[#6B6A66]">Procurement volume across billing cycles</p>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="h-56 rounded-2xl bg-[#F4F4F7] animate-pulse" />
+            ) : (data?.monthlySpend?.length ?? 0) === 0 ? (
+              <div className="h-56 rounded-2xl border border-dashed border-[#F0ECE0] flex flex-col items-center justify-center text-[#6B6A66] text-xs">
+                <BarChart3 className="w-8 h-8 mb-2 opacity-40" />
+                No spending data recorded yet
+              </div>
+            ) : (
+              <div className="flex items-end gap-3 h-56 pt-4">
+                {data!.monthlySpend.map((m) => {
+                  const height = maxSpend > 0 ? Math.max((m.spent / maxSpend) * 100, 6) : 6;
+                  const monthDate = new Date(m.month);
+                  return (
+                    <div key={m.month} className="flex-1 flex flex-col items-center gap-2 group relative h-full justify-end">
+                      <div className="w-full rounded-t-xl bg-gradient-to-t from-[#C4912A] to-[#EBC964] transition-all hover:opacity-90" style={{ height: `${height}%` }} />
+                      <span className="text-[11px] text-[#6B6A66] font-bold uppercase tracking-[0.14em]">
+                        {MONTH_NAMES[monthDate.getMonth()]}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            
-            {/* Main Charts Column */}
-            <div className="lg:col-span-8 space-y-6">
-              
-              {/* Monthly Spend Chart */}
-              <div className="bg-card border border-border shadow-sm rounded-2xl p-6 sm:p-8">
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
-                    <BarChart3 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-foreground">Monthly Spending</h2>
-                    <p className="text-sm font-medium text-muted-foreground mt-0.5">Procurement volume over the last year</p>
-                  </div>
-                </div>
-
-                {loading ? (
-                  <div className="h-56 rounded-xl bg-muted/50 border border-border animate-pulse" />
-                ) : (data?.monthlySpend?.length ?? 0) === 0 ? (
-                  <div className="h-56 rounded-xl bg-card border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground text-sm font-medium">
-                    <BarChart3 className="w-8 h-8 mb-2 opacity-50" />
-                    No spending data yet
-                  </div>
-                ) : (
-                  <div className="flex items-end gap-3 h-56 pt-4">
-                    {data!.monthlySpend.map((m) => {
-                      const height = maxSpend > 0 ? Math.max((m.spent / maxSpend) * 100, 5) : 5;
-                      const monthDate = new Date(m.month);
-                      return (
-                        <div key={m.month} className="flex-1 flex flex-col items-center gap-2 group relative h-full justify-end">
-                          <div className="absolute -top-10 scale-0 group-hover:scale-100 transition-transform bg-card border border-border px-3 py-1.5 rounded-lg text-xs font-bold text-foreground z-20 whitespace-nowrap shadow-lg">
-                            {formatCurrency(m.spent)} <span className="text-muted-foreground ml-1">({m.orderCount} orders)</span>
-                          </div>
-                          <div className="w-full rounded-t-lg bg-blue-500/30 group-hover:bg-blue-500/60 transition-all border-t border-x border-blue-500/20" style={{ height: `${height}%` }} />
-                          <span className="text-xs text-muted-foreground font-semibold">{MONTH_NAMES[monthDate.getMonth()]}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+          {/* Category Spending */}
+          <div className="rounded-[24px] border border-[#F0ECE0] bg-gradient-to-b from-white to-[#FFFBF0] p-6 md:p-8 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-[14px] bg-[#FBF1D6] text-[#C4912A] flex items-center justify-center">
+                <PieChart className="w-5 h-5 stroke-[1.8]" />
               </div>
-
-              {/* Category Spending */}
-              <div className="bg-card border border-border shadow-sm rounded-2xl p-6 sm:p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 rounded-xl bg-purple-500/10 text-purple-500">
-                    <PieChart className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-foreground">Spending by Category</h2>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {loading ? (
-                    Array.from({ length: 4 }).map((_, i) => (
-                      <div key={i} className="h-20 bg-muted/50 rounded-xl animate-pulse" />
-                    ))
-                  ) : !data?.categorySpending?.length ? (
-                    <div className="col-span-2 py-8 flex flex-col items-center justify-center text-muted-foreground text-sm font-medium border-2 border-dashed border-border rounded-xl">
-                      <PieChart className="w-8 h-8 mb-2 opacity-50" />
-                      No category data
-                    </div>
-                  ) : (
-                    data.categorySpending.map((c, i) => (
-                      <div key={c.category} className="flex items-center gap-4 bg-muted/30 border border-border rounded-xl p-4 hover:bg-muted/50 transition-colors">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider truncate">{c.category}</div>
-                          <div className="text-lg font-bold text-foreground mt-0.5">{formatCurrency(c.spent)}</div>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <div className="text-xs font-semibold text-muted-foreground">{c.orderCount} orders</div>
-                          <div className="mt-2 h-1.5 w-24 bg-muted rounded-full overflow-hidden">
-                            <div className={`h-full ${PALETTE[i % PALETTE.length]}`} style={{ width: `${(c.spent / (data?.totalSpent || 1)) * 100}%` }} />
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
+              <div>
+                <h2 className="text-xs md:text-sm font-extrabold tracking-wider uppercase text-[#15130D]">
+                  SPENDING BY CATEGORY
+                </h2>
+                <p className="text-xs text-[#6B6A66]">Allocation by export vertical</p>
               </div>
             </div>
 
-            {/* Sidebar Column */}
-            <div className="lg:col-span-4 space-y-6">
-              
-              {/* Top Suppliers */}
-              <div className="bg-card border border-border shadow-sm rounded-2xl p-6 sm:p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 rounded-xl bg-orange-500/10 text-orange-500">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <h2 className="text-lg font-bold text-foreground">Top Suppliers</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {loading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-20 bg-[#F4F4F7] rounded-2xl animate-pulse" />
+                ))
+              ) : !data?.categorySpending?.length ? (
+                <div className="col-span-2 py-8 flex flex-col items-center justify-center text-[#6B6A66] text-xs border border-dashed border-[#F0ECE0] rounded-2xl">
+                  <PieChart className="w-8 h-8 mb-2 opacity-40" />
+                  No category records yet
                 </div>
-
-                <div className="space-y-4">
-                  {loading ? (
-                    Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="h-14 bg-muted/50 rounded-xl animate-pulse" />
-                    ))
-                  ) : !data?.supplierBreakdown?.length ? (
-                    <div className="py-6 flex flex-col items-center justify-center text-muted-foreground text-sm font-medium border-2 border-dashed border-border rounded-xl">
-                      <Users className="w-6 h-6 mb-2 opacity-50" />
-                      No supplier data
+              ) : (
+                data.categorySpending.map((c) => (
+                  <div key={c.category} className="p-4 bg-white border border-[#F0ECE0] rounded-[18px]">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[11px] font-bold text-[#6B6A66] uppercase tracking-[0.14em] truncate">
+                        {c.category}
+                      </span>
+                      <span className="text-xs text-[#6B6A66]">
+                        {c.orderCount} orders
+                      </span>
                     </div>
-                  ) : (
-                    data.supplierBreakdown.map((s, idx) => (
-                      <div key={s.name} className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/30 border border-transparent hover:border-border transition-colors group">
-                        <div className="flex items-center gap-3">
-                          <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
-                            {idx + 1}
-                          </div>
-                          <div>
-                            <div className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{s.name}</div>
-                            <div className="text-xs text-muted-foreground font-medium mt-0.5">{s.orderCount} orders</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-bold text-foreground">{formatCurrency(s.spent)}</div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Quick Stats */}
-              <div className="bg-card border border-border shadow-sm rounded-2xl p-6 sm:p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
-                    <TrendingUp className="w-5 h-5" />
+                    <div className="text-base font-extrabold text-[#15130D]">
+                      {formatCurrency(c.spent)}
+                    </div>
+                    <div className="mt-2 h-1.5 w-full bg-[#F0ECE0] rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-[#C4912A] to-[#EBC964] rounded-full transition-all duration-700"
+                        style={{ width: `${(c.spent / (data?.totalSpent || 1)) * 100}%` }}
+                      />
+                    </div>
                   </div>
-                  <h2 className="text-lg font-bold text-foreground">Quick Stats</h2>
-                </div>
-
-                <div className="space-y-3">
-                  {loading ? (
-                    Array.from({ length: 2 }).map((_, i) => (
-                      <div key={i} className="h-12 bg-muted/50 rounded-xl animate-pulse" />
-                    ))
-                  ) : (
-                    <>
-                      <div className="rounded-xl border border-border bg-muted/30 p-4 flex items-center justify-between">
-                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Orders</span>
-                        <span className="text-base font-bold text-foreground">{data?.totalOrders || 0}</span>
-                      </div>
-                      <div className="rounded-xl border border-border bg-muted/30 p-4 flex items-center justify-between">
-                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Active Shipments</span>
-                        <span className="text-base font-bold text-foreground">{data?.activeShipments || 0}</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="bg-card border border-border shadow-sm rounded-2xl p-6 sm:p-8">
-                <h2 className="text-lg font-bold text-foreground mb-6">Operations</h2>
-                <div className="space-y-3">
-                  <button type="button" className="w-full rounded-xl bg-primary py-2.5 px-4 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2">
-                    <Download className="w-4 h-4" />
-                    Export CSV
-                  </button>
-                  <button type="button" className="w-full rounded-xl border border-border bg-card hover:bg-muted py-2.5 px-4 text-sm font-bold text-foreground transition-all active:scale-95 flex items-center justify-center gap-2">
-                    <Share className="w-4 h-4" />
-                    Share Report
-                  </button>
-                </div>
-              </div>
-
+                ))
+              )}
             </div>
+          </div>
+        </div>
+
+        {/* Sidebar Column */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Top Suppliers */}
+          <div className="rounded-[24px] border border-[#F0ECE0] bg-gradient-to-b from-white to-[#FFFBF0] p-6 md:p-8 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-[14px] bg-[#FBF1D6] text-[#C4912A] flex items-center justify-center">
+                <Users className="w-5 h-5 stroke-[1.8]" />
+              </div>
+              <h2 className="text-xs md:text-sm font-extrabold tracking-wider uppercase text-[#15130D]">
+                TOP EXPORTERS
+              </h2>
+            </div>
+
+            <div className="space-y-3">
+              {loading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-14 bg-[#F4F4F7] rounded-xl animate-pulse" />
+                ))
+              ) : !data?.supplierBreakdown?.length ? (
+                <div className="py-8 text-center text-xs text-[#6B6A66]">
+                  No partner exporters detected
+                </div>
+              ) : (
+                data.supplierBreakdown.map((s, idx) => (
+                  <div key={s.name} className="flex items-center justify-between p-3.5 rounded-[16px] border border-[#F0ECE0] bg-white">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-[10px] bg-[#FBF1D6] text-[#7A560A] font-extrabold text-xs flex items-center justify-center shrink-0">
+                        {idx + 1}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold text-[#15130D] truncate">{s.name}</div>
+                        <div className="text-[10px] text-[#6B6A66]">{s.orderCount} contracts</div>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-sm font-extrabold text-[#15130D]">{formatCurrency(s.spent)}</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Operations Card */}
+          <div className="rounded-[24px] border border-[#F0ECE0] bg-gradient-to-b from-white to-[#FFFBF0] p-6 md:p-8 shadow-sm space-y-3">
+            <h2 className="text-xs md:text-sm font-extrabold tracking-wider uppercase text-[#15130D] mb-4">
+              DATA OPERATIONS
+            </h2>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="btn-gold-primary w-full justify-center"
+            >
+              <Download className="w-4 h-4 stroke-[2]" />
+              Export Full Ledger
+            </button>
+            <button
+              type="button"
+              onClick={() => alert("Report link copied to clipboard")}
+              className="btn-cream-secondary w-full justify-center"
+            >
+              <Share className="w-4 h-4 stroke-[1.8]" />
+              Share Report
+            </button>
           </div>
         </div>
       </div>

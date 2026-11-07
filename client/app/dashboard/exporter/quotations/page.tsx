@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { AlertTriangle, Mail, Phone, Building2 } from "lucide-react";
 import { getServerAuthContext } from "@/lib/auth-server";
 import QuotationStatusButtons from "./QuotationStatusButtons";
 import InitTableButton from "./InitTableButton";
@@ -34,30 +34,33 @@ export default async function QuotationsAdminPage() {
   }
 
   return (
-    <div className="px-8 pb-12 w-full min-h-screen">
-      <div className="flex items-center justify-between mb-8">
+    <div className="space-y-6">
+      {/* ── Page Header: Title + Subtitle ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Quotation Requests</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#15130D] uppercase">
+            Quotation Requests
+          </h1>
+          <p className="text-sm text-[#6B6A66] mt-1">
             Manage and view all incoming quotation requests from the website.
           </p>
         </div>
       </div>
 
       {dbError && (
-        <div className="mb-6 p-5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-950 dark:text-amber-200">
+        <div className="p-5 rounded-[20px] border border-amber-500/40 bg-amber-500/10 text-amber-950">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="flex-1 text-sm space-y-3">
               <div>
-                <p className="font-semibold text-amber-800 dark:text-amber-300 text-base">
+                <p className="font-semibold text-amber-900 text-base">
                   Database Table Setup Required
                 </p>
                 <p className="mt-1 opacity-90 text-sm">
                   The <code className="px-1.5 py-0.5 bg-amber-500/20 rounded font-mono text-xs">quotation_requests</code> table has not been created in Supabase yet.
                 </p>
                 {dbError && (
-                  <p className="mt-2 text-xs font-mono text-red-600 dark:text-red-400 bg-red-500/10 p-2 rounded border border-red-500/20 break-all">
+                  <p className="mt-2 text-xs font-mono text-red-600 bg-red-500/10 p-2 rounded border border-red-500/20 break-all">
                     Details: {dbError}
                   </p>
                 )}
@@ -66,47 +69,17 @@ export default async function QuotationsAdminPage() {
               <div>
                 <InitTableButton />
               </div>
-
-              <div className="pt-2 border-t border-amber-500/20">
-                <p className="text-xs font-medium text-amber-800 dark:text-amber-300 mb-1.5">
-                  Or run this SQL in your Supabase SQL Editor:
-                </p>
-                <div className="p-3 bg-black/50 text-amber-100 rounded-lg font-mono text-xs overflow-x-auto select-all">
-                  {`CREATE TABLE IF NOT EXISTS "quotation_requests" (
-  "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
-  "clientName" TEXT NOT NULL,
-  "clientEmail" TEXT NOT NULL,
-  "clientPhone" TEXT,
-  "businessName" TEXT,
-  "status" TEXT NOT NULL DEFAULT 'PENDING',
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "quotation_requests_pkey" PRIMARY KEY ("id")
-);
-
-CREATE TABLE IF NOT EXISTS "quotation_items" (
-  "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
-  "quotationRequestId" TEXT NOT NULL,
-  "productName" TEXT NOT NULL,
-  "quantity" INTEGER NOT NULL,
-  CONSTRAINT "quotation_items_pkey" PRIMARY KEY ("id"),
-  CONSTRAINT "quotation_items_quotationRequestId_fkey" FOREIGN KEY ("quotationRequestId") REFERENCES "quotation_requests"("id") ON DELETE CASCADE ON UPDATE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS "quotation_items_quotationRequestId_idx" ON "quotation_items"("quotationRequestId");
-CREATE INDEX IF NOT EXISTS "quotation_requests_createdAt_idx" ON "quotation_requests"("createdAt" DESC);`}
-                </div>
-              </div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+      {/* ── Quotations Table Card ── */}
+      <div className="bg-gradient-to-b from-white to-[#FFFBF0] rounded-[24px] border border-[#F0ECE0] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-muted/50 text-muted-foreground uppercase text-xs font-semibold border-b border-border">
-              <tr>
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-[#F0ECE0] text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B6A66]">
                 <th className="px-6 py-4">Date</th>
                 <th className="px-6 py-4">Client Name</th>
                 <th className="px-6 py-4">Contact</th>
@@ -114,91 +87,92 @@ CREATE INDEX IF NOT EXISTS "quotation_requests_createdAt_idx" ON "quotation_requ
                 <th className="px-6 py-4">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y border-border">
+            <tbody className="divide-y divide-[#F0ECE0] text-xs">
               {quotations.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan={5} className="px-6 py-12 text-center text-[#6B6A66]">
                     No quotation requests found.
                   </td>
                 </tr>
               ) : (
                 quotations.map((quote) => (
-                  <tr key={quote.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-foreground font-medium">
+                  <tr key={quote.id} className="hover:bg-[#FFFBF2] transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap font-semibold text-[#15130D]">
                       {quote.createdAt ? format(new Date(quote.createdAt), "MMM d, yyyy") : "-"}
-                      <div className="text-xs text-muted-foreground font-normal">
+                      <div className="text-[10px] text-[#6B6A66] font-normal">
                         {quote.createdAt ? format(new Date(quote.createdAt), "h:mm a") : ""}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-foreground">
-                      <div className="font-semibold">{quote.clientName}</div>
+                    <td className="px-6 py-4 text-[#15130D]">
+                      <div className="font-bold">{quote.clientName}</div>
                       {quote.businessName && (
-                        <div className="text-xs text-muted-foreground flex items-center mt-1">
-                          <span className="material-symbols-outlined text-[14px] mr-1">business</span>
+                        <div className="text-[11px] text-[#6B6A66] flex items-center gap-1 mt-0.5">
+                          <Building2 className="w-3.5 h-3.5" />
                           {quote.businessName}
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-muted-foreground">
+                    <td className="px-6 py-4 text-[#6B6A66]">
                       <a
                         href={`mailto:${quote.clientEmail}`}
-                        className="hover:text-primary transition-colors flex items-center mb-1"
+                        className="hover:text-[#C4912A] transition-colors flex items-center gap-1.5 mb-1"
                       >
-                        <span className="material-symbols-outlined text-[14px] mr-1">mail</span>
+                        <Mail className="w-3.5 h-3.5" />
                         {quote.clientEmail}
                       </a>
                       {quote.clientPhone && (
                         <a
                           href={`tel:${quote.clientPhone}`}
-                          className="hover:text-primary transition-colors flex items-center"
+                          className="hover:text-[#C4912A] transition-colors flex items-center gap-1.5"
                         >
-                          <span className="material-symbols-outlined text-[14px] mr-1">call</span>
+                          <Phone className="w-3.5 h-3.5" />
                           {quote.clientPhone}
                         </a>
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1.5">
                         {quote.items && quote.items.length > 0 ? (
                           quote.items.map((item: any) => (
                             <div
                               key={item.id}
-                              className="flex items-center text-xs bg-muted px-2 py-1 rounded"
+                              className="flex items-center text-xs bg-white border border-[#F0ECE0] px-3 py-1.5 rounded-full"
                             >
                               <span
-                                className="font-medium text-foreground max-w-[150px] truncate mr-2"
+                                className="font-semibold text-[#15130D] max-w-[160px] truncate mr-2"
                                 title={item.productName}
                               >
                                 {item.productName}
                               </span>
-                              <span className="text-primary font-bold ml-auto">
+                              <span className="text-[#C4912A] font-bold ml-auto">
                                 x{item.quantity}
                               </span>
                             </div>
                           ))
                         ) : (
-                          <span className="text-xs text-muted-foreground">No specific products</span>
+                          <span className="text-xs text-[#6B6A66]">No specific products</span>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col gap-2">
                         <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit ${
                             quote.status === "PENDING"
-                              ? "bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-500"
+                              ? "bg-[#FBF1D6] text-[#7A560A] border border-[#C4912A]/20"
                               : quote.status === "RESPONDED"
-                              ? "bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-500"
-                              : "bg-green-100 text-green-800 dark:bg-green-500/10 dark:text-green-500"
+                              ? "bg-[#E2F5EE] text-[#0B7A57] border border-[#0B7A57]/20"
+                              : "bg-[#F7F5F0] text-[#6B6A66] border border-[#ECE7DA]"
                           }`}
                         >
-                          {quote.status === "PENDING" && <Clock className="w-3 h-3 mr-1" />}
-                          {quote.status !== "PENDING" && <CheckCircle className="w-3 h-3 mr-1" />}
                           {quote.status}
                         </span>
+                        <QuotationStatusButtons
+                          quotationId={quote.id}
+                          currentStatus={quote.status}
+                          clientEmail={quote.clientEmail}
+                        />
                       </div>
-
-                      <QuotationStatusButtons quoteId={quote.id} currentStatus={quote.status} />
                     </td>
                   </tr>
                 ))

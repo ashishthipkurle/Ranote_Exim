@@ -9,6 +9,11 @@ import Cookies from 'js-cookie';
 const languageNames: Record<string, string> = {
  en: 'English',
  hi: 'हिन्दी',
+ fr: 'Français',
+ de: 'Deutsch',
+ ar: 'العربية',
+ si: 'සිංහල (Sri Lanka)',
+ ta: 'தமிழ்',
  ja: '日本語',
  zh: '简体中文'
 };
@@ -30,13 +35,25 @@ export default function LanguageSwitcher() {
  return () => document.removeEventListener('mousedown', handleClickOutside);
  }, []);
 
- if (!mounted) return null;
+ const activeLang = i18n.language?.split('-')[0] || 'en';
+ const currentLanguage = languageNames[activeLang] ? activeLang : 'en';
 
- const currentLanguage = i18n.language || 'en';
+ useEffect(() => {
+ if (typeof document !== 'undefined') {
+ document.documentElement.lang = currentLanguage;
+ document.documentElement.dir = currentLanguage === 'ar' ? 'rtl' : 'ltr';
+ }
+ }, [currentLanguage]);
+
+ if (!mounted) return null;
 
  const changeLanguage = (lng: string) => {
  i18n.changeLanguage(lng);
  Cookies.set(cookieName, lng, { path: '/' });
+ if (typeof document !== 'undefined') {
+ document.documentElement.lang = lng;
+ document.documentElement.dir = lng === 'ar' ? 'rtl' : 'ltr';
+ }
  setIsOpen(false);
  };
 
@@ -54,7 +71,7 @@ export default function LanguageSwitcher() {
  </button>
 
  {isOpen && (
- <div className="absolute right-0 mt-2 w-48 p-1.5 rounded-lg border border-border dark:border-white/10 bg-background/95 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in-95 z-[60]">
+ <div className="absolute right-0 mt-2 w-56 max-h-80 overflow-y-auto p-1.5 rounded-2xl border border-border dark:border-white/10 bg-background/95 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in-95 z-[60] custom-scrollbar">
  <div className="py-1 px-2 border-b border-border/50 mb-1">
  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Select Language</span>
  </div>

@@ -53,7 +53,16 @@
     "documents": "Documents",
     "categories": "Categories",
     "feed": "Activity Feed",
-    "trends": "Market Trends"
+    "trends": "Market Trends",
+    "quotations": "Quotations",
+    "ships": "Logistics",
+    "feedback": "Reviews",
+    "showcase": "Showcase",
+    "homepage_changes": "Home Page Changes",
+    "sellers": "Sellers",
+    "exporters_hub": "Exporters Hub",
+    "supply_items": "Supply Items",
+    "supply_orders": "Supply Orders"
   },
   "product_form": {
     "edit_title": "Edit Listing",
@@ -250,7 +259,25 @@
       "usa": "USA",
       "africa": "Africa",
       "asia": "Asia"
-    }
+    },
+    "admin_dashboard": "ADMIN DASHBOARD",
+    "exporter_dashboard": "EXPORTER DASHBOARD",
+    "admin_subtitle": "Platform oversight, system telemetry, and administrative control center.",
+    "exporter_subtitle": "Global trade network, active shipments, and real-time order transmissions.",
+    "admin_mode": "ADMIN MODE",
+    "realtime_stream": "REAL-TIME STREAM",
+    "view_all_transmissions": "View All Transmissions",
+    "no_transmissions": "No transmissions yet",
+    "distribution_by_industry": "DISTRIBUTION BY INDUSTRY",
+    "verified_counterparts": "VERIFIED GLOBAL COUNTERPARTS",
+    "buyer_entity": "BUYER ENTITY",
+    "country": "COUNTRY",
+    "orders": "ORDERS",
+    "value": "VALUE",
+    "directory": "Directory",
+    "india_export_hubs": "India Export Hubs",
+    "ocean_freight": "Ocean Freight",
+    "air_corridors": "Air Corridors"
   },
   "period": {
     "today": "Today",
@@ -259,5 +286,32 @@
     "quarter": "This Quarter",
     "year": "This Year",
     "all": "All Time"
+  },
+  "filter": {
+    "all": "All"
+  },
+  "status": {
+    "active": "ACTIVE",
+    "live": "LIVE",
+    "confirmed": "CONFIRMED",
+    "pending": "PENDING"
+  },
+  "settings_page": {
+    "account_profile": "Account Profile",
+    "exporter_verification": "Exporter Verification",
+    "title": "Profile & Settings",
+    "subtitle": "Manage your verified exporter credentials, company details, and trade communications",
+    "verified_exporter": "Verified Exporter",
+    "platform_certified": "Platform Certified",
+    "company_info": "COMPANY & LIAISON INFORMATION",
+    "full_name": "Full Name",
+    "company_name": "Company / Business Name",
+    "country_origin": "Country of Origin",
+    "phone_number": "Phone Number",
+    "company_website": "Company Website",
+    "linkedin": "LinkedIn Profile",
+    "twitter": "Twitter / X Profile",
+    "save_settings": "Save Settings",
+    "saving": "Saving..."
   }
 }

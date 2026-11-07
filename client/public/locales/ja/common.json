@@ -9,6 +9,7 @@
   "dashboard_btn": "ダッシュボード",
   "home": "ホーム",
   "signout": "ログアウト",
+  "contact": "Contact",
   "settings": "設定",
   "notifications": "通知",
   "search_placeholder": "出荷、資産を検索...",
@@ -16,6 +17,7 @@
     "title_part1": "境界のない",
     "title_part2": "貿易",
     "subtitle": "次世代のB2Bマーケットプレイス。検証済みのサプライヤーとつながり、物流を自動化し、当社のグローバルネットワークでリアルタイムに出荷を追跡します。",
+    "features": "QUALITY SOURCING | EXPORT SUPPORT | GLOBAL TRADE",
     "cta_start": "輸入を開始",
     "cta_buy": "製品を購入"
   },
@@ -27,13 +29,13 @@
   },
   "sidebar": {
     "dashboard": "ダッシュボード",
-    "inventory": "在庫",
+    "inventory": "在庫一覧",
     "directory": "ディレクトリ",
-    "orders": "注文",
-    "shipments": "出荷",
+    "orders": "注文管理",
+    "shipments": "出荷管理",
     "rfqs": "見積依頼 (RFQ)",
     "buyers": "バイヤー",
-    "registry": "レジストリ",
+    "registry": "登記簿",
     "dealers": "ディーラー",
     "messages": "メッセージ",
     "calls": "通話",
@@ -42,10 +44,25 @@
     "settings": "設定",
     "overview": "概要",
     "users": "ユーザー",
-    "products": "製品",
+    "products": "商品一覧",
+    "my_products": "My Products",
+    "all_products": "All Products",
+    "browse_products": "Browse Products",
+    "my_orders": "My Orders",
+    "all_orders": "All Orders",
+    "documents": "Documents",
     "categories": "カテゴリー",
     "feed": "アクティビティフィード",
-    "trends": "市場動向"
+    "trends": "市場動向",
+    "quotations": "見積書",
+    "ships": "物流",
+    "feedback": "レビュー",
+    "showcase": "ショーケース",
+    "homepage_changes": "ホームページ変更",
+    "sellers": "サプライヤー",
+    "exporters_hub": "輸出者ハブ",
+    "supply_items": "供給品目",
+    "supply_orders": "供給発注"
   },
   "product_form": {
     "edit_title": "出品を編集",
@@ -97,9 +114,11 @@
   },
   "cta": {
     "title": "スケールアップの準備はいいですか？",
-    "subtitle": "10,000社以上のグローバル企業が、サプライチェーンを変革するために当社のネットワークに参加しています：",
+    "subtitle_1": "WE MAY BE ABLE TO SOURCE IT FROM INDIA.",
+    "subtitle_2": "Share your product name, specifications and required quantity. Whether you are looking for a specific product, a new supplier, bulk quantities or an export-ready Indian sourcing option, our team will explore suitable options.",
     "join_btn": "ネットワークに参加",
-    "contact_btn": "営業担当に連絡"
+    "contact_btn": "営業担当に連絡",
+    "subtitle": "10,000社以上のグローバル企業が、サプライチェーンを変革するために当社のネットワークに参加しています："
   },
   "footer": {
     "description": "デジタル時代に向けたグローバル貿易インフラの再構築。安全、迅速、透明。",
@@ -123,12 +142,14 @@
     "subtitle": " AI駆動の法務エンジンを使用して、複雑な国際規制を乗り越えましょう。事務手続きは当社が担当するため、お客様は取引に集中できます。",
     "card1_title": "自動通関",
     "card1_desc": "目的地国の法律に準拠したHSコード、商業送り状、パッキングリストを即座に生成します。",
-    "card1_stat": "99.8% の精度",
     "card2_title": "VAT/税務インテリジェンス",
     "card2_desc": "正確な利益予測のために、関税、税金、港湾手数料を含む陸揚げコストをリアルタイムで算出します。",
-    "card2_stat": "グローバル対応",
     "card3_title": "ブロックチェーン元帳",
     "card3_desc": "すべての取引とドキュメントバージョンの不変の記録を保持し、監査に耐えうる取引履歴を保証。 ",
+    "card4_title": "Logistics Coordination",
+    "card4_desc": "Working with trusted freight forwarders, customs brokers, and logistics partners to coordinate shipment from origin to destination.",
+    "card1_stat": "99.8% の精度",
+    "card2_stat": "グローバル対応",
     "card3_stat": "クリプトセキュリティ"
   },
   "connectivity": {
@@ -169,16 +190,22 @@
     "title_part2": "ソリューション",
     "card_title": "認定済みのグローバルサプライヤー",
     "card_desc": "50,000社以上のトップクラスのメーカーからなる厳選されたネットワークにアクセスできます。コンプライアンス、生産能力、財務の安定性についてすべての工場を監査しているため、完全に安心して調達できます。",
-    "list_item1": "工場監査と認証",
-    "list_item2": "品質管理検査",
-    "list_item3": "貿易金融サポート",
+    "list_item1_title": "SUPPLIER IDENTIFICATION",
+    "list_item1_desc": "Identify suitable sourcing options in India.",
+    "list_item2_title": "QUALITY COORDINATION",
+    "list_item2_desc": "Coordinate product specifications and quality requirements.",
+    "list_item3_title": "EXPORT SUPPORT",
+    "list_item3_desc": "Support documentation and shipment coordination for export orders.",
     "button": "一括見積もりをリクエスト",
     "category1_title": "原金属・鉱物",
     "category1_desc": "銅、リチウム、レアアース",
     "category2_title": "グローバル農業",
     "category2_desc": "小麦、大豆、コーヒー、綿花",
     "category3_title": "エネルギーソリューション",
-    "category3_desc": "ソーラーパネル、バッテリー、バイオ燃料"
+    "category3_desc": "ソーラーパネル、バッテリー、バイオ燃料",
+    "list_item1": "工場監査と認証",
+    "list_item2": "品質管理検査",
+    "list_item3": "貿易金融サポート"
   },
   "marquee": {
     "processing": "処理中",
@@ -193,6 +220,16 @@
     "high_demand": "高需要",
     "container_spot": "コンテナスポットレート",
     "stable": "安定"
+  },
+  "video": {
+    "text1_headline": "Exporting Excellence",
+    "text1_sub": "Connecting Indian manufacturers to the world's largest markets.",
+    "text2_headline": "Importing Trust",
+    "text2_sub": "Verified suppliers · Transparent pricing · Real-time tracking.",
+    "text3_headline": "Global Logistics",
+    "text3_sub": "Seamless freight, customs clearance, and door-to-door delivery — all automated.",
+    "buffering": "Buffering",
+    "scroll": "Scroll"
   },
   "dashboard_main": {
     "node_title": "インテリジェンスノード",
@@ -216,6 +253,12 @@
     "global_trade_network": "インドグローバルトレードネットワーク",
     "active_routes": "アクティブなルート",
     "loading_routes": "トレードルートを読み込み中...",
+    "in_progress": "In progress",
+    "live": "ライブ",
+    "signals": "Signals",
+    "node_entity": "Node Entity",
+    "valuation": "Valuation",
+    "sector": "Sector",
     "hub_regions": {
       "india": "インド",
       "russia": "ロシア",
@@ -223,6 +266,60 @@
       "usa": "アメリカ",
       "africa": "アフリカ",
       "asia": "アジア"
-    }
+    },
+    "admin_dashboard": "管理者ダッシュボード",
+    "exporter_dashboard": "輸出者ダッシュボード",
+    "admin_subtitle": "プラットフォーム監視、システムテレメトリ、管理統制センター。",
+    "exporter_subtitle": "グローバル貿易ネットワーク、進行中の出荷、リアルタイム注文配信。",
+    "admin_mode": "管理者モード",
+    "realtime_stream": "リアルタイム配信",
+    "view_all_transmissions": "すべての配信を表示",
+    "no_transmissions": "配信はまだありません",
+    "distribution_by_industry": "業界別売上分布",
+    "verified_counterparts": "認証済みグローバル取引先",
+    "buyer_entity": "バイヤー名",
+    "country": "国",
+    "orders": "注文数",
+    "value": "取引額",
+    "directory": "ディレクトリ",
+    "india_export_hubs": "インド輸出拠点",
+    "ocean_freight": "海上貨物",
+    "air_corridors": "航空回廊",
+    "active": "有効"
+  },
+  "period": {
+    "today": "Today",
+    "week": "This Week",
+    "month": "This Month",
+    "quarter": "This Quarter",
+    "year": "This Year",
+    "all": "All Time"
+  },
+  "filter": {
+    "all": "すべて"
+  },
+  "status": {
+    "active": "有効",
+    "live": "ライブ",
+    "confirmed": "確認済み",
+    "pending": "保留中"
+  },
+  "settings_page": {
+    "account_profile": "アカウントプロフィール",
+    "exporter_verification": "輸出者認証",
+    "title": "プロフィール＆設定",
+    "subtitle": "認証済み輸出者の資格情報、会社詳細、貿易連絡先を管理します",
+    "verified_exporter": "認証済み輸出者",
+    "platform_certified": "プラットフォーム認定",
+    "company_info": "企業＆連絡先情報",
+    "full_name": "氏名",
+    "company_name": "会社名 / 屋号",
+    "country_origin": "原産国",
+    "phone_number": "電話番号",
+    "company_website": "会社ウェブサイト",
+    "linkedin": "LinkedInプロフィール",
+    "twitter": "Twitter / Xプロフィール",
+    "save_settings": "設定を保存",
+    "saving": "保存中..."
   }
 }

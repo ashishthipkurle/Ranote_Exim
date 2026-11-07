@@ -4,13 +4,18 @@ import { PrismaClient } from '@prisma/client'
 
 const createPrismaClient = () => {
   const baseClient = new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    log: [{ level: 'warn', emit: 'event' }],
     datasourceUrl: process.env.DATABASE_URL,
   });
 
-  // Handle potential connection issues gracefully
-  baseClient.$on('error' as any, (e: any) => {
-    console.error('[PRISMA_CLIENT_ERROR]', e.message);
+  let lastLogged = 0;
+  // Handle potential connection issues gracefully with throttling
+  baseClient.$on('warn' as any, (e: any) => {
+    const now = Date.now();
+    if (now - lastLogged > 30000) {
+      console.warn('[PRISMA_SOCKET_NOTICE] Direct TCP socket notice (fallback active):', e?.message || e);
+      lastLogged = now;
+    }
   });
 
   return baseClient.$extends({

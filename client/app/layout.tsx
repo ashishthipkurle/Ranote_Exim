@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Sora } from "next/font/google";
+import { Plus_Jakarta_Sans, Sora } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
@@ -12,6 +12,13 @@ import CookieConsent from "@/components/ui/CookieConsent";
 import { I18nProvider } from "@/components/i18n/I18nProvider";
 import CinematicPreloader from "@/components/ui/CinematicPreloader";
 import GlobalLoadingIndicator from "@/components/ui/GlobalLoadingIndicator";
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-plus-jakarta",
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+});
 
 const sora = Sora({
   subsets: ["latin"],
@@ -72,7 +79,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={`${plusJakarta.variable} ${sora.variable}`} suppressHydrationWarning>
       {/* eslint-disable-next-line @next/next/no-page-custom-font */}
       <head>
         <link

@@ -27,8 +27,10 @@ export default async function DashboardPage() {
       redirect("/dashboard/importer");
     case "CONSUMER":
     default:
-      // Fallback for generic users or consumers: 
-      // Redirect to marketplace or a default dashboard if one exists
-      redirect("/products");
+      // If the user has a business name or registered account, route to importer portal rather than dumping to marketplace
+      if (auth.user?.businessName) {
+        redirect("/dashboard/importer");
+      }
+      redirect("/dashboard/importer");
   }
 }

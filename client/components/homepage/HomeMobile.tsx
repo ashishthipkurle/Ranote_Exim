@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { ShoppingBag, ArrowRight, Globe, Shield, Zap, Package, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTranslation } from "@/lib/i18n/client";
 import { useTheme } from "next-themes";
 import { useState, useEffect, useRef } from "react";
-import LogoLight from "@/assests/LOGO_TEXT.png";
-import LogoDark from "@/assests/Logo-2-without-circle.png";
+import RanoteLogo from "@/components/ui/RanoteLogo";
 
 import TrendingCategories from "@/components/ui/TrendingCategories";
 import HomeFooter from "@/components/homepage/HomeFooter";
@@ -25,20 +23,15 @@ export default function HomeMobile() {
     setMounted(true);
   }, []);
 
-  const isDark = mounted && (resolvedTheme === "dark" || theme === "dark");
-  const LogoImg = isDark ? LogoDark : LogoLight;
-
-
-
   return (
     <div className="w-full bg-background text-foreground overflow-x-hidden">
       {/* ─── Mobile Top Navbar ─── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Image src={LogoImg} alt="Ranote Exim" className="h-8 w-auto object-contain" unoptimized />
-        </div>
+        <Link href="/" className="flex items-center gap-2" aria-label="Ranote Exim Home">
+          <RanoteLogo className="h-7 w-auto" />
+        </Link>
         <div className="flex items-center gap-3">
-          <Link href="/login" className="text-xs font-bold uppercase tracking-wider text-foreground/70">Login</Link>
+          <Link href="/login" className="text-xs font-bold uppercase tracking-wider text-foreground/70">{t("login", "Login")}</Link>
           <Link href="/products" className="bg-primary text-white p-2 rounded-full shadow-lg shadow-primary/20">
             <ShoppingBag className="w-4 h-4" />
           </Link>

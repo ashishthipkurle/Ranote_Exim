@@ -1,6 +1,8 @@
+export const dynamic = 'force-dynamic';
+
 import ImporterSidebar from "@/components/importer/ImporterSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import PageTransition from "@/components/ui/PageTransition";
 
@@ -18,7 +20,7 @@ export default async function ImporterLayout({ children }: { children: React.Rea
     redirect("/login");
   }
 
-  if (auth.role !== "IMPORTER" && auth.role !== "ADMIN") {
+  if (auth.role !== "IMPORTER" && auth.role !== "ADMIN" && auth.role !== "USER" && auth.role !== "CONSUMER") {
     console.warn(`[Auth Guard] Wrong role for importer dashboard: ${auth.role}. Redirecting...`);
     redirect("/dashboard");
   }
@@ -26,23 +28,21 @@ export default async function ImporterLayout({ children }: { children: React.Rea
   return (
     <DashboardCallWrapper>
       <SidebarProvider>
-        <DashboardScaler targetWidth={1440}>
-          <div className="flex flex-col h-full w-full bg-board transition-colors duration-300 overflow-hidden border border-slate-200 dark:border-white/5 shadow-2xl">
-            <DashboardHeader />
+        <div className="app h-screen flex flex-col bg-[#F4F4F7] overflow-hidden" style={{ height: "100vh" }}>
+          <DashboardHeader />
 
-            <div className="flex flex-1 overflow-hidden relative border-t border-slate-200 dark:border-white/5">
-              <ImporterSidebar basePath="/dashboard/importer" />
-              <SidebarInset>
-                <div className="flex-1 overflow-auto custom-scrollbar">
-                  <div className="px-8 py-6">
-                    <Breadcrumbs />
-                  </div>
-                  <PageTransition>{children}</PageTransition>
-                </div>
-              </SidebarInset>
-            </div>
+          <div className="body flex-1 min-h-0 flex relative">
+            <ImporterSidebar basePath="/dashboard/importer" />
+            <main className="main flex-1 min-w-0 min-h-0 overflow-y-auto p-3 md:pt-4 md:pr-5 md:pb-5 md:pl-0 custom-scrollbar">
+              <div className="page-card flex flex-col gap-6">
+                <Breadcrumbs />
+                <PageTransition>
+                  {children}
+                </PageTransition>
+              </div>
+            </main>
           </div>
-        </DashboardScaler>
+        </div>
       </SidebarProvider>
     </DashboardCallWrapper>
   );

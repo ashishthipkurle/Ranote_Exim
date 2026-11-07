@@ -9,8 +9,7 @@ import { useTranslation } from "@/lib/i18n/client";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 import { useTheme } from "next-themes";
 import { ShoppingBag } from "lucide-react";
-import LogoLight from "@/assests/LOGO_TEXT.png";
-import LogoDark from "@/assests/Logo-2-without-circle.png";
+import RanoteLogo from "@/components/ui/RanoteLogo";
 
 export default function HomeNavbar() {
   const { t } = useTranslation();
@@ -32,20 +31,20 @@ export default function HomeNavbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const isDark = mounted && (resolvedTheme === "dark" || theme === "dark");
-  const LogoImg = isDark ? LogoDark : LogoLight;
-
   return (
-    <nav id="home-navbar" className="sticky top-0 w-full z-50 transition-all duration-300" 
+    <nav
+      id="home-navbar"
+      className="sticky top-0 w-full z-50 transition-all duration-300"
       style={{
-        background: "rgba(255, 255, 255, 0.03)", 
+        background: "rgba(255, 255, 255, 0.03)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
-        boxShadow: "0 4px 30px rgba(0, 0, 0, 0.05)"
-      }}>
+        boxShadow: "0 4px 30px rgba(0, 0, 0, 0.05)",
+      }}
+    >
       <div className="relative w-full px-2 md:px-4 h-14 flex justify-between items-center">
-        <Link href="/" className="flex items-center flex-shrink-0">
-          <Image src={LogoImg} alt="Ranote Exim Logo" className={isDark ? "h-14 md:h-[75px] w-auto object-contain transition-all" : "h-8 md:h-10 w-auto object-contain transition-all"} unoptimized />
+        <Link href="/" className="flex items-center flex-shrink-0" aria-label="Ranote Exim Home">
+          <RanoteLogo className="h-8 md:h-10 w-auto" />
         </Link>
 
         <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-8">
@@ -54,7 +53,7 @@ export default function HomeNavbar() {
             href="/products"
           >
             <ShoppingBag className="w-4 h-4 group-hover:rotate-12 transition-transform text-primary" />
-            Marketplace
+            {t("marketplace", "Marketplace")}
           </Link>
         </div>
 
@@ -92,20 +91,34 @@ export default function HomeNavbar() {
                     <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                   </div>
                   <Link
-                    href={user.role?.toUpperCase() === "USER" ? "/products" : user.role?.toUpperCase() === "ADMIN" ? "/dashboard/exporter" : `/dashboard/${user.role?.toLowerCase()}`}
+                    href={
+                      user.role?.toUpperCase() === "ADMIN" || user.role?.toUpperCase() === "EXPORTER"
+                        ? "/dashboard/exporter"
+                        : user.role?.toUpperCase() === "IMPORTER"
+                        ? "/dashboard/importer"
+                        : user.role?.toUpperCase() === "SUPPLIER"
+                        ? "/dashboard/supplier"
+                        : "/dashboard"
+                    }
                     className="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-white/5 text-sm text-slate-700 dark:text-slate-300 hover:text-primary dark:hover:text-white transition-colors"
                     onClick={() => setIsProfileMenuOpen(false)}
                   >
                     <span className="material-icons text-sm text-primary">dashboard</span>
-                    {user.role === "USER" ? t("marketplace", "Marketplace") : t("dashboard", "Dashboard")}
+                    {t("dashboard", "Dashboard")}
                   </Link>
                   <Link
-                    href={user.role?.toUpperCase() === "USER" ? "/products" : user.role?.toUpperCase() === "ADMIN" ? "/dashboard/exporter/settings" : `/dashboard/${user.role?.toLowerCase()}/settings`}
+                    href={
+                      user.role?.toUpperCase() === "ADMIN" || user.role?.toUpperCase() === "EXPORTER"
+                        ? "/dashboard/exporter/settings"
+                        : user.role?.toUpperCase() === "SUPPLIER"
+                        ? "/dashboard/supplier/settings"
+                        : "/dashboard/importer/settings"
+                    }
                     className="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-white/5 text-sm text-slate-700 dark:text-slate-300 hover:text-primary dark:hover:text-white transition-colors"
                     onClick={() => setIsProfileMenuOpen(false)}
                   >
                     <span className="material-icons text-sm text-primary">settings</span>
-                    {t("navbar.view_profile", "View Profile")}
+                    {t("navbar.profile_settings", "Profile & Settings")}
                   </Link>
                   <button
                     onClick={() => {

@@ -2,160 +2,162 @@
 
 import React, { useState } from "react";
 import { 
- FolderTree, 
- Search, 
- Filter, 
- MoreVertical, 
- Package, 
- ArrowRight,
- TrendingUp,
- ShieldCheck,
- Clock,
- CheckCircle2,
- AlertCircle,
- Calendar,
- Handshake
+  FolderTree, 
+  Search, 
+  Package, 
+  ArrowRight,
+  Handshake,
+  Download,
 } from "lucide-react";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/api-utils";
 
 interface SupplyOrder {
- id: string;
- orderNumber: string;
- productName: string;
- exporterName: string;
- quantity: number;
- totalValue: number;
- status: "PROCESSED" | "SHIPPED" | "DELIVERED" | "PENDING";
- date: string;
+  id: string;
+  orderNumber: string;
+  productName: string;
+  exporterName: string;
+  quantity: number;
+  totalValue: number;
+  status: "PROCESSED" | "SHIPPED" | "DELIVERED" | "PENDING";
+  date: string;
 }
 
 export default function SupplierOrdersPage() {
- const [search, setSearch] = useState("");
- 
- // Mock data
- const [orders] = useState<SupplyOrder[]>([
- { id: "1", orderNumber: "SO-98211", productName: "Premium Raw Silicon", exporterName: "Tech-Ex General", quantity: 2000, totalValue: 45000, status: "SHIPPED", date: "2024-03-18" },
- { id: "2", orderNumber: "SO-98105", productName: "Industrial Grade Copper", exporterName: "Global Trade Corp", quantity: 5000, totalValue: 68500, status: "DELIVERED", date: "2024-02-25" },
- { id: "3", orderNumber: "SO-98442", productName: "Grade-A Textile Fiber", exporterName: "SilkWay Exporters", quantity: 3000, totalValue: 15000, status: "PENDING", date: "2024-03-22" },
- ]);
+  const [search, setSearch] = useState("");
+  
+  const [orders] = useState<SupplyOrder[]>([
+    { id: "1", orderNumber: "SO-98211", productName: "Premium Raw Silicon", exporterName: "Tech-Ex General", quantity: 2000, totalValue: 45000, status: "SHIPPED", date: "2024-03-18" },
+    { id: "2", orderNumber: "SO-98105", productName: "Industrial Grade Copper", exporterName: "Global Trade Corp", quantity: 5000, totalValue: 68500, status: "DELIVERED", date: "2024-02-25" },
+    { id: "3", orderNumber: "SO-98442", productName: "Grade-A Textile Fiber", exporterName: "SilkWay Exporters", quantity: 3000, totalValue: 15000, status: "PENDING", date: "2024-03-22" },
+  ]);
 
- const filtered = orders.filter(o => 
- o.orderNumber.toLowerCase().includes(search.toLowerCase()) || 
- o.productName.toLowerCase().includes(search.toLowerCase()) ||
- o.exporterName.toLowerCase().includes(search.toLowerCase())
- );
+  const filtered = orders.filter(o => 
+    o.orderNumber.toLowerCase().includes(search.toLowerCase()) || 
+    o.productName.toLowerCase().includes(search.toLowerCase()) ||
+    o.exporterName.toLowerCase().includes(search.toLowerCase())
+  );
 
- return (
- <div className="space-y-10 pb-20">
- {/* Header */}
- <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
- <div className="space-y-2">
- <h1 className="text-4xl font-black uppercase tracking-tighter flex items-center gap-3">
- <FolderTree className="w-8 h-8 text-[#D4AF37]" />
- Supply Orders
- </h1>
- <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-2 opacity-50">Distribution Node Logistics Ledger</p>
- </div>
+  return (
+    <div className="space-y-6 w-full">
+      {/* ─── Header ─── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-[#F0ECE0]">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-[0.14em] bg-[#FBF1D6] text-[#7A560A]">
+              Supplier Ledger
+            </span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B6A66]">
+              Distribution Node
+            </span>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#15130D]">
+            Supply Orders
+          </h1>
+          <p className="text-sm text-[#6B6A66] mt-0.5">
+            Track wholesale supply fulfillment and dispatch sequences to partner exporters.
+          </p>
+        </div>
 
- <div className="flex items-center gap-3">
- <Button variant="outline" className="rounded-xl border-[#D4AF37]/20 bg-[#D4AF37]/5 text-[#D4AF37] hover:bg-[#D4AF37]/10 font-bold uppercase text-[10px] tracking-widest h-12 px-6">
- Manifest Report
- </Button>
- </div>
- </div>
+        <button className="btn-cream-secondary">
+          <Download className="w-4 h-4 stroke-[1.8]" />
+          Manifest Report
+        </button>
+      </div>
 
- {/* Filters */}
- <div className="flex flex-col md:flex-row gap-4">
- <div className="relative flex-1 group/search">
- <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within/search:text-[#D4AF37] transition-colors" />
- <input
- type="text"
- placeholder="Filter supply logs..."
- className="w-full bg-card/30 border border-white/5 rounded-lg pl-14 pr-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/20 transition-all font-bold placeholder:uppercase placeholder:text-[10px] placeholder:tracking-widest"
- value={search}
- onChange={(e) => setSearch(e.target.value)}
- />
- </div>
- <Button variant="outline" className="h-14 px-6 rounded-lg border-white/5 bg-card/30 font-bold uppercase text-[10px] tracking-widest gap-3">
- <Calendar className="w-4 h-4" />
- Timeline
- </Button>
- </div>
+      {/* ─── Search Bar ─── */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B6A66] stroke-[1.8]" />
+        <input
+          type="text"
+          placeholder="Filter supply logs by order #, product, or exporter..."
+          className="w-full h-11 bg-[#F4F4F7] border border-[#F0ECE0] rounded-full pl-11 pr-4 text-sm text-[#15130D] placeholder:text-[#6B6A66] focus:outline-none focus:border-[#C4912A] transition-colors"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
- {/* List */}
- <div className="space-y-4">
- {filtered.map((order) => (
- <motion.div
- key={order.id}
- initial={{ opacity: 0, scale: 0.98 }}
- animate={{ opacity: 1, scale: 1 }}
- className="group"
- >
- <Card className="bg-card/20 border-white/5 rounded-lg overflow-hidden hover:border-[#D4AF37]/30 transition-all duration-500 shadow-xl">
- <CardContent className="p-8">
- <div className="flex flex-col lg:flex-row lg:items-center gap-8">
- {/* Order Info */}
- <div className="flex items-center gap-6 lg:w-[25%] shrink-0">
- <div className="size-16 rounded-lg bg-muted/20 flex items-center justify-center text-[#D4AF37]">
- <Package className="w-8 h-8 opacity-40 group-hover:opacity-100 transition-opacity" />
- </div>
- <div>
- <h3 className="font-black uppercase tracking-tighter text-lg">{order.orderNumber}</h3>
- <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40 ">{order.date}</p>
- </div>
- </div>
+      {/* ─── Orders List ─── */}
+      <div className="space-y-3">
+        {filtered.map((order) => (
+          <div
+            key={order.id}
+            className="rounded-[24px] border border-[#F0ECE0] bg-gradient-to-b from-white to-[#FFFBF0] p-6 shadow-sm hover:shadow-md transition-shadow"
+          >
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              {/* Order Info */}
+              <div className="flex items-center gap-4 lg:w-[25%] shrink-0">
+                <div className="w-12 h-12 rounded-[16px] bg-[#FBF1D6] text-[#C4912A] flex items-center justify-center shrink-0">
+                  <Package className="w-6 h-6 stroke-[1.8]" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold uppercase text-sm text-[#15130D]">
+                    {order.orderNumber}
+                  </h3>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B6A66]">
+                    {order.date}
+                  </p>
+                </div>
+              </div>
 
- {/* Product & Exporter */}
- <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
- <div className="space-y-1">
- <p className="text-[8px] font-black uppercase tracking-widest text-[#D4AF37]/60 ">Product Specification</p>
- <p className="font-bold text-sm uppercase tracking-tight">{order.productName}</p>
- </div>
- <div className="space-y-1">
- <p className="text-[8px] font-black uppercase tracking-widest text-primary/60 ">Destination Node</p>
- <p className="font-bold text-sm uppercase tracking-tight flex items-center gap-2">
- <Handshake className="w-3 h-3" />
- {order.exporterName}
- </p>
- </div>
- </div>
+              {/* Product & Exporter */}
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B6A66]">
+                    Product Specification
+                  </p>
+                  <p className="font-bold text-sm text-[#15130D] mt-0.5">
+                    {order.productName}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B6A66]">
+                    Destination Exporter
+                  </p>
+                  <p className="font-bold text-sm text-[#15130D] mt-0.5 flex items-center gap-1.5">
+                    <Handshake className="w-4 h-4 text-[#C4912A] stroke-[1.8]" />
+                    {order.exporterName}
+                  </p>
+                </div>
+              </div>
 
- {/* Quant & Value */}
- <div className="flex items-center gap-10 lg:w-[15%] shrink-0">
- <div className="text-center">
- <p className="text-[8px] font-black tracking-widest uppercase opacity-40 mb-1">Qty</p>
- <p className="font-black tracking-tighter tabular-nums">{order.quantity}</p>
- </div>
- <div className="text-right">
- <p className="text-[8px] font-black tracking-widest uppercase opacity-40 mb-1">Value</p>
- <p className="font-black tracking-tighter tabular-nums text-emerald-500">{formatCurrency(order.totalValue)}</p>
- </div>
- </div>
+              {/* Qty & Value */}
+              <div className="flex items-center gap-8 lg:w-[20%] shrink-0">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B6A66]">
+                    Qty
+                  </p>
+                  <p className="text-base font-extrabold text-[#15130D] mt-0.5">
+                    {order.quantity.toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B6A66]">
+                    Value
+                  </p>
+                  <p className="text-base font-extrabold text-[#0B7A57] mt-0.5">
+                    {formatCurrency(order.totalValue)}
+                  </p>
+                </div>
+              </div>
 
- {/* Status */}
- <div className="flex items-center justify-between lg:w-[15%] lg:justify-end gap-6">
- <Badge className={`rounded-lg uppercase text-[8px] font-black tracking-widest px-3 py-1 ${
- order.status === "DELIVERED" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
- order.status === "SHIPPED" ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
- order.status === "PENDING" ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
- "bg-indigo-500/10 text-indigo-500 border-indigo-500/20"
- }`}>
- {order.status}
- </Badge>
- <Button variant="ghost" size="icon" className="rounded-full hover:bg-[#D4AF37] hover:text-black transition-all">
- <ArrowRight className="w-5 h-5" />
- </Button>
- </div>
- </div>
- </CardContent>
- </Card>
- </motion.div>
- ))}
- </div>
- </div>
- );
+              {/* Status */}
+              <div className="flex items-center justify-between lg:w-[15%] lg:justify-end gap-3">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-[0.14em] ${
+                  order.status === "DELIVERED" ? "bg-[#E2F5EE] text-[#0B7A57]" :
+                  order.status === "SHIPPED" ? "bg-[#FBF1D6] text-[#7A560A]" :
+                  order.status === "PENDING" ? "bg-[#FFFBF0] border border-[#F0ECE0] text-[#6B6A66]" :
+                  "bg-[#F7F5F0] text-[#15130D]"
+                }`}>
+                  {order.status}
+                </span>
+                <button className="w-10 h-10 rounded-full border border-[#F0ECE0] bg-white hover:bg-[#FBF1D6] text-[#15130D] flex items-center justify-center transition-colors">
+                  <ArrowRight className="w-4 h-4 stroke-[2]" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }

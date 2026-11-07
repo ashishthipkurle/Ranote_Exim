@@ -451,7 +451,7 @@ export default function ExporterUsersPage() {
                             </div>
                           </div>
                           <p className="text-sm font-bold text-foreground">
-                            {doc.docType.replace(/_/g, " ")}
+                            {String(doc.docType || "DOCUMENT").replace(/_/g, " ")}
                           </p>
                           {doc.fileName && (
                             <p className="text-xs text-muted-foreground mt-1 truncate">{doc.fileName}</p>
