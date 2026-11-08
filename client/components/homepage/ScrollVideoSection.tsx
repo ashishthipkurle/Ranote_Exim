@@ -809,6 +809,7 @@ export default function ScrollVideoSection() {
                                                             <div className="p-1.5 flex flex-col gap-1">
                                                                 <Link
                                                                     href={user.role?.toUpperCase() === "USER" ? "/products" : user.role?.toUpperCase() === "ADMIN" ? "/dashboard/exporter" : `/dashboard/${user.role?.toLowerCase()}`}
+                                                                    prefetch={false}
                                                                     className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-white/10 text-white/70 hover:text-white transition-all group"
                                                                     onClick={() => setIsProfileOpen(false)}
                                                                 >

@@ -133,6 +133,9 @@ function GlobalLoadingIndicatorInner() {
 
         // Mark this link as navigating to block multiple clicks
         target.setAttribute("data-navigating", "true");
+        setTimeout(() => {
+          target.removeAttribute("data-navigating");
+        }, 2000);
 
         // Start top progress bar and feedback immediately
         startLoading();
@@ -159,7 +162,7 @@ function GlobalLoadingIndicatorInner() {
           }
         }
       } catch {}
-      return originalFetch.apply(this, arguments as any);
+      return originalFetch.call(window, input, init);
     };
 
     // Monkey-patch history methods for programmatic router.push navigations

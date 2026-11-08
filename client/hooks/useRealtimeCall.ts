@@ -112,7 +112,7 @@ export function useRealtimeCall() {
   const activeCallRef = useRef<ActiveCallInfo | null>(null);
   const pendingSignalsRef = useRef<Map<string, SignalData[]>>(new Map());
   const hasSentIncomingInviteRef = useRef(false);
-  const ringtoneRef = useRef<HTMLAudioElement | null>(null); // reserved for future use
+  const _ringtoneRef = useRef<HTMLAudioElement | null>(null); // reserved for future use
   const isAcceptingRef = useRef(false);
   const endingSessionIdsRef = useRef<Set<string>>(new Set());
 
@@ -168,8 +168,8 @@ export function useRealtimeCall() {
 
   const sendSignalEvent = useCallback(
     async (event: "incoming-call" | "call-signal" | "call-accepted" | "call-ended", payload: Record<string, unknown>) => {
-      if (!socket.connected) {
-        console.error("[Call Hook] Socket disconnected. Cannot send event:", event);
+      if (!socket || !socket.connected) {
+        console.warn("[Call Hook] Socket disconnected. Cannot send event:", event);
         return;
       }
       socket.emit(event, payload);
@@ -543,7 +543,7 @@ export function useRealtimeCall() {
   }, [isCameraEnabled]);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !socket) return;
 
     socket.emit("join-user-room", user.id);
 
@@ -626,16 +626,20 @@ export function useRealtimeCall() {
       void endCurrentCall(payload.reason || "ended", true);
     };
 
-    socket.on("incoming-call", onIncomingCall);
-    socket.on("call-signal", onCallSignal);
-    socket.on("call-accepted", onCallAccepted);
-    socket.on("call-ended", onCallEnded);
+    if (socket) {
+      socket.on("incoming-call", onIncomingCall);
+      socket.on("call-signal", onCallSignal);
+      socket.on("call-accepted", onCallAccepted);
+      socket.on("call-ended", onCallEnded);
+    }
 
     return () => {
-      socket.off("incoming-call", onIncomingCall);
-      socket.off("call-signal", onCallSignal);
-      socket.off("call-accepted", onCallAccepted);
-      socket.off("call-ended", onCallEnded);
+      if (socket) {
+        socket.off("incoming-call", onIncomingCall);
+        socket.off("call-signal", onCallSignal);
+        socket.off("call-accepted", onCallAccepted);
+        socket.off("call-ended", onCallEnded);
+      }
 
       destroyPeer();
       stopAndClearStreams();

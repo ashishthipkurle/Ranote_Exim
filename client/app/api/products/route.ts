@@ -235,7 +235,7 @@ export async function POST(request: NextRequest) {
         data: {
           productId: newProduct.id,
           price: newProduct.price,
-          currency: "USD",
+          currency: newProduct.currency || "USD",
         } as any,
       });
 

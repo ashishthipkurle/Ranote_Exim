@@ -261,8 +261,8 @@ export default function AdminShowcasePage() {
 
       <div className="space-y-6">
         {/* Add Product Section */}
-        <div className="bg-gradient-to-b from-white to-[#FFFBF0] border border-[#F0ECE0] rounded-[24px] shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-[#F0ECE0] flex items-center gap-3">
+        <div className="bg-gradient-to-b from-white to-[#FFFBF0] border border-[#F0ECE0] rounded-[24px] shadow-sm relative z-30">
+          <div className="p-6 border-b border-[#F0ECE0] flex items-center gap-3 rounded-t-[24px]">
             <div className="size-10 rounded-[14px] bg-[#FBF1D6] text-[#C4912A] flex items-center justify-center">
               <Star className="w-5 h-5 fill-current" />
             </div>
@@ -301,54 +301,66 @@ export default function AdminShowcasePage() {
                         </button>
                       </div>
                     ) : (
-                      <input
-                        type="text"
-                        placeholder="Search products by name or category..."
-                        className="bg-transparent outline-none flex-1 placeholder-slate-400"
-                        value={searchQuery}
-                        onChange={(e) => {
-                          setSearchQuery(e.target.value);
-                          setIsDropdownOpen(true);
-                        }}
-                        onFocus={() => setIsDropdownOpen(true)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
+                      <>
+                        <input
+                          type="text"
+                          placeholder="Search products by name or category..."
+                          className="bg-transparent outline-none flex-1 placeholder-slate-400 min-w-0"
+                          value={searchQuery}
+                          onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setIsDropdownOpen(true);
+                          }}
+                          onFocus={() => setIsDropdownOpen(true)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsDropdownOpen(true);
+                          }}
+                        />
+                        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 flex-shrink-0 ${isDropdownOpen ? "rotate-180 text-primary" : ""}`} />
+                      </>
                     )}
                   </div>
 
                   {/* Dropdown Results */}
                   {isDropdownOpen && !selectedProduct && (
-                    <div className="absolute z-50 mt-2 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl shadow-2xl shadow-slate-200/50 dark:shadow-black/40 max-h-64 overflow-y-auto overscroll-contain custom-scrollbar">
+                    <div className="absolute z-[100] top-full left-0 mt-2 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl shadow-2xl shadow-black/15 dark:shadow-black/60 max-h-[360px] overflow-y-auto overscroll-contain [scrollbar-width:thin] [scrollbar-color:#C4912A_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-amber-400/80 hover:[&::-webkit-scrollbar-thumb]:bg-amber-500 [&::-webkit-scrollbar-track]:bg-slate-100 dark:[&::-webkit-scrollbar-track]:bg-slate-800">
                       {filteredProducts.length > 0 ? (
-                        filteredProducts.map(p => (
-                          <button
-                            type="button"
-                            key={p.id}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-white/5 last:border-b-0"
-                            onClick={() => {
-                              setSelectedProductId(p.id);
-                              setSearchQuery("");
-                              setIsDropdownOpen(false);
-                            }}
-                          >
-                            {p.images?.[0] ? (
-                              <img
-                                src={p.images[0]}
-                                alt=""
-                                className="w-10 h-10 rounded-lg object-cover bg-slate-100 dark:bg-slate-800 flex-shrink-0"
-                                onError={(e) => (e.currentTarget.style.display = "none")}
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
-                                <PackageSearch className="w-5 h-5 text-slate-400" />
+                        <>
+                          <div className="sticky top-0 z-10 px-4 py-2 bg-slate-50 dark:bg-slate-800/90 border-b border-slate-100 dark:border-white/10 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 backdrop-blur-md">
+                            <span>{filteredProducts.length} Product{filteredProducts.length !== 1 ? 's' : ''} Available</span>
+                            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Scroll to view all</span>
+                          </div>
+                          {filteredProducts.map(p => (
+                            <button
+                              type="button"
+                              key={p.id}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-amber-50/60 dark:hover:bg-slate-800/80 transition-colors border-b border-slate-100 dark:border-white/5 last:border-b-0 cursor-pointer group"
+                              onClick={() => {
+                                setSelectedProductId(p.id);
+                                setSearchQuery("");
+                                setIsDropdownOpen(false);
+                              }}
+                            >
+                              {p.images?.[0] ? (
+                                <img
+                                  src={p.images[0]}
+                                  alt=""
+                                  className="w-11 h-11 rounded-lg object-cover bg-slate-100 dark:bg-slate-800 flex-shrink-0 border border-slate-200 dark:border-white/10"
+                                  onError={(e) => (e.currentTarget.style.display = "none")}
+                                />
+                              ) : (
+                                <div className="w-11 h-11 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 border border-slate-200 dark:border-white/10">
+                                  <PackageSearch className="w-5 h-5 text-slate-400" />
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate group-hover:text-primary transition-colors">{p.name}</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">{p.category?.toLowerCase() || "General"}</p>
                               </div>
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{p.name}</p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400">{p.category}</p>
-                            </div>
-                          </button>
-                        ))
+                            </button>
+                          ))}
+                        </>
                       ) : (
                         <div className="px-4 py-8 text-center text-sm text-slate-500">
                           <PackageSearch className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-600" />

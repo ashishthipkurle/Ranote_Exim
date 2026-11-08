@@ -139,8 +139,8 @@ export async function getApiAuthContext(
           metaRole && metaRole !== "USER" && metaRole !== "CONSUMER"
             ? metaRole
             : user.email.toLowerCase().includes("admin") || user.email.toLowerCase().includes("exporter")
-            ? "EXPORTER"
-            : "IMPORTER";
+              ? "EXPORTER"
+              : "IMPORTER";
 
         dbUser = {
           id: user.id,
@@ -193,7 +193,7 @@ export async function getApiAuthContext(
     // Asynchronously update Supabase users table if role was out of sync
     try {
       const adminClient = createAdminClient();
-      adminClient.from("users").update({ role: dbUser.role }).eq("id", dbUser.id).then(() => {}).catch(() => {});
+      void Promise.resolve(adminClient.from("users").update({ role: dbUser.role }).eq("id", dbUser.id)).catch(() => { });
     } catch {
       // Non-blocking
     }
@@ -226,13 +226,13 @@ export async function getApiAuthContext(
       throw e;
     }
     console.error("[Auth] Fatal error in getApiAuthContext:", e);
-    
+
     const errMsg = e?.message?.toLowerCase() || "";
     if (
-      errMsg.includes("fetch") || 
-      errMsg.includes("network") || 
-      errMsg.includes("connect") || 
-      errMsg.includes("reach database") || 
+      errMsg.includes("fetch") ||
+      errMsg.includes("network") ||
+      errMsg.includes("connect") ||
+      errMsg.includes("reach database") ||
       errMsg.includes("database server") ||
       e?.code === "ECONNREFUSED" ||
       e?.code === "P1001" ||

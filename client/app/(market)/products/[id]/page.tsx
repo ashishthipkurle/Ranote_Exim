@@ -27,8 +27,6 @@ import WishlistButton from "@/components/marketplace/WishlistButton";
 import { isB2CActive } from "@/lib/trade-mode";
 import { getServerAuthContext } from "@/lib/auth-server";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { DashboardScaler } from "@/components/dashboard/DashboardScaler";
 import PageTransition from "@/components/ui/PageTransition";
 import { extractProductMeta } from "@/lib/categories";
 
@@ -41,12 +39,16 @@ type ProductReview = {
   createdAt: string;
 };
 
-function formatMoney(amount: number) {
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  }).format(amount);
+function formatMoney(amount: number, currency = "USD") {
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: currency || "USD",
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${currency} ${amount.toFixed(2)}`;
+  }
 }
 
 export default async function ProductDetailPage({
@@ -96,20 +98,17 @@ export default async function ProductDetailPage({
   const hasHalf = avgRating - fullStars >= 0.5;
 
   return (
-    <SidebarProvider defaultOpen={false}>
-      <DashboardScaler targetWidth={1440}>
-        <div className="flex flex-col h-full w-full bg-board transition-colors duration-300 overflow-hidden border border-slate-200 dark:border-white/5 shadow-2xl">
-          <DashboardHeader />
-          <SidebarInset className="overflow-hidden">
-            <div className="flex-1 overflow-y-auto custom-scrollbar bg-surface h-[calc(100vh-60px)]">
-              <PageTransition>
-                <div className="bg-background min-h-screen">
-                  {/* Back Button */}
-                  <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 pb-2">
-                    <Link href="/products" className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-primary transition-colors w-fit">
-                        <ChevronLeft className="w-4 h-4" /> Back to Marketplace
-                    </Link>
-                  </div>
+    <div className="min-h-screen flex flex-col bg-background">
+      <DashboardHeader />
+      <main className="flex-1 w-full">
+        <PageTransition>
+          <div className="bg-background min-h-screen pb-16">
+            {/* Back Button */}
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 pb-2">
+              <Link href="/products" className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-primary transition-colors w-fit">
+                <ChevronLeft className="w-4 h-4" /> Back to Marketplace
+              </Link>
+            </div>
 
                   {/* ── Hero Section ── */}
                   <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -236,10 +235,10 @@ export default async function ProductDetailPage({
                                   </p>
                                   <div className="flex items-baseline gap-2">
                                     <span className="text-4xl font-extrabold tracking-tight text-foreground">
-                                      {formatMoney(currentPrice)}
+                                      {formatMoney(currentPrice, product.currency || "USD")}
                                     </span>
                                     <span className="text-muted-foreground/50 text-sm line-through">
-                                      {formatMoney(oldPrice)}
+                                      {formatMoney(oldPrice, product.currency || "USD")}
                                     </span>
                                   </div>
                                 </>
@@ -255,7 +254,7 @@ export default async function ProductDetailPage({
                                   </div>
                                   <p className="text-xs text-muted-foreground mt-1">
                                     {product.price > 0 ? (
-                                      <span>Benchmark Reference: <strong className="text-foreground">${product.price} / {product.unit}</strong>. Custom rates negotiated per volume.</span>
+                                      <span>Benchmark Reference: <strong className="text-foreground">{formatMoney(product.price, product.currency || "USD")} / {product.unit}</strong>. Custom rates negotiated per volume.</span>
                                     ) : (
                                       <span>Rates provided upon inquiry based on quantity, packaging & FOB/CIF terms.</span>
                                     )}
@@ -463,7 +462,7 @@ export default async function ProductDetailPage({
                                 <p className="text-sm font-bold text-foreground line-clamp-1">{item.name}</p>
                                 <span className="text-sm font-extrabold text-primary ml-2 whitespace-nowrap">
                                   {b2cActive 
-                                    ? formatMoney(role === "IMPORTER" ? (item.b2bPrice || item.price) : (item.regularPrice || item.price))
+                                    ? formatMoney(role === "IMPORTER" ? (item.b2bPrice || item.price) : (item.regularPrice || item.price), (item as any).currency || "USD")
                                     : "Quote"
                                   }
                                 </span>
@@ -479,10 +478,7 @@ export default async function ProductDetailPage({
                   )}
                 </div>
               </PageTransition>
-            </div>
-          </SidebarInset>
-        </div>
-      </DashboardScaler>
-    </SidebarProvider>
+            </main>
+          </div>
   );
 }

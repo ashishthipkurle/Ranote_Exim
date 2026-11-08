@@ -41,6 +41,47 @@ const CATEGORIES = [
   { value: "OTHER", label: "Other (Custom...)", icon: Plus },
 ];
 
+export const CURRENCIES = [
+  { code: "USD", symbol: "$", label: "USD - US Dollar ($)" },
+  { code: "INR", symbol: "₹", label: "INR - Indian Rupee (₹)" },
+  { code: "EUR", symbol: "€", label: "EUR - Euro (€)" },
+  { code: "GBP", symbol: "£", label: "GBP - British Pound (£)" },
+  { code: "AED", symbol: "د.إ", label: "AED - UAE Dirham (د.إ)" },
+  { code: "SAR", symbol: "﷼", label: "SAR - Saudi Riyal (﷼)" },
+  { code: "CNY", symbol: "¥", label: "CNY - Chinese Yuan (¥)" },
+  { code: "JPY", symbol: "¥", label: "JPY - Japanese Yen (¥)" },
+  { code: "AUD", symbol: "A$", label: "AUD - Australian Dollar (A$)" },
+  { code: "CAD", symbol: "C$", label: "CAD - Canadian Dollar (C$)" },
+  { code: "SGD", symbol: "S$", label: "SGD - Singapore Dollar (S$)" },
+  { code: "CHF", symbol: "CHF", label: "CHF - Swiss Franc (CHF)" },
+  { code: "HKD", symbol: "HK$", label: "HKD - Hong Kong Dollar (HK$)" },
+  { code: "RUB", symbol: "₽", label: "RUB - Russian Ruble (₽)" },
+  { code: "BRL", symbol: "R$", label: "BRL - Brazilian Real (R$)" },
+  { code: "ZAR", symbol: "R", label: "ZAR - South African Rand (R)" },
+  { code: "KRW", symbol: "₩", label: "KRW - South Korean Won (₩)" },
+  { code: "TRY", symbol: "₺", label: "TRY - Turkish Lira (₺)" },
+  { code: "IDR", symbol: "Rp", label: "IDR - Indonesian Rupiah (Rp)" },
+  { code: "MYR", symbol: "RM", label: "MYR - Malaysian Ringgit (RM)" },
+  { code: "THB", symbol: "฿", label: "THB - Thai Baht (฿)" },
+  { code: "VND", symbol: "₫", label: "VND - Vietnamese Dong (₫)" },
+  { code: "PHP", symbol: "₱", label: "PHP - Philippine Peso (₱)" },
+  { code: "MXN", symbol: "Mex$", label: "MXN - Mexican Peso (Mex$)" },
+  { code: "QAR", symbol: "QR", label: "QAR - Qatari Riyal (QR)" },
+  { code: "KWD", symbol: "KD", label: "KWD - Kuwaiti Dinar (KD)" },
+  { code: "OMR", symbol: "OMR", label: "OMR - Omani Rial (OMR)" },
+  { code: "BHD", symbol: "BD", label: "BHD - Bahraini Dinar (BD)" },
+  { code: "NZD", symbol: "NZ$", label: "NZD - New Zealand Dollar (NZ$)" },
+  { code: "SEK", symbol: "kr", label: "SEK - Swedish Krona (kr)" },
+  { code: "NOK", symbol: "kr", label: "NOK - Norwegian Krone (kr)" },
+  { code: "PLN", symbol: "zł", label: "PLN - Polish Zloty (zł)" },
+  { code: "EGP", symbol: "E£", label: "EGP - Egyptian Pound (E£)" },
+  { code: "NGN", symbol: "₦", label: "NGN - Nigerian Naira (₦)" },
+  { code: "KES", symbol: "KSh", label: "KES - Kenyan Shilling (KSh)" },
+  { code: "BDT", symbol: "৳", label: "BDT - Bangladeshi Taka (৳)" },
+  { code: "PKR", symbol: "₨", label: "PKR - Pakistani Rupee (₨)" },
+  { code: "LKR", symbol: "Rs", label: "LKR - Sri Lankan Rupee (Rs)" },
+];
+
 type ProductData = {
   id?: string;
   name: string;
@@ -48,6 +89,7 @@ type ProductData = {
   description: string;
   price: number;
   regularPrice: number;
+  currency?: string;
   minOrderQty: number;
   unit: string;
   originCountry: string;
@@ -64,6 +106,7 @@ const defaultProduct: ProductData = {
   description: "",
   price: 0,
   regularPrice: 0,
+  currency: "USD",
   minOrderQty: 1,
   unit: "pcs",
   originCountry: "India",
@@ -191,6 +234,10 @@ export default function ProductForm({
   const activeCategoryKey = form.category.startsWith("CUSTOM_CAT:") ? "OTHER" : form.category;
   const suggestedSubCategories = useMemo(() => getSuggestedSubCategories(activeCategoryKey), [activeCategoryKey]);
   const suggestedCompanies = useMemo(() => getSuggestedCompanies(activeCategoryKey), [activeCategoryKey]);
+
+  const selectedCurrency = useMemo(() => {
+    return CURRENCIES.find((c) => c.code === (form.currency || "USD")) || CURRENCIES[0];
+  }, [form.currency]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -559,61 +606,104 @@ export default function ProductForm({
             </div>
           </div>
 
-          {/* Section 2: Pricing & Inventory */}
+          {/* Section 2: Wholesale Quotation & Pricing (Amount Section) */}
           <div className={sectionClass}>
              <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <DollarSign className="w-5 h-5 text-primary" />
-                <h2 className="font-bold text-slate-800 dark:text-slate-200">Wholesale Quotation & Inventory</h2>
+                <h2 className="font-bold text-slate-800 dark:text-slate-200">Wholesale Quotation & Pricing</h2>
               </div>
               <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                B2B Trade Model
+                B2B Trade Pricing
               </span>
             </div>
             <div className="p-6">
               <div className="p-3 mb-6 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/30 rounded-lg text-xs text-amber-900 dark:text-amber-300 flex items-start gap-2.5">
                 <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
                 <div className="leading-relaxed">
-                  <strong>B2B Quotation Pricing:</strong> In B2B wholesale trade, buyers request a formal quotation directly from their cart. The wholesale price below acts as a benchmark reference rate or can be set to <strong>$0</strong> for <em>&quot;Price on Request / Quote on Demand&quot;</em>.
+                  <strong>B2B Quotation Pricing:</strong> In B2B wholesale trade, buyers request a formal quotation directly from their cart. The wholesale price below acts as a benchmark reference rate or can be set to <strong>0</strong> for <em>&quot;Price on Request / Quote on Demand&quot;</em>.
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              {/* Trade Currency Selector */}
+              <div className="mb-6">
+                <label className={labelClass}>Trade Currency *</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <select
+                    name="currency"
+                    value={form.currency || "USD"}
+                    onChange={handleChange}
+                    className={inputClass}
+                  >
+                    {CURRENCIES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-slate-400 flex items-center">
+                    All prices for this product will be quoted and displayed in {selectedCurrency.code} ({selectedCurrency.symbol}).
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                  <label className={labelClass}>Catalog List / Reference Price (USD)</label>
+                  <label className={labelClass}>Catalog List / Reference Price ({selectedCurrency.code})</label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
+                      {selectedCurrency.symbol}
+                    </span>
                     <input
                       name="regularPrice"
                       type="number"
+                      step="any"
                       value={form.regularPrice || ""}
                       onChange={handleChange}
                       placeholder="0.00"
-                      className={inputClass + " pl-8"}
+                      className={inputClass + " pl-9"}
                     />
                   </div>
                   <p className="text-[11px] text-slate-400 mt-1">Optional manufacturer MSRP or standard retail reference.</p>
                 </div>
                 <div>
-                  <label className={labelClass}>Wholesale Benchmark Rate (USD)</label>
+                  <label className={labelClass}>Wholesale Benchmark Rate ({selectedCurrency.code})</label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
+                      {selectedCurrency.symbol}
+                    </span>
                     <input
                       name="price"
                       type="number"
+                      step="any"
                       value={form.price || ""}
                       onChange={handleChange}
                       placeholder="0.00 (or leave 0 for Quote on Demand)"
-                      className={inputClass + " pl-8 border-primary/30"}
+                      className={inputClass + " pl-9 border-primary/30"}
                     />
                   </div>
                   <p className="text-[11px] text-slate-400 mt-1">Optional benchmark rate. Leave 0 for &quot;Quote on Demand&quot;.</p>
                   {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price}</p>}
                 </div>
               </div>
+            </div>
+          </div>
 
+          {/* Section 3: Quantity, Inventory & HS Code Specification (Merged Section) */}
+          <div className={sectionClass}>
+             <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Package className="w-5 h-5 text-primary" />
+                <h2 className="font-bold text-slate-800 dark:text-slate-200">Quantity, Inventory & HS Code</h2>
+              </div>
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                Fulfillment & Customs
+              </span>
+            </div>
+            <div className="p-6 space-y-6">
+              {/* Quantity, Unit & Capacity */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                 <div>
+                <div>
                   <label className={labelClass}>Minimum Order Qty (MOQ) *</label>
                   <input
                     name="minOrderQty"
@@ -650,18 +740,10 @@ export default function ProductForm({
                   />
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Section 3: Extra Specifications */}
-          <div className={sectionClass}>
-             <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] flex items-center gap-3">
-              <ShieldCheck className="w-5 h-5 text-primary" />
-              <h2 className="font-bold text-slate-800 dark:text-slate-200">Compliance & Certifications</h2>
-            </div>
-            <div className="p-6 space-y-6">
-               <div>
-                <label className={labelClass}>HS Code (Harmonized System)</label>
+              {/* HS Code Specification */}
+              <div className="pt-4 border-t border-slate-100 dark:border-white/5">
+                <label className={labelClass}>HS Code (Harmonized System Code)</label>
                 <div className="flex gap-2">
                   <input
                     name="hsCode"
@@ -670,14 +752,16 @@ export default function ProductForm({
                     placeholder="e.g. 8708.30 (Brakes), 4419.90 (Areca Tableware)..."
                     className={inputClass}
                   />
-                   <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-lg text-slate-400" title="The Harmonized System classifies traded goods for customs and duties.">
+                  <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-lg text-slate-400 flex items-center justify-center flex-shrink-0" title="The Harmonized System classifies traded goods for customs, tariffs, and duty calculations.">
                     <Info className="w-5 h-5" />
                   </div>
                 </div>
+                <p className="text-[11px] text-slate-400 mt-1">Standard 6 to 10 digit tariff code for customs clearance and import duties.</p>
               </div>
 
-              <div>
-                <label className={labelClass}>Certifications & Standards</label>
+              {/* Certifications & Standards */}
+              <div className="pt-4 border-t border-slate-100 dark:border-white/5">
+                <label className={labelClass}>Compliance Certifications & Standards</label>
                 <div className="flex gap-2 mb-4">
                   <input
                     value={newCertification}
@@ -766,7 +850,7 @@ export default function ProductForm({
               <div className="flex justify-between py-1 border-b border-slate-100 dark:border-white/5">
                 <span className="text-slate-500">Trade Pricing:</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">
-                  {form.price && form.price > 0 ? `$${form.price} / ${form.unit}` : "Quote on Demand"}
+                  {form.price && form.price > 0 ? `${selectedCurrency.symbol}${form.price} ${form.currency || "USD"} / ${form.unit}` : "Quote on Demand"}
                 </span>
               </div>
               <div className="flex justify-between py-1">
