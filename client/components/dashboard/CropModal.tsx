@@ -45,11 +45,11 @@ export default function CropModal({ images: initialImages, onComplete, onCancel 
  }
  };
 
- const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
  if (!e.target.files?.length) return;
  
  const newFiles = Array.from(e.target.files);
- const success = addImages(newFiles);
+ const success = await addImages(newFiles);
  
  if (!success) {
  alert("Invalid file type or size. Please ensure images are JPG, PNG, or WEBP and under 5MB.");
@@ -130,10 +130,19 @@ export default function CropModal({ images: initialImages, onComplete, onCancel 
  ) : (
  <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
  <img 
- src={activeImage.currentUrl} 
- alt="Original Image" 
- className="max-w-full max-h-full object-contain block mx-auto rounded-md"
- />
+  src={activeImage.currentUrl} 
+  alt="Original Image" 
+  className="max-w-full max-h-full object-contain block mx-auto rounded-md"
+  onError={(e) => {
+    if (activeImage.file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        (e.target as HTMLImageElement).src = reader.result as string;
+      };
+      reader.readAsDataURL(activeImage.file);
+    }
+  }}
+/>
  </div>
  )}
 
@@ -200,7 +209,20 @@ export default function CropModal({ images: initialImages, onComplete, onCancel 
  }}
  className={`flex-shrink-0 w-28 h-20 rounded-lg overflow-hidden cursor-pointer relative group transition-colors ${activeIndex === index ? "border-[3px] border-primary" : "border border-border hover:border-primary"}`}
  >
- <img alt={`Upload ${index}`} className="w-full h-full object-cover" src={img.currentUrl} />
+ <img 
+  alt={`Upload ${index}`} 
+  className="w-full h-full object-cover" 
+  src={img.currentUrl}
+  onError={(e) => {
+    if (img.file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        (e.target as HTMLImageElement).src = reader.result as string;
+      };
+      reader.readAsDataURL(img.file);
+    }
+  }}
+/>
  
  {img.isCropped && (
  <div className="absolute top-1 left-1 bg-primary text-white text-[8px] font-bold px-1.5 py-0.5 rounded shadow-sm">

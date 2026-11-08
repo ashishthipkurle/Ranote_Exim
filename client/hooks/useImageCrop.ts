@@ -79,18 +79,34 @@ export function useImageCrop(initialImages: InteractiveImage[], fixedSize: numbe
         }
     }, [croppedAreaPixels, activeImage, activeIndex, fixedSize]);
 
-    const addImages = useCallback((newFiles: File[]) => {
+    const addImages = useCallback(async (newFiles: File[]) => {
         const MAX_SIZE = 5 * 1024 * 1024; // 5MB
         const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-        const validNewImages = newFiles
-            .filter(file => ALLOWED_TYPES.includes(file.type) && file.size <= MAX_SIZE)
-            .map(file => ({
+        const filtered = newFiles.filter(file => ALLOWED_TYPES.includes(file.type) && file.size <= MAX_SIZE);
+        if (filtered.length === 0) return false;
+
+        const validNewImages: InteractiveImage[] = [];
+        for (const file of filtered) {
+            let blobUrl = "";
+            try {
+                blobUrl = URL.createObjectURL(file);
+            } catch {
+                blobUrl = "";
+            }
+            const dataUrl = await new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = () => resolve(blobUrl);
+                reader.readAsDataURL(file);
+            });
+            validNewImages.push({
                 id: Math.random().toString(36).substring(7),
                 file,
-                currentUrl: URL.createObjectURL(file), // Important: Must revoke these to prevent memory leaks eventually
+                currentUrl: dataUrl || blobUrl,
                 isCropped: false
-            }));
+            });
+        }
 
         if (validNewImages.length > 0) {
             setImages(prev => {

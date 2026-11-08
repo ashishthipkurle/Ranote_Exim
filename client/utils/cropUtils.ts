@@ -5,9 +5,18 @@ export const createImage = (url: string): Promise<HTMLImageElement> =>
         const image = new Image();
         image.addEventListener("load", () => resolve(image));
         image.addEventListener("error", (error) => reject(error));
-        image.setAttribute("crossOrigin", "anonymous");
+        // Only set crossOrigin for external HTTP(S) URLs. Blob and Data URLs fail in Chrome if crossOrigin is set.
+        if (!url.startsWith("blob:") && !url.startsWith("data:")) {
+            image.setAttribute("crossOrigin", "anonymous");
+        }
         image.src = url;
     });
+
+function getExtensionForMime(mimeType: string): string {
+    if (mimeType === "image/png") return ".png";
+    if (mimeType === "image/webp") return ".webp";
+    return ".jpg";
+}
 
 /**
  * Resolves a cropped Blob from an image URL given crop boundaries and strict output dimensions.
@@ -44,13 +53,15 @@ export async function getCroppedImg(
         fixedHeight
     );
 
+    const ext = getExtensionForMime(mimeType);
+
     return new Promise((resolve, reject) => {
         canvas.toBlob((blob) => {
             if (!blob) {
                 reject(new Error("Canvas to Blob conversion failed"));
                 return;
             }
-            const file = new File([blob], "cropped-" + Date.now() + ".jpg", { type: mimeType });
+            const file = new File([blob], `cropped-${Date.now()}${ext}`, { type: mimeType });
             const url = URL.createObjectURL(file);
             resolve({ file, url });
         }, mimeType, 0.95);
@@ -83,13 +94,15 @@ export async function getRotatedImage(
     ctx.rotate((rotationDegrees * Math.PI) / 180);
     ctx.drawImage(image, -image.width / 2, -image.height / 2);
 
+    const ext = getExtensionForMime(mimeType);
+
     return new Promise((resolve, reject) => {
         canvas.toBlob((blob) => {
             if (!blob) {
                 reject(new Error("Canvas to Blob rotation failed"));
                 return;
             }
-            const file = new File([blob], "rotated-" + Date.now() + ".jpg", { type: mimeType });
+            const file = new File([blob], `rotated-${Date.now()}${ext}`, { type: mimeType });
             const url = URL.createObjectURL(file);
             resolve({ file, url });
         }, mimeType, 0.95);

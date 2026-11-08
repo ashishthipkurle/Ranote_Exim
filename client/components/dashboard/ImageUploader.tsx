@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { UploadCloud, X, AlertCircle, RefreshCw, Loader2, StopCircle } from "lucide-react";
 import CropModal from "./CropModal";
+import { createClient } from "@/lib/supabase/client";
 
 export type UploadStatus = "pending" | "uploading" | "success" | "error";
 
@@ -86,11 +87,13 @@ export default function ImageUploader({ images, onChange, maxFiles = 8 }: ImageU
  updateItem(item.id, { status: "uploading", progress: 0, errorText: undefined });
 
  try {
- // Retrieve JWT from cookie for API gateway auth
- const cookieMatch = document.cookie.match(/(?:^|;\s*)sb_access_token=([^;]*)/);
- const token = cookieMatch ? decodeURIComponent(cookieMatch[1]) : undefined;
+ // Retrieve Supabase JWT token and enable credentials
+		const supabase = createClient();
+		const { data: { session } } = await supabase.auth.getSession();
+		const token = session?.access_token;
 
  const xhr = new XMLHttpRequest();
+		xhr.withCredentials = true;
  updateItem(item.id, { xhr });
 
  // Feed live XHR percentage to progress bar UI
@@ -169,77 +172,106 @@ export default function ImageUploader({ images, onChange, maxFiles = 8 }: ImageU
  });
  };
 
- const handleFiles = (files: FileList | null) => {
- if (!files) return;
+ const handleFiles = async (files: FileList | null) => {
+		if (!files) return;
 
- const totalAllowed = maxFiles - images.length - uploadQueue.length;
- if (totalAllowed <= 0) return;
+		const totalAllowed = maxFiles - images.length - uploadQueue.length;
+		if (totalAllowed <= 0) return;
 
- const filesToProcess = Array.from(files).slice(0, totalAllowed);
+		const filesToProcess = Array.from(files).slice(0, totalAllowed);
 
- const validFiles: { id: string; file: File; currentUrl: string; isCropped: boolean }[] = [];
- const errorItems: UploadItem[] = [];
+		const validFiles: { id: string; file: File; currentUrl: string; isCropped: boolean }[] = [];
+		const errorItems: UploadItem[] = [];
 
- filesToProcess.forEach(file => {
- let errorText: string | undefined;
- let status: UploadStatus = "pending";
+		for (const file of filesToProcess) {
+			let errorText: string | undefined;
+			let status: UploadStatus = "pending";
 
- if (!ALLOWED_TYPES.includes(file.type)) {
- errorText = "Invalid file type. Need JPG, PNG, WEBP.";
- status = "error";
- } else if (file.size > MAX_SIZE) {
- errorText = "File too large. Max 5MB.";
- status = "error";
- }
+			if (!ALLOWED_TYPES.includes(file.type)) {
+				errorText = "Invalid file type. Need JPG, PNG, WEBP.";
+				status = "error";
+			} else if (file.size > MAX_SIZE) {
+				errorText = "File too large. Max 5MB.";
+				status = "error";
+			}
 
- const id = Math.random().toString(36).substring(7);
+			const id = Math.random().toString(36).substring(7);
 
- if (status === "pending") {
- validFiles.push({
- id,
- file,
- currentUrl: URL.createObjectURL(file), // Store original object URL
- isCropped: false
- });
- } else {
- errorItems.push({
- id,
- file,
- previewUrl: URL.createObjectURL(file),
- status,
- progress: 0,
- errorText,
- retryCount: 0
- });
- }
- });
+			let previewUrl = "";
+			try {
+				previewUrl = URL.createObjectURL(file);
+			} catch {
+				previewUrl = "";
+			}
 
- // Any invalid files go straight to queue to show errors
- if (errorItems.length > 0) {
- setUploadQueue(prev => [...prev, ...errorItems]);
- }
+			// Read as DataURL to ensure 100% CSP compatibility
+			const dataUrl = await new Promise<string>((resolve) => {
+				const reader = new FileReader();
+				reader.onload = () => resolve(reader.result as string);
+				reader.onerror = () => resolve(previewUrl);
+				reader.readAsDataURL(file);
+			});
 
- // All valid files go into the batch crop queue
- if (validFiles.length > 0) {
- setBatchToCrop(validFiles);
- }
- };
+			const finalUrl = dataUrl || previewUrl;
 
- const handleCropComplete = (croppedImages: { id: string; file: File; isCropped: boolean }[]) => {
- if (!batchToCrop) return;
+			if (status === "pending") {
+				validFiles.push({
+					id,
+					file,
+					currentUrl: finalUrl,
+					isCropped: false
+				});
+			} else {
+				errorItems.push({
+					id,
+					file,
+					previewUrl: finalUrl,
+					status,
+					progress: 0,
+					errorText,
+					retryCount: 0
+				});
+			}
+		}
 
- const newItems: UploadItem[] = croppedImages.map(img => ({
- id: img.id,
- file: img.file,
- previewUrl: URL.createObjectURL(img.file),
- status: "pending",
- progress: 0,
- retryCount: 0
- }));
+		// Any invalid files go straight to queue to show errors
+		if (errorItems.length > 0) {
+			setUploadQueue(prev => [...prev, ...errorItems]);
+		}
 
- setUploadQueue(prev => [...prev, ...newItems]);
- setBatchToCrop(null);
- };
+		// All valid files go into the batch crop queue
+		if (validFiles.length > 0) {
+			setBatchToCrop(validFiles);
+		}
+	};
+
+ const handleCropComplete = async (croppedImages: { id: string; file: File; isCropped: boolean }[]) => {
+		if (!batchToCrop) return;
+
+		const newItems: UploadItem[] = await Promise.all(
+			croppedImages.map(async img => {
+				let preview = "";
+				try { preview = URL.createObjectURL(img.file); } catch {}
+				const dataUrl = await new Promise<string>((resolve) => {
+					const reader = new FileReader();
+					reader.onload = () => resolve(reader.result as string);
+					reader.onerror = () => resolve(preview);
+					reader.readAsDataURL(img.file);
+				});
+				return {
+					id: img.id,
+					file: img.file,
+					previewUrl: dataUrl || preview,
+					status: "pending" as UploadStatus,
+					progress: 0,
+					retryCount: 0
+				};
+			})
+		);
+
+		setUploadQueue(prev => [...prev, ...newItems]);
+		setBatchToCrop(null);
+	};
 
  const handleCropCancel = () => {
  if (!batchToCrop) return;

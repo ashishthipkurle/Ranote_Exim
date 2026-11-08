@@ -50,7 +50,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://xsbldsecvhvpfiifmuer.supabase.co wss://xsbldsecvhvpfiifmuer.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; worker-src 'self' blob:; child-src 'self' blob:; connect-src 'self' blob: data: https://xsbldsecvhvpfiifmuer.supabase.co wss://xsbldsecvhvpfiifmuer.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com https://api.cloudinary.com https://res.cloudinary.com;",
           },
           {
             key: 'Permissions-Policy',
