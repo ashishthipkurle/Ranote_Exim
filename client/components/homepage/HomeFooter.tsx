@@ -75,7 +75,7 @@ export default function HomeFooter() {
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li><Link href="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
                 <li><Link href="/terms" className="hover:text-primary transition-colors">Terms &amp; Conditions</Link></li>
-                <li><Link href="/privacy-policy#cookies" className="hover:text-primary transition-colors">Cookie Settings</Link></li>
+                <li><Link href="/cookies" className="hover:text-primary transition-colors">Cookie Policy &amp; Settings</Link></li>
               </ul>
             </div>
           </div>
@@ -93,7 +93,7 @@ export default function HomeFooter() {
             <span>·</span>
             <Link href="/terms" className="hover:text-primary transition-colors">Terms</Link>
             <span>·</span>
-            <Link href="/privacy-policy#cookies" className="hover:text-primary transition-colors">Cookies</Link>
+            <Link href="/cookies" className="hover:text-primary transition-colors">Cookies</Link>
           </div>
         </div>
       </div>
