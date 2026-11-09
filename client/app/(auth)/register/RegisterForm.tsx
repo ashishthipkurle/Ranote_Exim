@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 import { FormError } from "@/components/form/FormError";
 import { FcGoogle } from "react-icons/fc";
 import { FaLinkedin } from "react-icons/fa";
+import { OtpInput } from "@/components/auth/OtpInput";
 
 function RegisterFormContent() {
   const router = useRouter();
@@ -108,13 +109,24 @@ function RegisterFormContent() {
       return;
     }
     
-    // Send a real OTP to the user's email
+    // Send a real OTP to the user's email with automatic retry if cold start occurs
     setIsLoading(true);
     try {
-      const res = await axios.post("/api/auth/send-otp", {
-        email: data.email,
-        purpose: "REGISTER",
-      });
+      let res;
+      try {
+        res = await axios.post("/api/auth/send-otp", {
+          email: data.email,
+          purpose: "REGISTER",
+        });
+      } catch (firstErr: any) {
+        console.warn("[Register] Initial OTP dispatch failed, auto-retrying immediately...", firstErr?.message);
+        await new Promise((r) => setTimeout(r, 500));
+        res = await axios.post("/api/auth/send-otp", {
+          email: data.email,
+          purpose: "REGISTER",
+        });
+      }
+
       setRegisterData(data);
       setShowOtpStep(true);
       setMfaCode("");
@@ -124,7 +136,7 @@ function RegisterFormContent() {
         setMfaCode(res.data.devCode);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to send verification code");
+      toast.error(error.response?.data?.error || "Failed to send verification code. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -269,14 +281,17 @@ function RegisterFormContent() {
                   <h1 className="text-3xl font-extrabold tracking-tight">Email Verification</h1>
                   <p className="text-muted-foreground">Enter the 6-digit code sent to your email.</p>
                 </div>
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Verification Code</label>
-                  <Input
-                    type="text"
-                    placeholder="123456"
+                <div className="space-y-3 py-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground text-center">
+                    6-Digit Verification Code
+                  </label>
+                  <OtpInput
                     value={mfaCode}
-                    onChange={(e) => setMfaCode(e.target.value)}
-                    className="h-14 text-center text-2xl font-black tracking-widest rounded-lg bg-slate-100/50 dark:bg-muted/30 border-border"
+                    onChange={(code) => setMfaCode(code)}
+                    onComplete={(code) => {
+                      setMfaCode(code);
+                    }}
+                    disabled={isLoading}
                   />
                 </div>
                 <Button 

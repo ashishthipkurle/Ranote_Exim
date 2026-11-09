@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Cookie, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Cookie, X, ChevronDown, ChevronUp, Check, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 
@@ -9,6 +9,37 @@ interface CookiePreferences {
   essential: boolean;
   preferences: boolean;
   analytics: boolean;
+}
+
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function setConsentCookie(prefs: CookiePreferences) {
+  if (typeof document === 'undefined') return;
+  const payload = encodeURIComponent(
+    JSON.stringify({
+      essential: true,
+      preferences: Boolean(prefs.preferences),
+      analytics: Boolean(prefs.analytics),
+      timestamp: new Date().toISOString(),
+      version: '2026.1',
+    })
+  );
+  const secure = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `ranote_cookie_consent=${payload}; path=/; max-age=31536000; SameSite=Lax${secure}`;
+}
+
+function cleanupCookies(prefs: CookiePreferences) {
+  if (typeof document === 'undefined') return;
+  if (!prefs.analytics) {
+    const analyticsCookies = ['_ga', '_gid', '_gat', 'va_session'];
+    analyticsCookies.forEach((name) => {
+      document.cookie = `${name}=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+    });
+  }
 }
 
 export default function CookieConsent() {
@@ -21,19 +52,100 @@ export default function CookieConsent() {
   });
 
   useEffect(() => {
-    const consent = localStorage.getItem('cookie-consent');
-    if (!consent) {
+    let savedPrefs: CookiePreferences | null = null;
+
+    // 1. Check real HTTP/browser cookie first
+    const rawCookie = getCookie('ranote_cookie_consent');
+    if (rawCookie) {
+      try {
+        const parsed = JSON.parse(rawCookie);
+        if (typeof parsed.essential === 'boolean') {
+          savedPrefs = {
+            essential: true,
+            preferences: Boolean(parsed.preferences),
+            analytics: Boolean(parsed.analytics),
+          };
+        }
+      } catch {}
+    }
+
+    // 2. Check localStorage fallback
+    if (!savedPrefs && typeof localStorage !== 'undefined') {
+      const rawStorage = localStorage.getItem('cookie-consent');
+      if (rawStorage) {
+        try {
+          const parsed = JSON.parse(rawStorage);
+          if (typeof parsed.essential === 'boolean') {
+            savedPrefs = {
+              essential: true,
+              preferences: Boolean(parsed.preferences),
+              analytics: Boolean(parsed.analytics),
+            };
+            setConsentCookie(savedPrefs);
+          }
+        } catch {}
+      }
+    }
+
+    if (savedPrefs) {
+      setPreferences(savedPrefs);
+      setShowBanner(false);
+      if (savedPrefs.analytics) {
+        window.dispatchEvent(new CustomEvent('ranote-analytics-optin'));
+      }
+    } else {
       setShowBanner(true);
     }
+
+    // Allow user to re-open settings anytime from the footer or cookie page
+    const handleOpen = () => {
+      setShowDetails(true);
+      setShowBanner(true);
+    };
+    window.addEventListener('open-cookie-settings', handleOpen);
+    return () => {
+      window.removeEventListener('open-cookie-settings', handleOpen);
+    };
   }, []);
 
   const saveConsent = (prefs: CookiePreferences) => {
-    localStorage.setItem('cookie-consent', JSON.stringify(prefs));
+    // 1. Write real browser cookie
+    setConsentCookie(prefs);
+
+    // 2. Write localStorage backup
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(
+        'cookie-consent',
+        JSON.stringify({
+          ...prefs,
+          timestamp: new Date().toISOString(),
+        })
+      );
+    }
+
+    setPreferences(prefs);
     setShowBanner(false);
 
+    // 3. Dispatch analytics events
     if (prefs.analytics) {
       window.dispatchEvent(new CustomEvent('ranote-analytics-optin'));
+    } else {
+      window.dispatchEvent(new CustomEvent('ranote-analytics-optout'));
+      cleanupCookies(prefs);
     }
+
+    // 4. Audit recording in backend legal_consents
+    try {
+      fetch('/api/legal/consent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          document: 'COOKIE_POLICY',
+          version: '2026.1',
+          preferences: prefs,
+        }),
+      }).catch(() => {});
+    } catch {}
   };
 
   const acceptAll = () => {
@@ -76,8 +188,12 @@ export default function CookieConsent() {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1.5">
-                  <h3 id="cookie-consent-title" className="text-sm font-[800] text-[#15130D]">
-                    Cookie Preferences
+                  <h3 id="cookie-consent-title" className="text-sm font-[800] text-[#15130D] flex items-center gap-2">
+                    <span>Cookie Preferences</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#0B7A57] bg-[#E2F5EE] px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3" />
+                      Encrypted
+                    </span>
                   </h3>
                   <button
                     onClick={() => setShowBanner(false)}
@@ -89,25 +205,26 @@ export default function CookieConsent() {
                 </div>
 
                 <p className="text-[#6B6A66] text-xs leading-relaxed mb-4">
-                  We use cookies to maintain your encrypted session, remember preferences, and analyze platform telemetry. Learn more in our{' '}
+                  We use cookies to maintain your encrypted trade session, remember wholesale preferences, and analyze platform telemetry. Learn more in our{' '}
                   <Link
-                    href="/privacy-policy#cookies"
+                    href="/cookies"
                     className="text-[#7A560A] font-[700] hover:underline"
                   >
-                    Privacy Policy (Cookies)
+                    Cookie Policy
                   </Link>.
                 </p>
 
                 {/* Granular Toggles when Expanded */}
                 {showDetails && (
-                  <div className="space-y-2.5 mb-4 p-3 rounded-[16px] bg-[#FFFBF2] border border-[#ECE7DA] text-xs">
+                  <div className="space-y-2.5 mb-4 p-3.5 rounded-[16px] bg-[#FFFBF2] border border-[#ECE7DA] text-xs">
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="font-[700] text-[#15130D] block">Essential Cookies</span>
-                        <span className="text-[10px] text-[#6B6A66]">Required for authentication &amp; security</span>
+                        <span className="text-[10px] text-[#6B6A66]">Required for authentication, trade security &amp; session</span>
                       </div>
-                      <span className="text-[10px] font-[800] uppercase tracking-wider text-[#0B7A57] bg-[#E2F5EE] px-2 py-0.5 rounded-full">
-                        Always On
+                      <span className="text-[10px] font-[800] uppercase tracking-wider text-[#0B7A57] bg-[#E2F5EE] px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                        Always Active
                       </span>
                     </div>
 
@@ -116,7 +233,7 @@ export default function CookieConsent() {
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="font-[700] text-[#15130D] block">Preference Cookies</span>
-                        <span className="text-[10px] text-[#6B6A66]">Language, trade currency &amp; UI settings</span>
+                        <span className="text-[10px] text-[#6B6A66]">Theme, trade currency (USD/INR/EUR) &amp; language</span>
                       </div>
                       <input
                         type="checkbox"
@@ -131,7 +248,7 @@ export default function CookieConsent() {
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="font-[700] text-[#15130D] block">Analytics Telemetry</span>
-                        <span className="text-[10px] text-[#6B6A66]">Anonymized trade speed &amp; latency metrics</span>
+                        <span className="text-[10px] text-[#6B6A66]">Anonymized trade speed, ping &amp; latency metrics</span>
                       </div>
                       <input
                         type="checkbox"

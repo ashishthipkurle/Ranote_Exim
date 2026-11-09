@@ -22,9 +22,19 @@ interface Invoice {
   id: string;
   orderNumber: string;
   amount: number;
+  currency?: string;
   status: string;
-  paidAt: string | null;
+  orderStatus?: string;
+  orderType?: string;
+  product?: string;
+  category?: string;
+  hsCode?: string;
+  quantity?: number;
   buyer: string;
+  buyerCountry?: string;
+  incoterms?: string;
+  paidAt: string | null;
+  date?: string;
 }
 
 interface FinanceData {
@@ -93,10 +103,18 @@ function buildStatementHTML(invoices: Invoice[], totalRevenue: number): string {
 
   const rows = invoices.map(inv => `
     <tr>
-      <td style="padding: 12px 16px; border-bottom: 1px solid #F0ECE0; font-family: monospace;">#${inv.orderNumber}</td>
-      <td style="padding: 12px 16px; border-bottom: 1px solid #F0ECE0;">${inv.buyer}</td>
-      <td style="padding: 12px 16px; border-bottom: 1px solid #F0ECE0;">${fmtDate(inv.paidAt)}</td>
-      <td style="padding: 12px 16px; border-bottom: 1px solid #F0ECE0; text-align: right; font-weight: bold; color: #15130D;">${fmtUSD(inv.amount)}</td>
+      <td style="padding: 12px 16px; border-bottom: 1px solid #F0ECE0; font-family: monospace; font-weight: bold;">#${inv.orderNumber}</td>
+      <td style="padding: 12px 16px; border-bottom: 1px solid #F0ECE0;">
+        <div style="font-weight: 600;">${inv.buyer}</div>
+        <div style="font-size: 11px; color: #6B6A66;">${inv.buyerCountry || 'International'}</div>
+      </td>
+      <td style="padding: 12px 16px; border-bottom: 1px solid #F0ECE0;">
+        <div>${inv.product || 'Wholesale Commodity'}</div>
+        <div style="font-size: 11px; color: #7A560A; font-family: monospace;">HS: ${inv.hsCode || '—'}</div>
+      </td>
+      <td style="padding: 12px 16px; border-bottom: 1px solid #F0ECE0; font-size: 12px; font-weight: 600;">${inv.incoterms || 'FOB'}</td>
+      <td style="padding: 12px 16px; border-bottom: 1px solid #F0ECE0; font-size: 12px;">${fmtDate(inv.paidAt)}</td>
+      <td style="padding: 12px 16px; border-bottom: 1px solid #F0ECE0; text-align: right; font-weight: bold; color: #15130D; font-size: 14px;">${fmtUSD(inv.amount)}</td>
     </tr>
   `).join("");
 
@@ -104,37 +122,52 @@ function buildStatementHTML(invoices: Invoice[], totalRevenue: number): string {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Ranote Exim - Financial Statement</title>
+  <title>Ranote Exim - Official Commercial Trade Statement</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #15130D; margin: 40px; background: #fff; }
-    .header { border-bottom: 2px solid #C4912A; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
-    h1 { margin: 0; color: #15130D; font-size: 24px; text-transform: uppercase; font-weight: 800; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #15130D; margin: 40px; background: #fff; line-height: 1.4; }
+    .header { border-bottom: 3px solid #C4912A; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
+    h1 { margin: 0; color: #15130D; font-size: 24px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em; }
+    .tagline { margin: 4px 0 0; color: #6B6A66; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; }
+    table { width: 100%; border-collapse: collapse; margin-top: 24px; }
     th { text-align: left; padding: 12px 16px; background: #FFFBF2; font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: #6B6A66; border-bottom: 2px solid #F0ECE0; }
-    .total-box { margin-top: 30px; padding: 20px; background: #FFFBF2; border-radius: 12px; border: 1px solid #F0ECE0; text-align: right; }
+    .total-box { margin-top: 30px; padding: 24px; background: #FFFBF2; border-radius: 16px; border: 1px solid #F0ECE0; display: flex; justify-content: space-between; align-items: center; }
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; background: #E2F5EE; color: #0B7A57; }
   </style>
 </head>
 <body>
   <div class="header">
     <div>
-      <h1>Ranote Exim · Exporter Statement</h1>
-      <p style="margin: 4px 0 0; color: #6B6A66; font-size: 13px;">Generated on ${dateStr}</p>
+      <span class="badge">B2B Wholesale Trade & Settlement</span>
+      <h1 style="margin-top: 8px;">Ranote Exim · Commercial Export Statement</h1>
+      <p class="tagline">Global Trade Treasury & Official Disbursement Record · Generated ${dateStr}</p>
+    </div>
+    <div style="text-align: right; font-size: 12px; color: #6B6A66;">
+      <div>Platform License: <strong>RANOTE-EXIM-GLOBAL</strong></div>
+      <div>Settlement Engine: <strong>Automated Escrow & Wire</strong></div>
     </div>
   </div>
   <table>
     <thead>
       <tr>
-        <th>Order Number</th>
-        <th>Buyer / Partner</th>
-        <th>Date Settled</th>
-        <th style="text-align: right;">Amount (USD)</th>
+        <th>Contract #</th>
+        <th>Buyer / Consignee</th>
+        <th>Commodity & HS Code</th>
+        <th>Incoterms</th>
+        <th>Settlement Date</th>
+        <th style="text-align: right;">Contract Value (USD)</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
   </table>
   <div class="total-box">
-    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; color: #6B6A66; font-weight: bold;">Total Settled Revenue</div>
-    <div style="font-size: 28px; font-weight: 800; color: #0B7A57; margin-top: 4px;">${fmtUSD(totalRevenue)}</div>
+    <div>
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: #6B6A66; font-weight: bold;">Verified Trade Ledger</div>
+      <div style="font-size: 13px; color: #15130D; margin-top: 2px;">Total of ${invoices.length} settled wholesale trade contracts</div>
+    </div>
+    <div style="text-align: right;">
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: #6B6A66; font-weight: bold;">Total Settled Export Volume</div>
+      <div style="font-size: 30px; font-weight: 800; color: #0B7A57; margin-top: 2px;">${fmtUSD(totalRevenue)}</div>
+    </div>
   </div>
 </body>
 </html>`;
@@ -355,9 +388,9 @@ export default function ExporterFinancePage() {
       {/* ─── KPI Cards ─── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {[
-          { k: "TOTAL REVENUE", v: fmtUSD(data?.available || 0), sub: "Earned trade revenue", icon: DollarSign, ratio: ((data?.available || 0) / Math.max((data?.available || 0) + (data?.pending || 0) + completedTotal, 1)) },
-          { k: "PENDING PAYOUTS", v: fmtUSD(data?.pending || 0), sub: "Awaiting final settlement", icon: Clock, ratio: ((data?.pending || 0) / Math.max((data?.available || 0) + (data?.pending || 0) + completedTotal, 1)) },
-          { k: "PAID INVOICES", v: fmtUSD(completedTotal), sub: "Verified paid accounts", icon: ShieldCheck, ratio: (completedTotal / Math.max((data?.available || 0) + (data?.pending || 0) + completedTotal, 1)) },
+          { k: "SETTLED EXPORT VOLUME", v: fmtUSD(data?.available || 0), sub: "Verified trade contract earnings", icon: DollarSign, ratio: ((data?.available || 0) / Math.max((data?.available || 0) + (data?.pending || 0) + completedTotal, 1)) },
+          { k: "PENDING TRADE ESCROW", v: fmtUSD(data?.pending || 0), sub: "Awaiting port & customs clearance", icon: Clock, ratio: ((data?.pending || 0) / Math.max((data?.available || 0) + (data?.pending || 0) + completedTotal, 1)) },
+          { k: "PAID COMMERCIAL INVOICES", v: fmtUSD(completedTotal), sub: "Settled wholesale transactions", icon: ShieldCheck, ratio: (completedTotal / Math.max((data?.available || 0) + (data?.pending || 0) + completedTotal, 1)) },
         ].map((s) => (
           <div key={s.k} className="rounded-[24px] border border-[#F0ECE0] bg-gradient-to-b from-white to-[#FFFBF0] p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
@@ -467,26 +500,39 @@ export default function ExporterFinancePage() {
             {filteredInvoices.map((inv) => {
               const cfg = statusCfg(inv.status);
               return (
-                <div key={inv.id} className="p-5 px-6 hover:bg-[#FFFBF2] transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div key={inv.id} className="p-5 px-6 hover:bg-[#FFFBF2] transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex items-center gap-3.5 min-w-0">
                     <div className="w-10 h-10 rounded-[14px] bg-[#FBF1D6] text-[#C4912A] flex items-center justify-center shrink-0">
-                      <FileText className="w-4 h-4 stroke-[1.8]" />
+                      <FileText className="w-5 h-5 stroke-[1.8]" />
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm font-bold text-[#15130D] truncate">
-                        #{inv.orderNumber}
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-[#15130D]">
+                          #{inv.orderNumber}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-[#F4F4F7] text-[#7A560A]">
+                          {inv.orderType || "B2B"}
+                        </span>
+                        {inv.hsCode && inv.hsCode !== "—" && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#FFFBF2] border border-[#F0ECE0] text-[#6B6A66]">
+                            HS: {inv.hsCode}
+                          </span>
+                        )}
                       </div>
-                      <div className="text-xs text-[#6B6A66] truncate">
-                        {inv.buyer} · {fmtDate(inv.paidAt)}
+                      <div className="text-xs text-[#6B6A66] mt-0.5 truncate">
+                        {inv.buyer} · {inv.buyerCountry || "International"} · {inv.product || "Wholesale Cargo"} · {fmtDate(inv.paidAt || inv.date || null)}
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 shrink-0">
+                  <div className="flex items-center gap-3 shrink-0 self-end md:self-center">
+                    <span className="text-[11px] font-semibold text-[#6B6A66] bg-[#F7F5F0] px-2.5 py-1 rounded-full">
+                      {inv.incoterms || "FOB"}
+                    </span>
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-[0.14em] ${cfg.colorClass}`}>
                       {cfg.label}
                     </span>
-                    <span className="text-base font-extrabold text-[#15130D]">
+                    <span className="text-base font-extrabold text-[#15130D] min-w-[90px] text-right">
                       {fmtUSD(inv.amount)}
                     </span>
                   </div>

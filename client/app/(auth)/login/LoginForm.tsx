@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { FcGoogle } from "react-icons/fc";
 import { FaLinkedin } from "react-icons/fa";
 import { createClient } from "@/lib/supabase/client";
+import { OtpInput } from "@/components/auth/OtpInput";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -38,6 +39,44 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Live dynamic platform stats for left panel
+  const [stats, setStats] = useState<{
+    volume: number;
+    products: number;
+    countries: number;
+    latency: string;
+  } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const t0 = performance.now();
+    fetch("/api/public/stats", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!active || !data) return;
+        const ping = Math.max(Math.round(performance.now() - t0), 8);
+        setStats({
+          volume: data.volume ?? 0,
+          products: data.products ?? 0,
+          countries: data.countries ?? 1,
+          latency: data.latency || `${ping}ms`,
+        });
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const formattedVolume = useMemo(() => {
+    if (!stats || stats.volume === undefined) return "$0";
+    const v = stats.volume;
+    if (v >= 1_000_000_000) return `$${(v / 1_000_000_000).toFixed(1)}B+`;
+    if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M+`;
+    if (v >= 1_000) return `$${(v / 1_000).toFixed(1)}K`;
+    return `$${v}`;
+  }, [stats]);
 
   const handleOAuthSignIn = async (provider: "google" | "linkedin") => {
     try {
@@ -101,13 +140,24 @@ export default function LoginForm() {
       return;
     }
 
-    // Normal user logic - Send a real OTP
+    // Normal user logic - Send a real OTP with automatic retry if cold start or transient glitch occurs
     setIsLoading(true);
     try {
-      const res = await axios.post("/api/auth/send-otp", {
-        email: data.email,
-        purpose: "LOGIN",
-      });
+      let res;
+      try {
+        res = await axios.post("/api/auth/send-otp", {
+          email: data.email,
+          purpose: "LOGIN",
+        });
+      } catch (firstErr: any) {
+        console.warn("[Login] Initial OTP dispatch failed, auto-retrying immediately...", firstErr?.message);
+        await new Promise((r) => setTimeout(r, 500));
+        res = await axios.post("/api/auth/send-otp", {
+          email: data.email,
+          purpose: "LOGIN",
+        });
+      }
+
       setLoginData(data);
       setShowOtpStep(true);
       setMfaCode("");
@@ -118,7 +168,7 @@ export default function LoginForm() {
         setMfaCode(res.data.devCode);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to send verification code");
+      toast.error(error.response?.data?.error || "Failed to send verification code. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -219,7 +269,7 @@ export default function LoginForm() {
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-primary" />
               </span>
               <span className="text-xs font-bold tracking-widest uppercase text-muted-foreground">
-                Network Live: 14.2ms latency
+                Network Live: {stats?.latency || "12.4ms"} latency
               </span>
             </div>
 
@@ -234,17 +284,23 @@ export default function LoginForm() {
               Secure authentication, verified counterparties, and real-time trade operations — all in one terminal.
             </p>
 
-            <div className="flex gap-12 mt-14">
+            <div className="flex flex-wrap gap-8 sm:gap-12 mt-14">
               <div>
-                <div className="text-3xl font-bold">$4.2B+</div>
+                <div className="text-3xl font-bold">{formattedVolume}</div>
                 <div className="text-sm text-muted-foreground uppercase tracking-widest font-semibold mt-1">
-                  Volume 24H
+                  Trade Volume
                 </div>
               </div>
               <div>
-                <div className="text-3xl font-bold">99.99%</div>
+                <div className="text-3xl font-bold">{stats ? `${stats.products}+` : "0"}</div>
                 <div className="text-sm text-muted-foreground uppercase tracking-widest font-semibold mt-1">
-                  Uptime SLA
+                  Active Listings
+                </div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold">{stats ? `${stats.countries}` : "1"}</div>
+                <div className="text-sm text-muted-foreground uppercase tracking-widest font-semibold mt-1">
+                  Countries
                 </div>
               </div>
               <div>
@@ -321,14 +377,17 @@ export default function LoginForm() {
                       <h1 className="text-3xl font-extrabold tracking-tight">Email Verification</h1>
                       <p className="text-muted-foreground">Enter the 6-digit code sent to your email.</p>
                     </div>
-                    <div className="space-y-2">
-                      <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">OTP Code</label>
-                      <Input
-                        type="text"
-                        placeholder="123456"
+                    <div className="space-y-3 py-2">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground text-center">
+                        6-Digit OTP Code
+                      </label>
+                      <OtpInput
                         value={mfaCode}
-                        onChange={(e) => setMfaCode(e.target.value)}
-                        className="h-14 text-center text-2xl font-black tracking-widest rounded-lg bg-slate-100/50 dark:bg-muted/30 border-border"
+                        onChange={(code) => setMfaCode(code)}
+                        onComplete={(code) => {
+                          setMfaCode(code);
+                        }}
+                        disabled={isLoading}
                       />
                     </div>
                     <Button 

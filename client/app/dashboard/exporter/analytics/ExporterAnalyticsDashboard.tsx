@@ -267,24 +267,68 @@ export default function ExporterAnalyticsDashboard({ data }: { data: AnalyticsDa
       {/* ─── KPI Cards ─── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         <KpiCard
-          label="TOTAL REVENUE" icon={DollarSign}
-          value={fCurrency(data.totalRevenue)} sub="All-time contract earnings" trend={data.revenueGrowth}
+          label="EXPORT TRADE VOLUME" icon={DollarSign}
+          value={fCurrency(data.totalRevenue)} sub="Settled export contracts" trend={data.revenueGrowth}
           fillRatio={1}
         />
         <KpiCard
-          label="TOTAL ORDERS" icon={ShoppingCart}
-          value={fNum(data.totalOrders)} sub={`${data.paidOrders} verified paid orders`} trend={data.orderGrowth}
+          label="WHOLESALE CONTRACTS" icon={ShoppingCart}
+          value={fNum(data.totalOrders)} sub={`${data.paidOrders} settled wholesale orders`} trend={data.orderGrowth}
           fillRatio={data.totalOrders > 0 ? data.paidOrders / data.totalOrders : 0}
         />
         <KpiCard
-          label="AVG. ORDER VALUE" icon={TrendingUp}
+          label="AVG. CONSIGNMENT VALUE" icon={TrendingUp}
           value={fCurrency(data.avgOrderValue)} sub="Average wholesale ticket size"
         />
         <KpiCard
-          label="PRODUCTS LISTED" icon={Package}
-          value={fNum(data.totalProducts)} sub={`${data.availableProducts} available in catalog`}
+          label="CATALOG LISTINGS" icon={Package}
+          value={fNum(data.totalProducts)} sub={`${data.availableProducts} active wholesale products`}
           fillRatio={data.totalProducts > 0 ? data.availableProducts / data.totalProducts : 0}
         />
+      </div>
+
+      {/* ─── B2B Trade Metrics Banner ─── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="rounded-[20px] border border-[#F0ECE0] bg-white p-4 px-5 flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-[12px] bg-[#E2F5EE] text-[#0B7A57] flex items-center justify-center">
+              <CheckCircle2 className="w-4 h-4 stroke-[2]" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#6B6A66]">Quote-to-Order Rate</p>
+              <p className="text-base font-extrabold text-[#15130D]">{data.conversionRate || "0.0%"}</p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-[#0B7A57] bg-[#E2F5EE] px-2.5 py-0.5 rounded-full">B2B Conversion</span>
+        </div>
+
+        <div className="rounded-[20px] border border-[#F0ECE0] bg-white p-4 px-5 flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-[12px] bg-[#FBF1D6] text-[#C4912A] flex items-center justify-center">
+              <Truck className="w-4 h-4 stroke-[2]" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#6B6A66]">Active Freight</p>
+              <p className="text-base font-extrabold text-[#15130D]">
+                {(data.shipmentBreakdown?.IN_TRANSIT ?? 0) + (data.shipmentBreakdown?.PREPARING ?? 0)} consignments
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-[#7A560A] bg-[#FBF1D6] px-2.5 py-0.5 rounded-full">In Transit</span>
+        </div>
+
+        <div className="rounded-[20px] border border-[#F0ECE0] bg-white p-4 px-5 flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-[12px] bg-[#FBF1D6] text-[#7A560A] flex items-center justify-center">
+              <Globe className="w-4 h-4 stroke-[2]" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#6B6A66]">Trade Corridors</p>
+              <p className="text-base font-extrabold text-[#15130D]">{data.geographicData.length} countries served</p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-[#6B6A66] bg-[#F4F4F7] px-2.5 py-0.5 rounded-full">Global Reach</span>
+        </div>
       </div>
 
       {/* ─── Revenue Trend Chart ─── */}
