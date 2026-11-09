@@ -449,10 +449,16 @@ export function extractCategoriesFromProducts(
   });
 }
 
+export interface ExtractedCompany {
+  name: string;
+  categoryKey: string;
+  count: number;
+}
+
 export interface ExtractedTaxonomy {
   categories: ExtractedCategory[];
   subCategories: Array<{ name: string; categoryKey: string; count: number }>;
-  companies: Array<{ name: string; count: number }>;
+  companies: Array<{ name: string; categoryKey: string; count: number }>;
 }
 
 /**
@@ -463,20 +469,21 @@ export function extractTaxonomyFromProducts(
 ): ExtractedTaxonomy {
   const categories = extractCategoriesFromProducts(products);
   const subCatMap = new Map<string, { name: string; categoryKey: string; count: number }>();
-  const companyMap = new Map<string, { name: string; count: number }>();
+  const companyMap = new Map<string, { name: string; categoryKey: string; count: number }>();
 
   if (Array.isArray(products)) {
     for (const p of products) {
       const meta = extractProductMeta(p);
 
       if (meta.subCategory) {
-        const key = `${meta.categoryKey}:::${meta.subCategory.toLowerCase()}`;
+        const cleanSub = meta.subCategory.trim();
+        const key = `${meta.categoryKey}:::${cleanSub.toLowerCase()}`;
         const existing = subCatMap.get(key);
         if (existing) {
           existing.count += 1;
         } else {
           subCatMap.set(key, {
-            name: meta.subCategory,
+            name: cleanSub,
             categoryKey: meta.categoryKey,
             count: 1,
           });
@@ -484,13 +491,15 @@ export function extractTaxonomyFromProducts(
       }
 
       if (meta.company) {
-        const key = meta.company.toLowerCase();
+        const cleanCompany = meta.company.trim();
+        const key = `${meta.categoryKey}:::${cleanCompany.toLowerCase()}`;
         const existing = companyMap.get(key);
         if (existing) {
           existing.count += 1;
         } else {
           companyMap.set(key, {
-            name: meta.company,
+            name: cleanCompany,
+            categoryKey: meta.categoryKey,
             count: 1,
           });
         }

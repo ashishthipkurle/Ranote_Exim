@@ -94,12 +94,6 @@ export default async function ProductsPage({
   const taxonomy = extractTaxonomyFromProducts(allProductCategories);
   const visibleCategories = taxonomy.categories;
   
-  // Filter sub-categories relevant to active category or all
-  const relevantSubCategories = categoryParam 
-    ? taxonomy.subCategories.filter(s => s.categoryKey.toUpperCase() === categoryParam.toUpperCase())
-    : taxonomy.subCategories;
-
-  const relevantCompanies = taxonomy.companies;
   const hasActiveFilters = Boolean(categoryParam || subCategoryParam || companyParam || searchQuery || originParam);
 
   // Active Category Name
@@ -208,113 +202,184 @@ export default async function ProductsPage({
 
                   {/* Individual Categories */}
                   {visibleCategories.map((cat) => {
-                    const isActive = categoryParam === cat.key;
+                    const isActive = Boolean(
+                      categoryParam &&
+                        (categoryParam.toLowerCase() === cat.key.toLowerCase() ||
+                          categoryParam.replace("CUSTOM_CAT:", "").toLowerCase() ===
+                            cat.key.replace("CUSTOM_CAT:", "").toLowerCase())
+                    );
+
+                    // Sub-categories and brands belonging strictly to this category
+                    const catSubCategories = taxonomy.subCategories.filter(
+                      (s) =>
+                        s.categoryKey.toLowerCase() === cat.key.toLowerCase() ||
+                        s.categoryKey.replace("CUSTOM_CAT:", "").toLowerCase() ===
+                          cat.key.replace("CUSTOM_CAT:", "").toLowerCase()
+                    );
+
+                    const catCompanies = taxonomy.companies.filter(
+                      (c) =>
+                        c.categoryKey.toLowerCase() === cat.key.toLowerCase() ||
+                        c.categoryKey.replace("CUSTOM_CAT:", "").toLowerCase() ===
+                          cat.key.replace("CUSTOM_CAT:", "").toLowerCase()
+                    );
+
+                    const hasChildren = catSubCategories.length > 0 || catCompanies.length > 0;
+
                     return (
-                      <Link
-                        key={cat.key}
-                        href={buildUrl({ category: isActive ? undefined : cat.key, subCategory: undefined, page: undefined })}
-                        className={cn(
-                          "h-[44px] px-[14px] py-[10px] rounded-[14px] text-[15px] font-[600] flex items-center justify-between transition-colors",
-                          isActive
-                            ? "bg-[#FBF1D6] text-[#7A560A] font-[700]"
-                            : "text-[#4A483F] hover:bg-[rgba(251,241,214,0.55)] hover:text-[#15130D]"
-                        )}
-                      >
-                        <div className="flex items-center min-w-0 gap-2.5">
-                          <span className={cn("material-symbols-outlined text-[18px]", isActive ? "text-[#C4912A]" : "text-[#6B6A66]")}>
-                            {cat.icon}
-                          </span>
-                          <span className="truncate">{cat.label}</span>
-                        </div>
-                        <span
+                      <div key={cat.key} className="flex flex-col">
+                        <Link
+                          href={buildUrl({
+                            category: isActive ? undefined : cat.key,
+                            subCategory: undefined,
+                            company: undefined,
+                            page: undefined,
+                          })}
                           className={cn(
-                            "text-[11px] font-[700] px-2 py-0.5 rounded-full transition-colors",
+                            "h-[44px] px-[14px] py-[10px] rounded-[14px] text-[15px] font-[600] flex items-center justify-between transition-colors",
                             isActive
-                              ? "bg-white text-[#7A560A] shadow-sm"
-                              : "bg-[#E9E8EE] text-[#4A483F]"
+                              ? "bg-[#FBF1D6] text-[#7A560A] font-[700]"
+                              : "text-[#4A483F] hover:bg-[rgba(251,241,214,0.55)] hover:text-[#15130D]"
                           )}
                         >
-                          {cat.count}
-                        </span>
-                      </Link>
+                          <div className="flex items-center min-w-0 gap-2.5">
+                            <span
+                              className={cn(
+                                "material-symbols-outlined text-[18px]",
+                                isActive ? "text-[#C4912A]" : "text-[#6B6A66]"
+                              )}
+                            >
+                              {cat.icon}
+                            </span>
+                            <span className="truncate">{cat.label}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <span
+                              className={cn(
+                                "text-[11px] font-[700] px-2 py-0.5 rounded-full transition-colors",
+                                isActive
+                                  ? "bg-white text-[#7A560A] shadow-sm"
+                                  : "bg-[#E9E8EE] text-[#4A483F]"
+                              )}
+                            >
+                              {cat.count}
+                            </span>
+                            {hasChildren && (
+                              <span
+                                className={cn(
+                                  "material-symbols-outlined text-[16px] transition-transform",
+                                  isActive ? "rotate-90 text-[#7A560A]" : "text-[#9E9B90]"
+                                )}
+                              >
+                                chevron_right
+                              </span>
+                            )}
+                          </div>
+                        </Link>
+
+                        {/* Nested Sub-Categories and Brands directly under the selected category */}
+                        {isActive && hasChildren && (
+                          <div className="ml-3 pl-3 border-l-2 border-[#E7DFCE] dark:border-white/10 my-1.5 space-y-3 py-1 animate-in fade-in duration-200">
+                            {/* Category Sub-Categories */}
+                            {catSubCategories.length > 0 && (
+                              <div>
+                                <div className="mb-1 px-1 flex items-center justify-between">
+                                  <span className="text-[10px] font-[800] uppercase tracking-[0.14em] text-[#8C8270] flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[12px]">layers</span>
+                                    Sub-Categories
+                                  </span>
+                                  {subCategoryParam && (
+                                    <Link
+                                      href={buildUrl({ subCategory: undefined, page: undefined })}
+                                      className="text-[10px] font-[700] text-[#7A560A] hover:underline"
+                                    >
+                                      Clear
+                                    </Link>
+                                  )}
+                                </div>
+
+                                <div className="flex flex-col space-y-[2px] max-h-48 overflow-y-auto no-scrollbar pr-1">
+                                  {catSubCategories.map((sub) => {
+                                    const isSubActive =
+                                      subCategoryParam?.toLowerCase() === sub.name.toLowerCase();
+                                    return (
+                                      <Link
+                                        key={sub.name}
+                                        href={buildUrl({
+                                          subCategory: isSubActive ? undefined : sub.name,
+                                          page: undefined,
+                                        })}
+                                        className={cn(
+                                          "min-h-[32px] px-2.5 py-1 rounded-[10px] text-xs font-[600] flex items-center justify-between transition-colors",
+                                          isSubActive
+                                            ? "bg-[#FBF1D6] text-[#7A560A] font-[700] shadow-sm"
+                                            : "text-[#4A483F] hover:bg-[rgba(251,241,214,0.55)] hover:text-[#15130D]"
+                                        )}
+                                      >
+                                        <span className="truncate">{sub.name}</span>
+                                        <span className="text-[10px] opacity-70 ml-1.5 font-mono">
+                                          {sub.count}
+                                        </span>
+                                      </Link>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Category Brands */}
+                            {catCompanies.length > 0 && (
+                              <div>
+                                <div className="mb-1 px-1 flex items-center justify-between">
+                                  <span className="text-[10px] font-[800] uppercase tracking-[0.14em] text-[#8C8270] flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[12px]">apartment</span>
+                                    Brands
+                                  </span>
+                                  {companyParam && (
+                                    <Link
+                                      href={buildUrl({ company: undefined, page: undefined })}
+                                      className="text-[10px] font-[700] text-[#7A560A] hover:underline"
+                                    >
+                                      Clear
+                                    </Link>
+                                  )}
+                                </div>
+
+                                <div className="flex flex-col space-y-[2px] max-h-48 overflow-y-auto no-scrollbar pr-1">
+                                  {catCompanies.map((comp) => {
+                                    const isCompActive =
+                                      companyParam?.toLowerCase() === comp.name.toLowerCase();
+                                    return (
+                                      <Link
+                                        key={comp.name}
+                                        href={buildUrl({
+                                          company: isCompActive ? undefined : comp.name,
+                                          page: undefined,
+                                        })}
+                                        className={cn(
+                                          "min-h-[32px] px-2.5 py-1 rounded-[10px] text-xs font-[600] flex items-center justify-between transition-colors",
+                                          isCompActive
+                                            ? "bg-[#FBF1D6] text-[#7A560A] font-[700] shadow-sm"
+                                            : "text-[#4A483F] hover:bg-[rgba(251,241,214,0.55)] hover:text-[#15130D]"
+                                        )}
+                                      >
+                                        <span className="truncate">{comp.name}</span>
+                                        <span className="text-[10px] opacity-70 ml-1.5 font-mono">
+                                          {comp.count}
+                                        </span>
+                                      </Link>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
               </div>
-
-              {/* Sub-Categories (if any) */}
-              {relevantSubCategories.length > 0 && (
-                <div className="pt-2 border-t border-[#ECE7DA]">
-                  <div className="mb-2 px-1 flex items-center justify-between">
-                    <h3 className="text-[11px] font-[700] uppercase tracking-[0.14em] text-[#6B6A66] flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-[14px]">layers</span> SUB-CATEGORIES
-                    </h3>
-                    {subCategoryParam && (
-                      <Link href={buildUrl({ subCategory: undefined, page: undefined })} className="text-[10px] font-[700] text-[#7A560A] hover:underline">
-                        Clear
-                      </Link>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col space-y-[2px] max-h-48 overflow-y-auto no-scrollbar pr-1">
-                    {relevantSubCategories.map((sub) => {
-                      const isActive = subCategoryParam === sub.name;
-                      return (
-                        <Link
-                          key={sub.name}
-                          href={buildUrl({ subCategory: isActive ? undefined : sub.name, page: undefined })}
-                          className={cn(
-                            "h-[38px] px-3 rounded-[12px] text-xs font-[600] flex items-center justify-between transition-colors",
-                            isActive
-                              ? "bg-[#FBF1D6] text-[#7A560A] font-[700]"
-                              : "text-[#4A483F] hover:bg-[rgba(251,241,214,0.55)] hover:text-[#15130D]"
-                          )}
-                        >
-                          <span className="truncate">{sub.name}</span>
-                          <span className="text-[10px] opacity-70 ml-1.5 font-mono">{sub.count}</span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Brands / Companies (if any) */}
-              {relevantCompanies.length > 0 && (
-                <div className="pt-2 border-t border-[#ECE7DA]">
-                  <div className="mb-2 px-1 flex items-center justify-between">
-                    <h3 className="text-[11px] font-[700] uppercase tracking-[0.14em] text-[#6B6A66] flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-[14px]">apartment</span> BRANDS
-                    </h3>
-                    {companyParam && (
-                      <Link href={buildUrl({ company: undefined, page: undefined })} className="text-[10px] font-[700] text-[#7A560A] hover:underline">
-                        Clear
-                      </Link>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col space-y-[2px] max-h-48 overflow-y-auto no-scrollbar pr-1">
-                    {relevantCompanies.map((comp) => {
-                      const isActive = companyParam === comp.name;
-                      return (
-                        <Link
-                          key={comp.name}
-                          href={buildUrl({ company: isActive ? undefined : comp.name, page: undefined })}
-                          className={cn(
-                            "h-[38px] px-3 rounded-[12px] text-xs font-[600] flex items-center justify-between transition-colors",
-                            isActive
-                              ? "bg-[#FBF1D6] text-[#7A560A] font-[700]"
-                              : "text-[#4A483F] hover:bg-[rgba(251,241,214,0.55)] hover:text-[#15130D]"
-                          )}
-                        >
-                          <span className="truncate">{comp.name}</span>
-                          <span className="text-[10px] opacity-70 ml-1.5 font-mono">{comp.count}</span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
             </SidebarContent>
           </Sidebar>

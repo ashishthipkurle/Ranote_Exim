@@ -1,0 +1,34 @@
+{
+  "subCategories": {
+    "CUSTOM_CAT:Automobile spare parts": [
+      "Two Wheeler Spare Parts",
+      "Four Wheeler Spare Parts",
+      "Engine & Transmission",
+      "Brake Systems & Pads",
+      "Electrical & Electronics",
+      "Suspension & Steering"
+    ],
+    "CUSTOM_CAT:Areca Leaf": [
+      "Areca Plates",
+      "Areca Bowls",
+      "Areca Spoons & Cutlery",
+      "Eco Tableware Sets"
+    ]
+  },
+  "brands": {
+    "CUSTOM_CAT:Automobile spare parts": [
+      "All brands available",
+      "Bosch",
+      "Brembo",
+      "Denso",
+      "Tata Motors",
+      "OEM Genuine"
+    ],
+    "CUSTOM_CAT:Areca Leaf": [
+      "All brands available",
+      "Ranote Eco",
+      "Natural Areca"
+    ]
+  }
+}
+

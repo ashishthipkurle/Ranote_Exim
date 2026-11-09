@@ -214,6 +214,12 @@ export default function ProductForm({
   });
 
   const [availableCustomCategories, setAvailableCustomCategories] = useState<string[]>([]);
+  const [isCustomSubCategory, setIsCustomSubCategory] = useState(false);
+  const [isCustomCompany, setIsCustomCompany] = useState(false);
+  const [serverTaxonomy, setServerTaxonomy] = useState<{
+    subCategories: string[];
+    brands: string[];
+  }>({ subCategories: [], brands: [] });
 
   useEffect(() => {
     fetch("/api/categories/custom")
@@ -226,14 +232,66 @@ export default function ProductForm({
       .catch(() => {});
   }, []);
 
+  // Dynamic suggested presets based on chosen category
+  const activeCategoryKey = form.category.startsWith("CUSTOM_CAT:") ? "OTHER" : form.category;
+  const currentCategoryIdentifier = form.category;
+
+  useEffect(() => {
+    if (!currentCategoryIdentifier) return;
+    fetch(`/api/taxonomy?category=${encodeURIComponent(currentCategoryIdentifier)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && typeof data === "object") {
+          setServerTaxonomy({
+            subCategories: Array.isArray(data.subCategories) ? data.subCategories : [],
+            brands: Array.isArray(data.brands) ? data.brands : [],
+          });
+        }
+      })
+      .catch(() => {});
+  }, [currentCategoryIdentifier]);
+
+  const suggestedSubCategories = useMemo(() => getSuggestedSubCategories(activeCategoryKey), [activeCategoryKey]);
+  const suggestedCompanies = useMemo(() => getSuggestedCompanies(activeCategoryKey), [activeCategoryKey]);
+
+  // Combined saved + suggested sub-categories for active category
+  const availableSubCategories = useMemo(() => {
+    const set = new Set<string>();
+    serverTaxonomy.subCategories.forEach((s) => s && set.add(s.trim()));
+
+    try {
+      const stored = JSON.parse(localStorage.getItem("renote_saved_subcategories") || "{}");
+      const list = stored[currentCategoryIdentifier] || stored[activeCategoryKey] || [];
+      if (Array.isArray(list)) {
+        list.forEach((s: string) => s && set.add(s.trim()));
+      }
+    } catch {}
+
+    suggestedSubCategories.forEach((s) => s && set.add(s.trim()));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [serverTaxonomy.subCategories, currentCategoryIdentifier, activeCategoryKey, suggestedSubCategories]);
+
+  // Combined saved + suggested brands for active category
+  const availableBrands = useMemo(() => {
+    const set = new Set<string>();
+    serverTaxonomy.brands.forEach((b) => b && set.add(b.trim()));
+
+    try {
+      const stored = JSON.parse(localStorage.getItem("renote_saved_brands") || "{}");
+      const list = stored[currentCategoryIdentifier] || stored[activeCategoryKey] || [];
+      if (Array.isArray(list)) {
+        list.forEach((b: string) => b && set.add(b.trim()));
+      }
+    } catch {}
+
+    suggestedCompanies.forEach((b) => b && set.add(b.trim()));
+    set.add("All brands available");
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [serverTaxonomy.brands, currentCategoryIdentifier, activeCategoryKey, suggestedCompanies]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [newCertification, setNewCertification] = useState("");
-
-  // Dynamic suggested presets based on chosen category
-  const activeCategoryKey = form.category.startsWith("CUSTOM_CAT:") ? "OTHER" : form.category;
-  const suggestedSubCategories = useMemo(() => getSuggestedSubCategories(activeCategoryKey), [activeCategoryKey]);
-  const suggestedCompanies = useMemo(() => getSuggestedCompanies(activeCategoryKey), [activeCategoryKey]);
 
   const selectedCurrency = useMemo(() => {
     return CURRENCIES.find((c) => c.code === (form.currency || "USD")) || CURRENCIES[0];
@@ -355,6 +413,39 @@ export default function ProductForm({
         method,
         body: JSON.stringify(body),
       });
+
+      // Persist taxonomy to server and localStorage so it is immediately selectable next time
+      try {
+        const catKey = finalCategory === "OTHER" && customCategory.trim()
+          ? `CUSTOM_CAT:${customCategory.trim()}`
+          : form.category;
+
+        if (subCategory.trim() || company.trim()) {
+          fetch("/api/taxonomy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              category: catKey,
+              subCategory: subCategory.trim(),
+              brand: company.trim(),
+            }),
+          }).catch(() => {});
+
+          const storedSubs = JSON.parse(localStorage.getItem("renote_saved_subcategories") || "{}");
+          if (!storedSubs[catKey]) storedSubs[catKey] = [];
+          if (subCategory.trim() && !storedSubs[catKey].includes(subCategory.trim())) {
+            storedSubs[catKey].push(subCategory.trim());
+            localStorage.setItem("renote_saved_subcategories", JSON.stringify(storedSubs));
+          }
+
+          const storedBrands = JSON.parse(localStorage.getItem("renote_saved_brands") || "{}");
+          if (!storedBrands[catKey]) storedBrands[catKey] = [];
+          if (company.trim() && !storedBrands[catKey].includes(company.trim())) {
+            storedBrands[catKey].push(company.trim());
+            localStorage.setItem("renote_saved_brands", JSON.stringify(storedBrands));
+          }
+        }
+      } catch {}
 
       toast.success(isEdit ? "Product updated successfully!" : "Product listed successfully!");
       router.push("/dashboard/exporter/inventory");
@@ -506,35 +597,96 @@ export default function ProductForm({
 
               {/* Sub-Category and Company / Brand fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-slate-100 dark:border-white/5">
+                {/* Sub-Category Field */}
                 <div>
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <Layers className="w-3.5 h-3.5 text-primary" />
-                    <label className={labelClass + " !mb-0"}>Sub-Category / Product Line</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-primary" />
+                      <label className={labelClass + " !mb-0"}>Sub-Category / Product Line</label>
+                    </div>
+                    {isCustomSubCategory ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsCustomSubCategory(false)}
+                        className="text-[11px] text-primary hover:underline font-semibold"
+                      >
+                        Choose from saved
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomSubCategory(true);
+                          setSubCategory("");
+                        }}
+                        className="text-[11px] text-primary hover:underline font-semibold"
+                      >
+                        + Add new
+                      </button>
+                    )}
                   </div>
-                  <input
-                    type="text"
-                    placeholder="e.g. Brake Systems & Pads, Engine & Transmission..."
-                    value={subCategory}
-                    onChange={(e) => setSubCategory(e.target.value)}
-                    className={inputClass}
-                    list="subcategory-suggestions"
-                  />
-                  <datalist id="subcategory-suggestions">
-                    {suggestedSubCategories.map((s) => (
-                      <option key={s} value={s} />
-                    ))}
-                  </datalist>
-                  {suggestedSubCategories.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5 items-center">
-                      <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Suggestions:</span>
-                      {suggestedSubCategories.slice(0, 4).map((s) => (
+
+                  {!isCustomSubCategory ? (
+                    <select
+                      value={availableSubCategories.includes(subCategory) ? subCategory : (subCategory ? "__CUSTOM__" : "")}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "__CUSTOM__") {
+                          setIsCustomSubCategory(true);
+                          setSubCategory("");
+                        } else {
+                          setSubCategory(val);
+                        }
+                      }}
+                      className={inputClass}
+                    >
+                      <option value="">-- Select Saved Sub-Category --</option>
+                      {availableSubCategories.length > 0 && (
+                        <optgroup label="Saved & Suggested Sub-Categories">
+                          {availableSubCategories.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <optgroup label="Options">
+                        <option value="__CUSTOM__">+ Enter New Sub-Category...</option>
+                      </optgroup>
+                    </select>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <input
+                        type="text"
+                        placeholder="Type new sub-category (e.g. Brake Systems, Engine Gaskets...)"
+                        value={subCategory}
+                        onChange={(e) => setSubCategory(e.target.value)}
+                        className={inputClass + " border-primary/50 focus:border-primary"}
+                        autoFocus
+                      />
+                      <p className="text-[11px] text-primary">
+                        * Saved automatically so you can select it next time.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Quick Select Pills */}
+                  {availableSubCategories.length > 0 && (
+                    <div className="mt-2.5 flex flex-wrap gap-1.5 items-center">
+                      <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                        Quick Select:
+                      </span>
+                      {availableSubCategories.slice(0, 5).map((s) => (
                         <button
                           key={s}
                           type="button"
-                          onClick={() => setSubCategory(s)}
+                          onClick={() => {
+                            setSubCategory(s);
+                            setIsCustomSubCategory(false);
+                          }}
                           className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
                             subCategory.toLowerCase() === s.toLowerCase()
-                              ? "bg-primary text-white"
+                              ? "bg-primary text-white shadow-xs"
                               : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
                           }`}
                         >
@@ -548,39 +700,100 @@ export default function ProductForm({
                   </p>
                 </div>
 
+                {/* Company / Brand / OEM Field */}
                 <div>
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <Building2 className="w-3.5 h-3.5 text-primary" />
-                    <label className={labelClass + " !mb-0"}>Company / Brand / OEM</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-primary" />
+                      <label className={labelClass + " !mb-0"}>Company / Brand / OEM</label>
+                    </div>
+                    {isCustomCompany ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsCustomCompany(false)}
+                        className="text-[11px] text-primary hover:underline font-semibold"
+                      >
+                        Choose from saved
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomCompany(true);
+                          setCompany("");
+                        }}
+                        className="text-[11px] text-primary hover:underline font-semibold"
+                      >
+                        + Add new
+                      </button>
+                    )}
                   </div>
-                  <input
-                    type="text"
-                    placeholder="e.g. Bosch, Brembo, Denso, Tata Motors..."
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    className={inputClass}
-                    list="company-suggestions"
-                  />
-                  <datalist id="company-suggestions">
-                    {suggestedCompanies.map((c) => (
-                      <option key={c} value={c} />
-                    ))}
-                  </datalist>
-                  {suggestedCompanies.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5 items-center">
-                      <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Suggestions:</span>
-                      {suggestedCompanies.slice(0, 4).map((c) => (
+
+                  {!isCustomCompany ? (
+                    <select
+                      value={availableBrands.includes(company) ? company : (company ? "__CUSTOM__" : "")}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "__CUSTOM__") {
+                          setIsCustomCompany(true);
+                          setCompany("");
+                        } else {
+                          setCompany(val);
+                        }
+                      }}
+                      className={inputClass}
+                    >
+                      <option value="">-- Select Saved Brand / OEM --</option>
+                      {availableBrands.length > 0 && (
+                        <optgroup label="Saved Brands & Manufacturers">
+                          {availableBrands.map((b) => (
+                            <option key={b} value={b}>
+                              {b}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <optgroup label="Options">
+                        <option value="__CUSTOM__">+ Enter New Brand / OEM...</option>
+                      </optgroup>
+                    </select>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <input
+                        type="text"
+                        placeholder="Type new brand (e.g. Bosch, Brembo, Denso, Tata Motors...)"
+                        value={company}
+                        onChange={(e) => setCompany(e.target.value)}
+                        className={inputClass + " border-primary/50 focus:border-primary"}
+                        autoFocus
+                      />
+                      <p className="text-[11px] text-primary">
+                        * Saved automatically so you can select it next time.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Quick Select Pills */}
+                  {availableBrands.length > 0 && (
+                    <div className="mt-2.5 flex flex-wrap gap-1.5 items-center">
+                      <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                        Quick Select:
+                      </span>
+                      {availableBrands.slice(0, 5).map((b) => (
                         <button
-                          key={c}
+                          key={b}
                           type="button"
-                          onClick={() => setCompany(c)}
+                          onClick={() => {
+                            setCompany(b);
+                            setIsCustomCompany(false);
+                          }}
                           className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
-                            company.toLowerCase() === c.toLowerCase()
-                              ? "bg-primary text-white"
+                            company.toLowerCase() === b.toLowerCase()
+                              ? "bg-primary text-white shadow-xs"
                               : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
                           }`}
                         >
-                          {c}
+                          {b}
                         </button>
                       ))}
                     </div>
