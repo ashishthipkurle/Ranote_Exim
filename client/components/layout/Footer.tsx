@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Globe, Shield, Mail, Phone, Twitter, Linkedin, Github } from 'lucide-react';
+import { Globe, Shield, Mail, Phone, Twitter, Linkedin, Github, Code2, ExternalLink } from 'lucide-react';
 
 export default function Footer() {
   const pathname = usePathname();
@@ -85,14 +85,22 @@ export default function Footer() {
             <p className="text-slate-500 text-[12px]">
               &copy; {new Date().getFullYear()} Ranote Exim Platform. All rights reserved.
             </p>
-            <p className="text-slate-500 text-[11px]">
-              Grievance Officer: <strong className="text-slate-400">Siddharth Ranote</strong> · <a href="mailto:grievance@ranote-exim.com" className="text-amber-500/90 hover:underline">grievance@ranote-exim.com</a>
-            </p>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
             <Link href="/privacy-policy" className="text-slate-400 hover:text-white text-[12px] transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="text-slate-400 hover:text-white text-[12px] transition-colors">Terms &amp; Conditions</Link>
             <Link href="/cookies" className="text-slate-400 hover:text-white text-[12px] transition-colors">Cookie Policy &amp; Settings</Link>
+            <a
+              href="https://ashish-thipkurle.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 hover:bg-blue-600 text-blue-400 hover:text-white font-bold text-[12px] transition-all border border-blue-500/20 group"
+              title="Developed by Ashish Thipkurle - View Portfolio"
+            >
+              <Code2 className="w-3.5 h-3.5 stroke-[2.2]" />
+              <span>Developer</span>
+              <ExternalLink className="w-3 h-3 opacity-70 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </a>
           </div>
         </div>
       </div>

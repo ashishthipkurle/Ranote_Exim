@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Linkedin, Instagram, Facebook, MapPin, Phone, Mail, Globe } from "lucide-react";
+import { Linkedin, Instagram, Facebook, MapPin, Phone, Mail, Globe, Code2, ExternalLink } from "lucide-react";
 
 export default function HomeFooter() {
   return (
@@ -84,16 +84,25 @@ export default function HomeFooter() {
         <div className="pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
           <div className="space-y-1 text-center md:text-left">
             <p>© {new Date().getFullYear()} Ranote Exim Private Limited. All rights reserved.</p>
-            <p className="text-[11px] text-[#6B6A66]">
-              Grievance Officer: <strong className="text-[#15130D]">Siddharth Ranote</strong> · <a href="mailto:grievance@ranote-exim.com" className="text-[#7A560A] hover:underline font-semibold">grievance@ranote-exim.com</a>
-            </p>
           </div>
-          <div className="flex items-center gap-4 text-xs">
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 sm:gap-4 text-xs">
             <Link href="/privacy-policy" className="hover:text-primary transition-colors">Privacy</Link>
             <span>·</span>
             <Link href="/terms" className="hover:text-primary transition-colors">Terms</Link>
             <span>·</span>
             <Link href="/cookies" className="hover:text-primary transition-colors">Cookies</Link>
+            <span>·</span>
+            <a
+              href="https://ashish-thipkurle.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FBF1D6] hover:bg-[#C4912A] text-[#7A560A] hover:text-white font-bold text-xs transition-all shadow-xs group"
+              title="Developed by Ashish Thipkurle - View Portfolio"
+            >
+              <Code2 className="w-3.5 h-3.5 stroke-[2.2]" />
+              <span>Developer</span>
+              <ExternalLink className="w-3 h-3 opacity-70 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </a>
           </div>
         </div>
       </div>

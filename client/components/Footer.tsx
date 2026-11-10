@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Globe2, Mail, Phone, MapPin, Facebook, Twitter, Linkedin, Instagram } from "lucide-react";
+import { Globe2, Mail, Phone, MapPin, Facebook, Twitter, Linkedin, Instagram, Code2, ExternalLink } from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -135,16 +135,27 @@ export default function Footer() {
             <p className="text-sm text-slate-400">
               © {currentYear} Ranote Exim. All rights reserved.
             </p>
-            <div className="flex gap-6">
-              <Link href="/privacy" className="text-sm text-slate-400 hover:text-blue-400 transition-colors">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+              <Link href="/privacy-policy" className="text-sm text-slate-400 hover:text-blue-400 transition-colors">
                 Privacy Policy
               </Link>
               <Link href="/terms" className="text-sm text-slate-400 hover:text-blue-400 transition-colors">
                 Terms of Service
               </Link>
               <Link href="/cookies" className="text-sm text-slate-400 hover:text-blue-400 transition-colors">
-                Cookie Policy
+                Cookie Policy &amp; Settings
               </Link>
+              <a
+                href="https://ashish-thipkurle.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 hover:bg-blue-600 text-blue-400 hover:text-white font-bold text-xs transition-all border border-blue-500/20 group"
+                title="Developed by Ashish Thipkurle - View Portfolio"
+              >
+                <Code2 className="w-3.5 h-3.5 stroke-[2.2]" />
+                <span>Developer</span>
+                <ExternalLink className="w-3 h-3 opacity-70 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </a>
             </div>
           </div>
         </div>
