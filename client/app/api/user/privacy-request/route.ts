@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[Privacy & Grievance Request] Type: ${requestType} by User: ${auth.userId}`);
-    console.log(`[Email Dispatch to Grievance Officer]: grievance@ranote-exim.com regarding ${requestType}`);
+    console.log(`[Email Dispatch to Compliance Officer]: connect@ranoteexim.com regarding ${requestType}`);
 
     return NextResponse.json({
       success: true,

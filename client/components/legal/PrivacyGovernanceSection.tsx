@@ -78,10 +78,10 @@ export default function PrivacyGovernanceSection({ userEmail = "" }: PrivacyGove
             </span>
             <span className="text-[#C4912A]">•</span>
             <a
-              href="mailto:grievance@ranote-exim.com?subject=DPDP%20Statutory%20Inquiry%20-%20Ranote%20Exim"
+              href="mailto:connect@ranoteexim.com?subject=DPDP%20Statutory%20Inquiry%20-%20Ranote%20Exim"
               className="text-[12px] font-[700] text-[#7A560A] hover:underline"
             >
-              grievance@ranote-exim.com
+              connect@ranoteexim.com
             </a>
           </div>
         </div>
@@ -193,7 +193,7 @@ export default function PrivacyGovernanceSection({ userEmail = "" }: PrivacyGove
             </div>
 
             <a
-              href="mailto:grievance@ranote-exim.com?subject=Grievance%20Redressal%20Inquiry%20-%20Ranote%20Exim"
+              href="mailto:connect@ranoteexim.com?subject=Grievance%20Redressal%20Inquiry%20-%20Ranote%20Exim"
               className="h-[44px] px-5 rounded-[12px] bg-[#15130D] text-white hover:bg-black font-[700] text-[13px] transition-colors flex items-center gap-2 shrink-0 self-stretch sm:self-auto justify-center"
             >
               <Mail className="w-4 h-4" />

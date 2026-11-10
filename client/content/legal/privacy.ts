@@ -155,9 +155,9 @@ export const privacyDoc: LegalDocument = {
     officer: {
       name: "Siddharth Ranote",
       designation: "Chief Legal & Grievance Officer",
-      email: "grievance@ranote-exim.com",
-      address: "Ranote Exim International Trade Hub, Bandra-Kurla Complex (BKC), Mumbai, Maharashtra 400051, India",
-      phone: "+91 (022) 6980-4200",
+      email: "connect@ranoteexim.com",
+      address: "Vadarge, Gadhinglaj, Kolhapur, Maharashtra 416502, India",
+      phone: "+91 9370366075",
     },
   },
 };
