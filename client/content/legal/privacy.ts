@@ -153,7 +153,7 @@ export const privacyDoc: LegalDocument = {
     title: "Data Protection & Grievance Office",
     note: "For statutory grievances, data access requests, or regulatory audits, contact our designated officer below:",
     officer: {
-      name: "Siddharth Ranote",
+      name: "Ranjeet Subhash Pote",
       designation: "Chief Legal & Grievance Officer",
       email: "connect@ranoteexim.com",
       address: "Vadarge, Gadhinglaj, Kolhapur, Maharashtra 416502, India",

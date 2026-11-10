@@ -150,7 +150,7 @@ export const termsDoc: LegalDocument = {
     title: "Legal & Regulatory Compliance Office",
     note: "For corporate legal correspondence, contract notices, or arbitration service, address our legal bureau below:",
     officer: {
-      name: "Siddharth Ranote",
+      name: "Ranjeet Subhash Pote",
       designation: "Chief Legal & Grievance Officer",
       email: "connect@ranoteexim.com",
       address: "Vadarge, Gadhinglaj, Kolhapur, Maharashtra 416502, India",

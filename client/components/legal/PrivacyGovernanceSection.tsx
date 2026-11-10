@@ -74,7 +74,7 @@ export default function PrivacyGovernanceSection({ userEmail = "" }: PrivacyGove
               Grievance Officer:
             </span>
             <span className="text-[12px] font-[700] text-[#15130D]">
-              Siddharth Ranote
+              Ranjeet Subhash Pote
             </span>
             <span className="text-[#C4912A]">•</span>
             <a
@@ -187,7 +187,7 @@ export default function PrivacyGovernanceSection({ userEmail = "" }: PrivacyGove
                   Contact Grievance Officer
                 </h4>
                 <p className="text-[13px] text-[#4A483F] mt-0.5 leading-relaxed">
-                  Siddharth Ranote (Chief Legal &amp; Grievance Officer) · Statutory response guaranteed within 24 hours under DPDP Rules.
+                  Ranjeet Subhash Pote (Chief Legal &amp; Grievance Officer) · Statutory response guaranteed within 24 hours under DPDP Rules.
                 </p>
               </div>
             </div>
